@@ -1,0 +1,18 @@
+{
+  "id": "S10",
+  "submitted": "2026-10-30T11:10:00+01:00",
+  "applicant": {
+    "name": "Mag. Elisabeth Prinz",
+    "organisation": "Provincial health fund, department for planning",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Policy-making: comparing the regional heart failure burden.",
+  "question": "How many patients with heart failure are there per 1,000 patients in each region?",
+  "definitions": [
+    "Heart failure = any condition with an ICD-10 code starting with I50.",
+    "The population of a region is all patients whose record has that region.",
+    "Report per region: heart failure patients per 1,000 patients, one decimal."
+  ]
+}

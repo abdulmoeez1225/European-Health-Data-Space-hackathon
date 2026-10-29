@@ -151,9 +151,11 @@ def decide(request: dict, assessment: PurposeAssessment, *, llm_used: bool) -> D
     if not llm_used:
         flags.append(ReviewFlag(reason="Decided by keyword rules only (no LLM available); staff must confirm."))
     elif hits and not assessment.prohibited:
-        prohibited, ground = True, next(iter(hits))
-        flags.append(ReviewFlag(reason=f"Prohibited-use keywords found ({', '.join(sum(hits.values(), []))}) "
-                                       "but the AI judged the purpose allowed; rejected pending staff review."))
+        # Keywords cannot read context ("tobacco control", "marketing authorisation holder"), so they
+        # only ask staff to confirm what the AI readings decided.
+        flags.append(ReviewFlag(reason=f"Words often linked to prohibited uses appear "
+                                       f"({', '.join(sum(hits.values(), []))}); the AI judged the purpose allowed. "
+                                       "Staff should confirm."))
     elif assessment.prohibited and not hits:
         flags.append(ReviewFlag(reason="AI judged the purpose prohibited without any keyword match; check the reasoning."))
     if prohibited and ground == "none":

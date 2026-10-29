@@ -1,0 +1,18 @@
+{
+  "id": "S18",
+  "submitted": "2026-10-30T14:06:00+01:00",
+  "applicant": {
+    "name": "Dr. Thomas Weiss",
+    "organisation": "University clinic of neurology, stroke unit",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "pseudonymised records",
+  "purpose": "Research on secondary prevention after stroke.",
+  "question": "Please send me the list of all patients with a stroke diagnosis with birth date, hospital and current anticoagulant so that I can look at them one by one.",
+  "definitions": [
+    "Stroke = any condition with an ICD-10 code starting with I63.",
+    "Anticoagulant = ATC code starting with B01A; current = active on 31 December 2025 (start_date on or before that day and end_date empty or on or after that day).",
+    "Report per hospital: patients with stroke, those with an active anticoagulant and that as a share in %, one decimal."
+  ]
+}

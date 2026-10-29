@@ -1,0 +1,3334 @@
+{
+ "S01": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "improving_care",
+     "records_justified": false,
+     "justification": "Request is explicitly a \"health data request\" for \"anonymised statistics\" aggregated per hospital (counts of patients, older-than-75, BP>=140, loop diuretic), which is answerable with aggregate counts per group.",
+     "explanation_for_applicant": "Your purpose of service planning for heart failure clinics falls under improving the delivery of care, which is allowed under Art. 53. However, since you only need counts per hospital (totals, age group, blood pressure threshold, medication), this can be answered with aggregated statistics rather than individual-level records, so record-level access is not justified here."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "I50"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "older_than_75",
+       "where": [
+        {
+         "negate": false,
+         "kind": "age",
+         "min_age": 76,
+         "max_age": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "whose_latest_systolic_reading_at_or_above_140_mmhg",
+       "where": [
+        {
+         "negate": false,
+         "kind": "observation",
+         "loinc": "8480-6",
+         "comparator": ">=",
+         "value": 140.0,
+         "date_from": null,
+         "date_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "on_loop_diuretic",
+       "where": [
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "C03CA01"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Heart failure mapped to ICD-10 I50 (Heart failure, unspecified).",
+      "Loop diuretic mapped to ATC C03CA01 (Furosemide), the only loop diuretic code in the list.",
+      "Systolic blood pressure uses LOINC 8480-6, latest value per patient."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "patients": 114,
+      "older_than_75": 77,
+      "whose_latest_systolic_reading_at_or_above_140_mmhg": 16,
+      "on_loop_diuretic": 76
+     },
+     "Klinikum Süd": {
+      "patients": 116,
+      "older_than_75": 78,
+      "whose_latest_systolic_reading_at_or_above_140_mmhg": 26,
+      "on_loop_diuretic": 71
+     },
+     "Klinikum West": {
+      "patients": 64,
+      "older_than_75": 38,
+      "whose_latest_systolic_reading_at_or_above_140_mmhg": 12,
+      "on_loop_diuretic": 37
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.data_holder AS g0,\n       TRUE AS m0_in,\n       ((p.age >= 76)) AS m1_in,\n       (COALESCE((SELECT o.value FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '8480-6') ORDER BY o.date DESC LIMIT 1) >= 140.0, FALSE)) AS m2_in,\n       (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'C03CA01%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31')))) AS m3_in\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'I50%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 14.3,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"patients\", 114], [\"older_than_75\", 77], [\"whose_latest_systolic_reading_at_or_above_140_mmhg\", 16], [\"on_loop_diuretic\", 76]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"patients\", 116], [\"older_than_75\", 78], [\"whose_latest_systolic_reading_at_or_above_140_mmhg\", 26], [\"on_loop_diuretic\", 71]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"patients\", 64], [\"older_than_75\", 38], [\"whose_latest_systolic_reading_at_or_above_140_mmhg\", 12], [\"on_loop_diuretic\", 37]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S02": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Requested as a \"health data request\" for \"anonymised statistics\" giving per-Bundesland counts and percentages — fully answerable with aggregates, no individual-level records needed.",
+     "explanation_for_applicant": "Your purpose of studying statin treatment rates among people with diabetes or obesity is allowed research under Art. 53. However, since you only need counts and percentages per Bundesland, this can be fully answered with aggregated statistics, so individual-level records are not justified."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "age",
+       "min_age": 18,
+       "max_age": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "adults_with_type_2_diabetes_or_obesity",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "E11.9",
+          "E11.65",
+          "E66.9"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "those_on_statin",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "E11.9",
+          "E11.65",
+          "E66.9"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        },
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "C10AA05"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "percent",
+       "name": "those_on_statin_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "E11.9",
+          "E11.65",
+          "E66.9"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        },
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "C10AA05"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "denominator_where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "E11.9",
+          "E11.65",
+          "E66.9"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ]
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Type 2 diabetes mapped to E11.9 and E11.65 (both type-2 diabetes codes in list); obesity mapped to E66.9.",
+      "Statin treatment mapped to ATC C10AA05 Atorvastatin, the only statin code available.",
+      "'Bundesland' = region group_by dimension.",
+      "Rounding to one decimal is a presentation detail, not part of the plan."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Burgenland": {
+      "adults_with_type_2_diabetes_or_obesity": 119,
+      "those_on_statin": 25,
+      "those_on_statin_pct": 21.0
+     },
+     "Kärnten": {
+      "adults_with_type_2_diabetes_or_obesity": 180,
+      "those_on_statin": 32,
+      "those_on_statin_pct": 17.8
+     },
+     "Niederösterreich": {
+      "adults_with_type_2_diabetes_or_obesity": 601,
+      "those_on_statin": 128,
+      "those_on_statin_pct": 21.3
+     },
+     "Oberösterreich": {
+      "adults_with_type_2_diabetes_or_obesity": 529,
+      "those_on_statin": 103,
+      "those_on_statin_pct": 19.5
+     },
+     "Salzburg": {
+      "adults_with_type_2_diabetes_or_obesity": 201,
+      "those_on_statin": 40,
+      "those_on_statin_pct": 19.9
+     },
+     "Steiermark": {
+      "adults_with_type_2_diabetes_or_obesity": 458,
+      "those_on_statin": 90,
+      "those_on_statin_pct": 19.7
+     },
+     "Tirol": {
+      "adults_with_type_2_diabetes_or_obesity": 279,
+      "those_on_statin": 60,
+      "those_on_statin_pct": 21.5
+     },
+     "Vorarlberg": {
+      "adults_with_type_2_diabetes_or_obesity": 145,
+      "those_on_statin": 23,
+      "those_on_statin_pct": 15.9
+     },
+     "Wien": {
+      "adults_with_type_2_diabetes_or_obesity": 760,
+      "those_on_statin": 152,
+      "those_on_statin_pct": 20.0
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.region AS g0,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11.9%' OR c.icd10 LIKE 'E11.65%' OR c.icd10 LIKE 'E66.9%')))) AS m0_in,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11.9%' OR c.icd10 LIKE 'E11.65%' OR c.icd10 LIKE 'E66.9%')))) AND (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'C10AA05%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31')))) AS m1_in,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11.9%' OR c.icd10 LIKE 'E11.65%' OR c.icd10 LIKE 'E66.9%')))) AS m2_den,\n       ((EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11.9%' OR c.icd10 LIKE 'E11.65%' OR c.icd10 LIKE 'E66.9%'))))) AND ((EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11.9%' OR c.icd10 LIKE 'E11.65%' OR c.icd10 LIKE 'E66.9%')))) AND (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'C10AA05%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31'))))) AS m2_num\nFROM patients p\nWHERE ((p.age >= 18))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 17.7,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"region\", \"Burgenland\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 119], [\"those_on_statin\", 25], [\"those_on_statin_pct\", 21.0]]], [[[\"region\", \"Kärnten\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 180], [\"those_on_statin\", 32], [\"those_on_statin_pct\", 17.8]]], [[[\"region\", \"Niederösterreich\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 601], [\"those_on_statin\", 128], [\"those_on_statin_pct\", 21.3]]], [[[\"region\", \"Oberösterreich\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 529], [\"those_on_statin\", 103], [\"those_on_statin_pct\", 19.5]]], [[[\"region\", \"Salzburg\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 201], [\"those_on_statin\", 40], [\"those_on_statin_pct\", 19.9]]], [[[\"region\", \"Steiermark\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 458], [\"those_on_statin\", 90], [\"those_on_statin_pct\", 19.7]]], [[[\"region\", \"Tirol\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 279], [\"those_on_statin\", 60], [\"those_on_statin_pct\", 21.5]]], [[[\"region\", \"Vorarlberg\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 145], [\"those_on_statin\", 23], [\"those_on_statin_pct\", 15.9]]], [[[\"region\", \"Wien\"]], [[\"adults_with_type_2_diabetes_or_obesity\", 760], [\"those_on_statin\", 152], [\"those_on_statin_pct\", 20.0]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S03": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "public_interest_public_health",
+     "records_justified": false,
+     "justification": "Request is explicitly a \"health data request\" for \"anonymised statistics\" to inform placement of prevention programmes by state and age group.",
+     "explanation_for_applicant": "Your purpose—deciding where to place obesity prevention programmes—falls under the allowed public health purpose of Art. 53. However, since you only need counts per federal state and age group, aggregated statistics are sufficient and individual-level records are not justified; your request will be handled as an anonymised statistics request, which is what you asked for."
+    },
+    "review_flags": [
+     "The request lists 3 numbers to report; the plan computes 1. Check that nothing is missing."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "E66"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      },
+      {
+       "dimension": "age_band",
+       "age_bands": [
+        {
+         "label": "under 40",
+         "min_age": 0,
+         "max_age": 39
+        },
+        {
+         "label": "40-64",
+         "min_age": 40,
+         "max_age": 64
+        },
+        {
+         "label": "65+",
+         "min_age": 65,
+         "max_age": null
+        }
+       ]
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Federal state mapped to region dimension.",
+      "Obesity = any condition with ICD-10 starting E66, per definition given."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Burgenland": {
+      "under 40": {
+       "patients": 30
+      },
+      "40-64": {
+       "patients": 39
+      },
+      "65+": {
+       "patients": 23
+      }
+     },
+     "Kärnten": {
+      "under 40": {
+       "patients": 52
+      },
+      "40-64": {
+       "patients": 46
+      },
+      "65+": {
+       "patients": 28
+      }
+     },
+     "Niederösterreich": {
+      "under 40": {
+       "patients": 153
+      },
+      "40-64": {
+       "patients": 175
+      },
+      "65+": {
+       "patients": 119
+      }
+     },
+     "Oberösterreich": {
+      "under 40": {
+       "patients": 134
+      },
+      "40-64": {
+       "patients": 181
+      },
+      "65+": {
+       "patients": 85
+      }
+     },
+     "Salzburg": {
+      "under 40": {
+       "patients": 56
+      },
+      "40-64": {
+       "patients": 63
+      },
+      "65+": {
+       "patients": 32
+      }
+     },
+     "Steiermark": {
+      "under 40": {
+       "patients": 124
+      },
+      "40-64": {
+       "patients": 136
+      },
+      "65+": {
+       "patients": 69
+      }
+     },
+     "Tirol": {
+      "under 40": {
+       "patients": 65
+      },
+      "40-64": {
+       "patients": 72
+      },
+      "65+": {
+       "patients": 63
+      }
+     },
+     "Vorarlberg": {
+      "under 40": {
+       "patients": 44
+      },
+      "40-64": {
+       "patients": 44
+      },
+      "65+": {
+       "patients": 27
+      }
+     },
+     "Wien": {
+      "under 40": {
+       "patients": 187
+      },
+      "40-64": {
+       "patients": 241
+      },
+      "65+": {
+       "patients": 148
+      }
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.region AS g0,\n       CASE WHEN p.age >= 0 AND p.age <= 39 THEN 'under 40' WHEN p.age >= 40 AND p.age <= 64 THEN '40-64' WHEN p.age >= 65 THEN '65+' END AS g1,\n       TRUE AS m0_in\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E66%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.2,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"age_band\", \"40-64\"], [\"region\", \"Burgenland\"]], [[\"patients\", 39]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Kärnten\"]], [[\"patients\", 46]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Niederösterreich\"]], [[\"patients\", 175]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Oberösterreich\"]], [[\"patients\", 181]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Salzburg\"]], [[\"patients\", 63]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Steiermark\"]], [[\"patients\", 136]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Tirol\"]], [[\"patients\", 72]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Vorarlberg\"]], [[\"patients\", 44]]], [[[\"age_band\", \"40-64\"], [\"region\", \"Wien\"]], [[\"patients\", 241]]], [[[\"age_band\", \"65+\"], [\"region\", \"Burgenland\"]], [[\"patients\", 23]]], [[[\"age_band\", \"65+\"], [\"region\", \"Kärnten\"]], [[\"patients\", 28]]], [[[\"age_band\", \"65+\"], [\"region\", \"Niederösterreich\"]], [[\"patients\", 119]]], [[[\"age_band\", \"65+\"], [\"region\", \"Oberösterreich\"]], [[\"patients\", 85]]], [[[\"age_band\", \"65+\"], [\"region\", \"Salzburg\"]], [[\"patients\", 32]]], [[[\"age_band\", \"65+\"], [\"region\", \"Steiermark\"]], [[\"patients\", 69]]], [[[\"age_band\", \"65+\"], [\"region\", \"Tirol\"]], [[\"patients\", 63]]], [[[\"age_band\", \"65+\"], [\"region\", \"Vorarlberg\"]], [[\"patients\", 27]]], [[[\"age_band\", \"65+\"], [\"region\", \"Wien\"]], [[\"patients\", 148]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Burgenland\"]], [[\"patients\", 30]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Kärnten\"]], [[\"patients\", 52]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Niederösterreich\"]], [[\"patients\", 153]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Oberösterreich\"]], [[\"patients\", 134]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Salzburg\"]], [[\"patients\", 56]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Steiermark\"]], [[\"patients\", 124]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Tirol\"]], [[\"patients\", 65]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Vorarlberg\"]], [[\"patients\", 44]]], [[[\"age_band\", \"under 40\"], [\"region\", \"Wien\"]], [[\"patients\", 187]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S04": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "improving_care",
+     "records_justified": false,
+     "justification": "Requested as \"health data request\" in \"anonymised statistics\" format, per-hospital counts, distinct patients and mean length of stay — all answerable with aggregate statistics.",
+     "explanation_for_applicant": "Your purpose of quality management on infection burden fits improving care delivery, which is allowed under Art. 53. However, you explicitly requested aggregated, anonymised statistics rather than individual-level records, and your question (admissions, distinct patients, average stay length per hospital) can be fully answered with such statistics, so no justification for record-level data is needed or applicable here."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "encounters",
+     "cohort": [],
+     "encounter_filter": {
+      "types": [
+       "inpatient"
+      ],
+      "primary_icd10_prefixes": [
+       "J18.9",
+       "N39.0"
+      ],
+      "start_from": "2024-01-01",
+      "start_to": "2024-12-31"
+     },
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "admissions",
+       "where": [],
+       "distinct_patients": false
+      },
+      {
+       "kind": "count",
+       "name": "distinct_patients_admitted",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "mean",
+       "name": "mean_length_stay",
+       "of": "length_of_stay_days",
+       "loinc": null,
+       "which": "latest",
+       "date_from": null,
+       "date_to": null,
+       "where": []
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Interpreted 'Spital' as hospital/data_holder.",
+      "Main diagnosis restricted to pneumonia (J18.9) and UTI (N39.0) ICD-10 codes from the provided list.",
+      "Admissions = inpatient encounters started in 2024.",
+      "Mean length of stay computed as end_date minus start_date for the counted admissions, rounded to one decimal by the engine."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "admissions": 68,
+      "distinct_patients_admitted": 67,
+      "mean_length_stay": 8.6
+     },
+     "Klinikum Süd": {
+      "admissions": 44,
+      "distinct_patients_admitted": 44,
+      "mean_length_stay": 7.6
+     },
+     "Klinikum West": {
+      "admissions": 38,
+      "distinct_patients_admitted": 38,
+      "mean_length_stay": 8.1
+     }
+    },
+    "sql": "SELECT e.encounter_id AS unit_id,\n       p.patient_id,\n       e.data_holder AS g0,\n       TRUE AS m0_in,\n       TRUE AS m1_in,\n       CASE WHEN TRUE THEN CAST(date_diff('day', e.start_date, e.end_date) AS DECIMAL(12,4)) END AS m2_val\nFROM encounters e JOIN patients p ON p.patient_id = e.patient_id\nWHERE (e.type IN ('inpatient')) AND ((e.primary_icd10 LIKE 'J18.9%' OR e.primary_icd10 LIKE 'N39.0%')) AND (e.start_date >= DATE '2024-01-01') AND (e.start_date <= DATE '2024-12-31')",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 12.4,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"admissions\", 68], [\"distinct_patients_admitted\", 67], [\"mean_length_stay\", 8.6]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"admissions\", 44], [\"distinct_patients_admitted\", 44], [\"mean_length_stay\", 7.6]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"admissions\", 38], [\"distinct_patients_admitted\", 38], [\"mean_length_stay\", 8.1]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S05": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "\"Policy-making: assessing the pressure on emergency departments\" requested as \"health data request\" in \"anonymised statistics\" format",
+     "explanation_for_applicant": "Your request is for a policy-making purpose under Art. 53, which is allowed. Since you only need per-hospital percentages of emergency visits among all contacts, this can be answered with aggregate statistics, so no individual-level records are needed or justified."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "encounters",
+     "cohort": [],
+     "encounter_filter": {
+      "types": null,
+      "primary_icd10_prefixes": null,
+      "start_from": "2025-01-01",
+      "start_to": "2025-12-31"
+     },
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "all_contacts",
+       "where": [],
+       "distinct_patients": false
+      },
+      {
+       "kind": "count",
+       "name": "emergency_visits",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": [
+          "emergency"
+         ],
+         "primary_icd10_prefixes": null,
+         "start_from": null,
+         "start_to": null,
+         "min_count": 1
+        }
+       ],
+       "distinct_patients": false
+      },
+      {
+       "kind": "percent",
+       "name": "emergency_visits_as_all_contacts_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": [
+          "emergency"
+         ],
+         "primary_icd10_prefixes": null,
+         "start_from": null,
+         "start_to": null,
+         "min_count": 1
+        }
+       ],
+       "denominator_where": []
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Contacts = encounters started in 2025, grouped by hospital (data_holder).",
+      "Rounding to one decimal is a presentation detail not represented in the schema."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "all_contacts": 6313,
+      "emergency_visits": 461,
+      "emergency_visits_as_all_contacts_pct": 7.3
+     },
+     "Klinikum Süd": {
+      "all_contacts": 5459,
+      "emergency_visits": 369,
+      "emergency_visits_as_all_contacts_pct": 6.8
+     },
+     "Klinikum West": {
+      "all_contacts": 3753,
+      "emergency_visits": 272,
+      "emergency_visits_as_all_contacts_pct": 7.2
+     }
+    },
+    "sql": "SELECT e.encounter_id AS unit_id,\n       p.patient_id,\n       e.data_holder AS g0,\n       TRUE AS m0_in,\n       ((e.type IN ('emergency'))) AS m1_in,\n       TRUE AS m2_den,\n       (TRUE) AND (((e.type IN ('emergency')))) AS m2_num\nFROM encounters e JOIN patients p ON p.patient_id = e.patient_id\nWHERE (e.start_date >= DATE '2025-01-01') AND (e.start_date <= DATE '2025-12-31')",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.3,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"all_contacts\", 6313], [\"emergency_visits\", 461], [\"emergency_visits_as_all_contacts_pct\", 7.3]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"all_contacts\", 5459], [\"emergency_visits\", 369], [\"emergency_visits_as_all_contacts_pct\", 6.8]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"all_contacts\", 3753], [\"emergency_visits\", 272], [\"emergency_visits_as_all_contacts_pct\", 7.2]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S06": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "improving_care",
+     "records_justified": false,
+     "justification": "\"Quality assurance: how well glycaemic control is achieved in our own patient population\" requested as aggregate counts and shares per age group, i.e., \"health data request\" / \"anonymised statistics\"",
+     "explanation_for_applicant": "Your purpose, internal quality assurance of glycaemic control, is an allowed purpose under Art. 53 as improving the delivery of care. Since you only need counts and percentages per age group, this can be fully answered with anonymised statistics, so individual-level records are not justified here."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "data_holder",
+       "data_holders": [
+        "Klinikum Süd"
+       ]
+      },
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "E11"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "age_band",
+       "age_bands": [
+        {
+         "label": "under 50",
+         "min_age": 0,
+         "max_age": 49
+        },
+        {
+         "label": "50-69",
+         "min_age": 50,
+         "max_age": 69
+        },
+        {
+         "label": "70+",
+         "min_age": 70,
+         "max_age": null
+        }
+       ]
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_type_2_diabetes",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "hba1c_measurement",
+       "where": [
+        {
+         "negate": false,
+         "kind": "observation",
+         "loinc": "4548-4",
+         "comparator": null,
+         "value": null,
+         "date_from": null,
+         "date_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "latest_hba1c_above_8_0",
+       "where": [
+        {
+         "negate": false,
+         "kind": "observation",
+         "loinc": "4548-4",
+         "comparator": ">",
+         "value": 8.0,
+         "date_from": null,
+         "date_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "percent",
+       "name": "latest_hba1c_above_8_0_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "observation",
+         "loinc": "4548-4",
+         "comparator": ">",
+         "value": 8.0,
+         "date_from": null,
+         "date_to": null
+        }
+       ],
+       "denominator_where": [
+        {
+         "negate": false,
+         "kind": "observation",
+         "loinc": "4548-4",
+         "comparator": null,
+         "value": null,
+         "date_from": null,
+         "date_to": null
+        }
+       ]
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Share's denominator restricted to patients with an HbA1c measurement per the definitions, not the full diabetes cohort."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "under 50": {
+      "patients_with_type_2_diabetes": 42,
+      "hba1c_measurement": 42,
+      "latest_hba1c_above_8_0": "<10",
+      "latest_hba1c_above_8_0_pct": "suppressed"
+     },
+     "50-69": {
+      "patients_with_type_2_diabetes": 178,
+      "hba1c_measurement": 178,
+      "latest_hba1c_above_8_0": 40,
+      "latest_hba1c_above_8_0_pct": 22.5
+     },
+     "70+": {
+      "patients_with_type_2_diabetes": 185,
+      "hba1c_measurement": 185,
+      "latest_hba1c_above_8_0": 51,
+      "latest_hba1c_above_8_0_pct": 27.6
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       CASE WHEN p.age >= 0 AND p.age <= 49 THEN 'under 50' WHEN p.age >= 50 AND p.age <= 69 THEN '50-69' WHEN p.age >= 70 THEN '70+' END AS g0,\n       TRUE AS m0_in,\n       (EXISTS (SELECT 1 FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4'))) AS m1_in,\n       (COALESCE((SELECT o.value FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4') ORDER BY o.date DESC LIMIT 1) > 8.0, FALSE)) AS m2_in,\n       (EXISTS (SELECT 1 FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4'))) AS m3_den,\n       ((EXISTS (SELECT 1 FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4')))) AND ((COALESCE((SELECT o.value FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4') ORDER BY o.date DESC LIMIT 1) > 8.0, FALSE))) AS m3_num\nFROM patients p\nWHERE (p.data_holder IN ('Klinikum Süd')) AND (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 17.9,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"age_band\", \"50-69\"]], [[\"patients_with_type_2_diabetes\", 178], [\"hba1c_measurement\", 178], [\"latest_hba1c_above_8_0\", 40], [\"latest_hba1c_above_8_0_pct\", 22.5]]], [[[\"age_band\", \"70+\"]], [[\"patients_with_type_2_diabetes\", 185], [\"hba1c_measurement\", 185], [\"latest_hba1c_above_8_0\", 51], [\"latest_hba1c_above_8_0_pct\", 27.6]]], [[[\"age_band\", \"under 50\"]], [[\"patients_with_type_2_diabetes\", 42], [\"hba1c_measurement\", 42], [\"latest_hba1c_above_8_0\", \"<10\"], [\"latest_hba1c_above_8_0_pct\", \"suppressed\"]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S07": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Request is for aggregate counts per region (ever prescribed, still active, percentage) requested as \"health data request\" in \"anonymised statistics\" format, which can be fully answered with aggregate statistics.",
+     "explanation_for_applicant": "Your purpose, health services research on diabetes treatment persistence, is an allowed purpose under Art. 53. However, since your question only needs per-region counts and percentages, it can be answered with anonymised aggregate statistics rather than individual-level records, so no justification for record-level access has been shown or is needed here as this is already a statistics request."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "medication",
+       "atc_prefixes": [
+        "A10BA02"
+       ],
+       "active_on": null,
+       "started_from": null,
+       "started_to": null,
+       "overlaps_from": null,
+       "overlaps_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_ever_prescribed_metformin",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "patients_with_active_metformin_prescription",
+       "where": [
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "A10BA02"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "percent",
+       "name": "patients_with_active_metformin_prescription_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "A10BA02"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "denominator_where": []
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Cohort restricted to patients ever prescribed metformin (any prescription, started/ended at any time).",
+      "Share metric denominator is the ever-prescribed cohort group population as stated in the definitions."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Burgenland": {
+      "patients_ever_prescribed_metformin": 31,
+      "patients_with_active_metformin_prescription": 30,
+      "patients_with_active_metformin_prescription_pct": 96.8
+     },
+     "Kärnten": {
+      "patients_ever_prescribed_metformin": 57,
+      "patients_with_active_metformin_prescription": 54,
+      "patients_with_active_metformin_prescription_pct": 94.7
+     },
+     "Niederösterreich": {
+      "patients_ever_prescribed_metformin": 199,
+      "patients_with_active_metformin_prescription": 174,
+      "patients_with_active_metformin_prescription_pct": 87.4
+     },
+     "Oberösterreich": {
+      "patients_ever_prescribed_metformin": 140,
+      "patients_with_active_metformin_prescription": 130,
+      "patients_with_active_metformin_prescription_pct": 92.9
+     },
+     "Salzburg": {
+      "patients_ever_prescribed_metformin": 68,
+      "patients_with_active_metformin_prescription": 58,
+      "patients_with_active_metformin_prescription_pct": 85.3
+     },
+     "Steiermark": {
+      "patients_ever_prescribed_metformin": 134,
+      "patients_with_active_metformin_prescription": 122,
+      "patients_with_active_metformin_prescription_pct": 91.0
+     },
+     "Tirol": {
+      "patients_ever_prescribed_metformin": 94,
+      "patients_with_active_metformin_prescription": 85,
+      "patients_with_active_metformin_prescription_pct": 90.4
+     },
+     "Vorarlberg": {
+      "patients_ever_prescribed_metformin": 28,
+      "patients_with_active_metformin_prescription": 26,
+      "patients_with_active_metformin_prescription_pct": 92.9
+     },
+     "Wien": {
+      "patients_ever_prescribed_metformin": 219,
+      "patients_with_active_metformin_prescription": 206,
+      "patients_with_active_metformin_prescription_pct": 94.1
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.region AS g0,\n       TRUE AS m0_in,\n       (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'A10BA02%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31')))) AS m1_in,\n       TRUE AS m2_den,\n       (TRUE) AND ((EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'A10BA02%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31'))))) AS m2_num\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'A10BA02%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 11.5,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"region\", \"Burgenland\"]], [[\"patients_ever_prescribed_metformin\", 31], [\"patients_with_active_metformin_prescription\", 30], [\"patients_with_active_metformin_prescription_pct\", 96.8]]], [[[\"region\", \"Kärnten\"]], [[\"patients_ever_prescribed_metformin\", 57], [\"patients_with_active_metformin_prescription\", 54], [\"patients_with_active_metformin_prescription_pct\", 94.7]]], [[[\"region\", \"Niederösterreich\"]], [[\"patients_ever_prescribed_metformin\", 199], [\"patients_with_active_metformin_prescription\", 174], [\"patients_with_active_metformin_prescription_pct\", 87.4]]], [[[\"region\", \"Oberösterreich\"]], [[\"patients_ever_prescribed_metformin\", 140], [\"patients_with_active_metformin_prescription\", 130], [\"patients_with_active_metformin_prescription_pct\", 92.9]]], [[[\"region\", \"Salzburg\"]], [[\"patients_ever_prescribed_metformin\", 68], [\"patients_with_active_metformin_prescription\", 58], [\"patients_with_active_metformin_prescription_pct\", 85.3]]], [[[\"region\", \"Steiermark\"]], [[\"patients_ever_prescribed_metformin\", 134], [\"patients_with_active_metformin_prescription\", 122], [\"patients_with_active_metformin_prescription_pct\", 91.0]]], [[[\"region\", \"Tirol\"]], [[\"patients_ever_prescribed_metformin\", 94], [\"patients_with_active_metformin_prescription\", 85], [\"patients_with_active_metformin_prescription_pct\", 90.4]]], [[[\"region\", \"Vorarlberg\"]], [[\"patients_ever_prescribed_metformin\", 28], [\"patients_with_active_metformin_prescription\", 26], [\"patients_with_active_metformin_prescription_pct\", 92.9]]], [[[\"region\", \"Wien\"]], [[\"patients_ever_prescribed_metformin\", 219], [\"patients_with_active_metformin_prescription\", 206], [\"patients_with_active_metformin_prescription_pct\", 94.1]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S08": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "\"Research on the incidence of depression and obesity to plan outpatient services\" and request is explicitly for \"anonymised statistics\" with aggregate counts per hospital.",
+     "explanation_for_applicant": "Your purpose of planning outpatient services based on incidence of depression and obesity is allowed under Art. 53 as public health/policy planning. Since you requested and only need aggregated counts per hospital rather than individual-level records, this can be fully answered with anonymised statistics, so there is no justification for record-level data access."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_depression_onset_2024",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "F32"
+         ],
+         "onset_from": "2024-01-01",
+         "onset_to": "2024-12-31"
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "patients_with_obesity_onset_2024",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "E66"
+         ],
+         "onset_from": "2024-01-01",
+         "onset_to": "2024-12-31"
+        }
+       ],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "'New diagnosis in 2024' mapped to ConditionCriterion onset_from/onset_to bounding the year.",
+      "Hospital mapped to data_holder grouping dimension."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "patients_with_depression_onset_2024": 30,
+      "patients_with_obesity_onset_2024": 80
+     },
+     "Klinikum Süd": {
+      "patients_with_depression_onset_2024": 28,
+      "patients_with_obesity_onset_2024": 49
+     },
+     "Klinikum West": {
+      "patients_with_depression_onset_2024": 19,
+      "patients_with_obesity_onset_2024": 32
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.data_holder AS g0,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'F32%')) AND (c.onset_date >= DATE '2024-01-01') AND (c.onset_date <= DATE '2024-12-31'))) AS m0_in,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E66%')) AND (c.onset_date >= DATE '2024-01-01') AND (c.onset_date <= DATE '2024-12-31'))) AS m1_in\nFROM patients p\nWHERE TRUE",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 14.0,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"patients_with_depression_onset_2024\", 30], [\"patients_with_obesity_onset_2024\", 80]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"patients_with_depression_onset_2024\", 28], [\"patients_with_obesity_onset_2024\", 49]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"patients_with_depression_onset_2024\", 19], [\"patients_with_obesity_onset_2024\", 32]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S09": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Requested as a 'health data request' for 'anonymised statistics' asking for median BMI per region, which is an aggregate statistic obtainable without individual-level records.",
+     "explanation_for_applicant": "Your purpose of researching weight in type 2 diabetes to inform lifestyle counselling falls under scientific research, an allowed purpose under Art. 53. However, since your question only needs median BMI and counts per region, this can be answered with aggregated statistics, so individual-level records are not justified here."
+    },
+    "review_flags": [
+     "The request lists 2 numbers to report; the plan computes 1. Check that nothing is missing.",
+     "Cannot be computed automatically: Median BMI per region is not expressible with this plan; only mean values are supported, not medians. Staff must prepare this answer."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "age",
+       "min_age": 18,
+       "max_age": null
+      },
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "E11"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      },
+      {
+       "negate": false,
+       "kind": "observation",
+       "loinc": "39156-5",
+       "comparator": null,
+       "value": null,
+       "date_from": null,
+       "date_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "adults_with_bmi",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Median BMI cannot be computed by this engine (only mean is supported); reporting count instead, median_bmi flagged as unsupported."
+     ],
+     "unsupported": "Median BMI per region is not expressible with this plan; only mean values are supported, not medians."
+    },
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 9.6,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [
+   "no numbers released (flagged)"
+  ],
+  "leaks": [],
+  "consistent": true
+ },
+ "S10": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "Requested as a \"health data request\" for \"anonymised statistics\" to compare regional heart failure burden per 1,000 patients - answerable with aggregate rates.",
+     "explanation_for_applicant": "Your purpose of comparing regional heart failure burden for policy-making is allowed under Art. 53. However, since you only need aggregated rates per region, this can be answered with anonymised statistics rather than individual-level records, so record-level access is not justified here - which matches what you requested."
+    },
+    "review_flags": [
+     "The request lists 1 numbers to report; the plan computes 2. Check that nothing is missing.",
+     "Cannot be computed automatically: The requested rate 'per 1,000 patients' cannot be computed by this plan, which only supports counts, percentages, and means; counts of total patients and heart-failure patients per region are provided instead so the rate can be derived externally, not approximated here. Staff must prepare this answer."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "heart_failure_patients",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "I50"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Heart failure mapped to ICD-10 I50 (shortest prefix covering I50.9).",
+      "Providing population counts and heart-failure patient counts per region as a basis; cannot compute the exact 'per 1,000' rate itself."
+     ],
+     "unsupported": "The requested rate 'per 1,000 patients' cannot be computed by this plan, which only supports counts, percentages, and means; counts of total patients and heart-failure patients per region are provided instead so the rate can be derived externally, not approximated here."
+    },
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.2,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [
+   "no numbers released (flagged)"
+  ],
+  "leaks": [],
+  "consistent": true
+ },
+ "S11": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Request is for \"anonymised statistics\" (mean age by sex) to adjust screening recommendations — answerable with aggregate means per group, no individual-level records needed.",
+     "explanation_for_applicant": "Your purpose—researching stroke age to inform screening recommendations—is an allowed scientific research purpose under Art. 53. However, since you only need the average age per sex, this can be answered with aggregated statistics, so individual-level records are not justified. We will provide you with the anonymised statistics as requested."
+    },
+    "review_flags": [
+     "The request lists 2 numbers to report; the plan computes 1. Check that nothing is missing.",
+     "Cannot be computed automatically: Mean age of stroke patients per sex cannot be expressed with this plan: the schema's MeanMetric only supports averaging LOINC measurement values or encounter length-of-stay, not patient age, so no metric can compute an average age. Staff must prepare this answer."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "I63"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "stroke_patients",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Mean age cannot be computed with this schema: MeanMetric only supports LOINC observation values or encounter length-of-stay, not patient age."
+     ],
+     "unsupported": "Mean age of stroke patients per sex cannot be expressed with this plan: the schema's MeanMetric only supports averaging LOINC measurement values or encounter length-of-stay, not patient age, so no metric can compute an average age."
+    },
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.6,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [
+   "no numbers released (flagged)"
+  ],
+  "leaks": [],
+  "consistent": true
+ },
+ "S12": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "improving_care",
+     "records_justified": false,
+     "justification": "Requested as \"health data request\" with \"anonymised statistics\" format, asking for mean HbA1c per sex group for quality assurance purposes.",
+     "explanation_for_applicant": "Your purpose of quality assurance for glycaemic control falls under the allowed purpose of improving care. However, since you only need mean HbA1c values per sex group, this can be fully answered with aggregate statistics, so individual-level records are not justified—and indeed you have correctly requested anonymised statistics rather than records."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "E11"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      },
+      {
+       "negate": false,
+       "kind": "observation",
+       "loinc": "4548-4",
+       "comparator": null,
+       "value": null,
+       "date_from": "2023-01-01",
+       "date_to": "2023-12-31"
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_type_2_diabetes_with_hba1c_2023",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "mean",
+       "name": "their_mean_hba1c",
+       "of": "observation",
+       "loinc": "4548-4",
+       "which": "latest",
+       "date_from": "2023-01-01",
+       "date_to": "2023-12-31",
+       "where": []
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Interpreted 'most recent HbA1c measured within 2023' as latest observation value dated between 2023-01-01 and 2023-12-31, used both as cohort filter (exclude patients without one) and as the mean metric's date window."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "patients_with_type_2_diabetes_with_hba1c_2023": 296,
+      "their_mean_hba1c": 7.1
+     },
+     "male": {
+      "patients_with_type_2_diabetes_with_hba1c_2023": 312,
+      "their_mean_hba1c": 7.3
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       TRUE AS m0_in,\n       CASE WHEN TRUE THEN (SELECT o.value FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4') AND (o.date >= DATE '2023-01-01') AND (o.date <= DATE '2023-12-31') ORDER BY o.date DESC LIMIT 1) END AS m1_val\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'E11%')))) AND (EXISTS (SELECT 1 FROM observations o WHERE (o.patient_id = p.patient_id) AND (o.loinc = '4548-4') AND (o.date >= DATE '2023-01-01') AND (o.date <= DATE '2023-12-31')))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.3,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"sex\", \"female\"]], [[\"patients_with_type_2_diabetes_with_hba1c_2023\", 296], [\"their_mean_hba1c\", 7.1]]], [[[\"sex\", \"male\"]], [[\"patients_with_type_2_diabetes_with_hba1c_2023\", 312], [\"their_mean_hba1c\", 7.3]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S13": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "employment_or_insurance_or_credit",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"product team can refine the risk classes and tariffs of our new supplementary health cover\"",
+     "explanation_for_applicant": "Your stated purpose is to refine insurance risk classes and tariffs, which falls under the prohibited purpose of insurance-related decisions under Art. 54. Even though you requested aggregate statistics, the use of the results to set premiums or tariff conditions makes this request prohibited regardless of format. We cannot approve this application."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 6.5,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S14": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "detrimental_decisions",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"cross-match the picture with our personnel file so that flagged individuals are placed in the mandatory programme and considered in their annual appraisal\"",
+     "explanation_for_applicant": "You state you will cross-match these statistics with your own personnel file to flag individuals for a mandatory programme and factor this into annual appraisals. That is a detrimental use against identifiable employees, which is prohibited under Art. 54 regardless of the format requested. We cannot approve this application."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 5.8,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S15": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "advertising_or_marketing",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"so that our field team can organise sponsored dinners and symposia that introduce our new heart failure drug to the local specialists\"",
+     "explanation_for_applicant": "Your request is intended to target regions for sponsored marketing events promoting your drug to cardiologists. Under Art. 54, use of health data for advertising or marketing toward health professionals is prohibited, regardless of the \"medical education\" label. This application cannot be approved."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 6.6,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S16": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "advertising_or_marketing",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"position the range as a 'relaxing evening treat' and to choose the regions for our launch\" for alcoholic beverage marketing",
+     "explanation_for_applicant": "Your request is for marketing and product launch targeting of alcoholic beverages, which is a prohibited purpose under Art. 54 (advertising/marketing, and alcoholic beverages are explicitly listed as harmful products). This is not one of the allowed purposes under Art. 53, so we cannot grant access to health data for this purpose, even as aggregated statistics."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 5.4,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S17": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "public_interest_public_health",
+     "records_justified": false,
+     "justification": "\"post-authorisation safety study required by the regulator\" and request format is \"anonymised statistics\"",
+     "explanation_for_applicant": "Your request is for anonymised aggregate statistics to support a regulator-required post-authorisation safety study, which falls under the public health purpose allowed by Art. 53. Since you asked for counts and percentages per group rather than individual-level records, no further justification for record-level data is needed. This request is granted as a statistics request."
+    },
+    "review_flags": [
+     "Words often linked to prohibited uses appear (marketing); the AI judged the purpose allowed. Staff should confirm."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "medication",
+       "atc_prefixes": [
+        "A10BK"
+       ],
+       "active_on": "2025-12-31",
+       "started_from": null,
+       "started_to": null,
+       "overlaps_from": null,
+       "overlaps_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_active_sglt2_inhibitor",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "those_aged_75_or_older",
+       "where": [
+        {
+         "negate": false,
+         "kind": "age",
+         "min_age": 75,
+         "max_age": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "those_with_chronic_kidney_disease",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "N18"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "percent",
+       "name": "those_with_chronic_kidney_disease_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "N18"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "denominator_where": []
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "SGLT2 inhibitor mapped to ATC A10BK.",
+      "Chronic kidney disease mapped to ICD-10 N18 per definition.",
+      "Share of chronic kidney disease is of all patients with an active SGLT2 inhibitor, per sex group, as stated in the request."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "patients_with_active_sglt2_inhibitor": 153,
+      "those_aged_75_or_older": 54,
+      "those_with_chronic_kidney_disease": 10,
+      "those_with_chronic_kidney_disease_pct": 6.5
+     },
+     "male": {
+      "patients_with_active_sglt2_inhibitor": 151,
+      "those_aged_75_or_older": 45,
+      "those_with_chronic_kidney_disease": 16,
+      "those_with_chronic_kidney_disease_pct": 10.6
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       TRUE AS m0_in,\n       ((p.age >= 75)) AS m1_in,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'N18%')))) AS m2_in,\n       TRUE AS m3_den,\n       (TRUE) AND ((EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'N18%'))))) AS m3_num\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'A10BK%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 14.0,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"sex\", \"female\"]], [[\"patients_with_active_sglt2_inhibitor\", 153], [\"those_aged_75_or_older\", 54], [\"those_with_chronic_kidney_disease\", 10], [\"those_with_chronic_kidney_disease_pct\", 6.5]]], [[[\"sex\", \"male\"]], [[\"patients_with_active_sglt2_inhibitor\", 151], [\"those_aged_75_or_older\", 45], [\"those_with_chronic_kidney_disease\", 16], [\"those_with_chronic_kidney_disease_pct\", 10.6]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S18": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Applicant asks to \"send me the list of all patients ... so that I can look at them one by one\" without explaining why the defined per-hospital aggregate report (counts, active anticoagulant, % share) would be insufficient.",
+     "explanation_for_applicant": "Your stated purpose, secondary stroke prevention research, is an allowed purpose under Art. 53. However, you have not explained why individual patient records with birth dates are needed instead of the aggregated per-hospital statistics (counts and percentages) already defined in your request. Please justify why anonymised/aggregate figures would not answer your research question before record-level pseudonymised data can be granted.</explanation_for_applicant>\n</invoke>\n"
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "I63"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_stroke",
+       "where": [],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "those_with_active_anticoagulant",
+       "where": [
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "B01A"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "percent",
+       "name": "those_with_active_anticoagulant_pct",
+       "numerator_where": [
+        {
+         "negate": false,
+         "kind": "medication",
+         "atc_prefixes": [
+          "B01A"
+         ],
+         "active_on": "2025-12-31",
+         "started_from": null,
+         "started_to": null,
+         "overlaps_from": null,
+         "overlaps_to": null
+        }
+       ],
+       "denominator_where": []
+      }
+     ],
+     "spe_records": [
+      {
+       "table": "patients",
+       "codes": null
+      },
+      {
+       "table": "conditions",
+       "codes": [
+        "I63"
+       ]
+      },
+      {
+       "table": "medications",
+       "codes": [
+        "B01A"
+       ]
+      }
+     ],
+     "notes": [
+      "Request combines a pseudonymised record export (stroke patients with birth date, hospital, current anticoagulant) with a per-hospital aggregate report; both spe_records and group_by/metrics are populated.",
+      "'Current anticoagulant' mapped to ATC B01A active on 2025-12-31 per definitions.",
+      "Stroke mapped to ICD-10 prefix I63 per definitions.",
+      "Medications record selection restricted to B01A since only the current anticoagulant is requested.",
+      "No code restriction applied to patients table (demographics needed: birth date, hospital)."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "patients_with_stroke": 53,
+      "those_with_active_anticoagulant": "<10",
+      "those_with_active_anticoagulant_pct": "suppressed"
+     },
+     "Klinikum Süd": {
+      "patients_with_stroke": 41,
+      "those_with_active_anticoagulant": "<10",
+      "those_with_active_anticoagulant_pct": "suppressed"
+     },
+     "Klinikum West": {
+      "patients_with_stroke": 37,
+      "those_with_active_anticoagulant": "<10",
+      "those_with_active_anticoagulant_pct": "suppressed"
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.data_holder AS g0,\n       TRUE AS m0_in,\n       (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'B01A%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31')))) AS m1_in,\n       TRUE AS m2_den,\n       (TRUE) AND ((EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'B01A%')) AND (m.start_date <= DATE '2025-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2025-12-31'))))) AS m2_num\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'I63%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 17.1,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"patients_with_stroke\", 53], [\"those_with_active_anticoagulant\", \"<10\"], [\"those_with_active_anticoagulant_pct\", \"suppressed\"]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"patients_with_stroke\", 41], [\"those_with_active_anticoagulant\", \"<10\"], [\"those_with_active_anticoagulant_pct\", \"suppressed\"]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"patients_with_stroke\", 37], [\"those_with_active_anticoagulant\", \"<10\"], [\"those_with_active_anticoagulant_pct\", \"suppressed\"]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S19": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "66",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "66",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "official_statistics",
+     "records_justified": false,
+     "justification": "\"regional health report\" needing only counts per sex with asthma/COPD; stated reason for records is convenience: \"would be more convenient for our analysts and would save us from sending follow-up requests.\"",
+     "explanation_for_applicant": "Your purpose of producing a regional health report is an allowed official statistics purpose under Art. 53. However, your question can be fully answered with aggregate counts per sex for asthma and COPD, so you do not need pseudonymised individual-level records. Please resubmit as a request for statistics; convenience alone does not justify access to records under Art. 54 proportionality requirements."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "age",
+       "min_age": 18,
+       "max_age": null
+      },
+      {
+       "negate": false,
+       "kind": "region",
+       "regions": [
+        "Salzburg"
+       ]
+      },
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "J45",
+        "J44"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "adults_with_asthma",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "J45"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "adults_with_copd",
+       "where": [
+        {
+         "negate": false,
+         "kind": "condition",
+         "icd10_prefixes": [
+          "J44"
+         ],
+         "onset_from": null,
+         "onset_to": null
+        }
+       ],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [
+      {
+       "table": "patients",
+       "codes": null
+      },
+      {
+       "table": "conditions",
+       "codes": [
+        "J45",
+        "J44"
+       ]
+      }
+     ],
+     "notes": [
+      "Cohort combines asthma (J45) or COPD (J44) diagnoses via a single ConditionCriterion (OR semantics).",
+      "spe_records limited to patients and conditions tables since the request only names asthma/COPD records; conditions restricted to J45/J44 codes.",
+      "Per-sex metrics report distinct-patient counts of adults with asthma and adults with COPD within the requested cohort."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "adults_with_asthma": 26,
+      "adults_with_copd": "<10"
+     },
+     "male": {
+      "adults_with_asthma": 24,
+      "adults_with_copd": 12
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'J45%')))) AS m0_in,\n       (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'J44%')))) AS m1_in\nFROM patients p\nWHERE ((p.age >= 18)) AND (p.region IN ('Salzburg')) AND (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'J45%' OR c.icd10 LIKE 'J44%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 3,
+     "plan_agreeing": 2
+    },
+    "seconds": 30.8,
+    "signature": "{\"articles\": [\"53\", \"66\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"sex\", \"female\"]], [[\"adults_with_asthma\", 26], [\"adults_with_copd\", \"<10\"]]], [[[\"sex\", \"male\"]], [[\"adults_with_asthma\", 24], [\"adults_with_copd\", 12]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S20": {
+  "expected": {
+   "decision": "APPROVE_SPE",
+   "articles": [
+    "53",
+    "66",
+    "68",
+    "73"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_SPE",
+    "articles": [
+     "53",
+     "66",
+     "68",
+     "73"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": true,
+     "justification": "\"We develop and validate a time-to-event model...which cannot be reduced to group counts, so aggregate statistics are not sufficient. Only model parameters and performance metrics will leave the secure environment.\"",
+     "explanation_for_applicant": "Your purpose—developing and validating a clinical risk prediction model—falls under scientific research and product/algorithm development, which is allowed under Art. 53. You have adequately justified why individual-level longitudinal records are needed instead of aggregate statistics, since time-to-event modeling requires per-patient sequences. Your application is approved for pseudonymised record-level access within a secure environment."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "age",
+       "min_age": 18,
+       "max_age": null
+      },
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "I48.0",
+        "I48.2"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "cohort_size",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [
+      {
+       "table": "patients",
+       "codes": null
+      },
+      {
+       "table": "conditions",
+       "codes": null
+      },
+      {
+       "table": "medications",
+       "codes": null
+      },
+      {
+       "table": "observations",
+       "codes": null
+      },
+      {
+       "table": "encounters",
+       "codes": null
+      }
+     ],
+     "notes": [
+      "Cohort = adults with at least one diagnosis of I48.0 or I48.2.",
+      "Request asks for full pseudonymised records (all conditions, medications, observations, encounters), not restricted to specific codes, since the model needs the longitudinal sequence.",
+      "Reporting cohort size as requested."
+     ],
+     "unsupported": null
+    },
+    "answer": null,
+    "sql": null,
+    "spe": {
+     "permit_id": "permit-S20",
+     "cohort_size": 351,
+     "tables": {
+      "cohort": 351,
+      "patients": 351,
+      "conditions": 854,
+      "medications": 792,
+      "observations": 777,
+      "encounters": 1664
+     },
+     "download_blocked": true
+    },
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.3,
+    "signature": "{\"articles\": [\"53\", \"66\", \"68\", \"73\"], \"cohort\": 351, \"decision\": \"APPROVE_SPE\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true,
+  "spe_tables": {
+   "cohort": 351,
+   "patients": 351,
+   "conditions": 854,
+   "medications": 792,
+   "observations": 777,
+   "encounters": 1664
+  },
+  "spe_tables_expected": {
+   "conditions": 854,
+   "medications": 792,
+   "observations": 777,
+   "encounters": 1664
+  }
+ },
+ "S21": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "\"Policy-making: comparing the case mix of inpatient wards between hospitals\" with request for aggregated counts per hospital/diagnosis, requested as \"health data request\" in \"anonymised statistics\" format.",
+     "explanation_for_applicant": "Your purpose of comparing hospital case mix for policy-making is an allowed purpose under Art. 53. However, since you are requesting aggregated counts per hospital and diagnosis category, this can be answered with anonymised statistics, so there is no justification for accessing individual-level records."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "encounters",
+     "cohort": [],
+     "encounter_filter": {
+      "types": [
+       "inpatient"
+      ],
+      "primary_icd10_prefixes": null,
+      "start_from": "2025-01-01",
+      "start_to": "2025-12-31"
+     },
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "heart_failure_stays",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": null,
+         "primary_icd10_prefixes": [
+          "I50"
+         ],
+         "start_from": null,
+         "start_to": null,
+         "min_count": 1
+        }
+       ],
+       "distinct_patients": false
+      },
+      {
+       "kind": "count",
+       "name": "pneumonia_stays",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": null,
+         "primary_icd10_prefixes": [
+          "J18"
+         ],
+         "start_from": null,
+         "start_to": null,
+         "min_count": 1
+        }
+       ],
+       "distinct_patients": false
+      },
+      {
+       "kind": "count",
+       "name": "hip_fracture_stays",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": null,
+         "primary_icd10_prefixes": [
+          "S72"
+         ],
+         "start_from": null,
+         "start_to": null,
+         "min_count": 1
+        }
+       ],
+       "distinct_patients": false
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Counting inpatient stays (encounters) with start_date in 2025, grouped by hospital (data_holder); each metric counts stays with the given primary diagnosis."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "heart_failure_stays": 66,
+      "pneumonia_stays": 39,
+      "hip_fracture_stays": 26
+     },
+     "Klinikum Süd": {
+      "heart_failure_stays": 60,
+      "pneumonia_stays": 28,
+      "hip_fracture_stays": 27
+     },
+     "Klinikum West": {
+      "heart_failure_stays": 31,
+      "pneumonia_stays": 24,
+      "hip_fracture_stays": 21
+     }
+    },
+    "sql": "SELECT e.encounter_id AS unit_id,\n       p.patient_id,\n       e.data_holder AS g0,\n       (((e.primary_icd10 LIKE 'I50%'))) AS m0_in,\n       (((e.primary_icd10 LIKE 'J18%'))) AS m1_in,\n       (((e.primary_icd10 LIKE 'S72%'))) AS m2_in\nFROM encounters e JOIN patients p ON p.patient_id = e.patient_id\nWHERE (e.type IN ('inpatient')) AND (e.start_date >= DATE '2025-01-01') AND (e.start_date <= DATE '2025-12-31')",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 10.5,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"]], [[\"heart_failure_stays\", 66], [\"pneumonia_stays\", 39], [\"hip_fracture_stays\", 26]]], [[[\"data_holder\", \"Klinikum Süd\"]], [[\"heart_failure_stays\", 60], [\"pneumonia_stays\", 28], [\"hip_fracture_stays\", 27]]], [[[\"data_holder\", \"Klinikum West\"]], [[\"heart_failure_stays\", 31], [\"pneumonia_stays\", 24], [\"hip_fracture_stays\", 21]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S22": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "\"health data request\" for \"anonymised statistics\" answering a simple count per sex, which is an aggregate question",
+     "explanation_for_applicant": "Your purpose of pharmaco-epidemiological research on metformin use is allowed under Art. 53. However, your question only needs aggregate counts of patients per sex, which can be answered with anonymised statistics rather than individual-level records, and you have not explained why statistics would be insufficient."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "medication",
+       "atc_prefixes": [
+        "A10BA02"
+       ],
+       "active_on": null,
+       "started_from": null,
+       "started_to": null,
+       "overlaps_from": "2024-01-01",
+       "overlaps_to": "2024-12-31"
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_on_metformin_at_any_time_during_2024",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Interpreted 'on metformin at any time during 2024' using overlaps_from/overlaps_to per the definition given."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "patients_on_metformin_at_any_time_during_2024": 393
+     },
+     "male": {
+      "patients_on_metformin_at_any_time_during_2024": 388
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       TRUE AS m0_in\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM medications m WHERE (m.patient_id = p.patient_id) AND ((m.atc LIKE 'A10BA02%')) AND (m.start_date <= DATE '2024-12-31') AND ((m.end_date IS NULL OR m.end_date >= DATE '2024-01-01'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 8.0,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"sex\", \"female\"]], [[\"patients_on_metformin_at_any_time_during_2024\", 393]]], [[[\"sex\", \"male\"]], [[\"patients_on_metformin_at_any_time_during_2024\", 388]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S23": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "\"Policy-making: seasonal bed planning\" requested as a \"health data request\" in \"anonymised statistics\" format, asking for counts of inpatient stays per quarter.",
+     "explanation_for_applicant": "Your purpose of policy-making for hospital bed planning is allowed under Art. 53. Since you requested this as a health data request for anonymised statistics, and your question (counts per quarter) can be fully answered with aggregate numbers, no individual-level records are needed."
+    },
+    "review_flags": [
+     "Cannot be computed automatically: Grouping inpatient stay counts by quarter is not supported by this plan (only yearly grouping via start_year is available), so quarterly bed-planning counts cannot be produced. Staff must prepare this answer."
+    ],
+    "plan": {
+     "unit": "encounters",
+     "cohort": [],
+     "encounter_filter": {
+      "types": [
+       "inpatient"
+      ],
+      "primary_icd10_prefixes": null,
+      "start_from": "2025-01-01",
+      "start_to": "2025-12-31"
+     },
+     "group_by": [],
+     "metrics": [],
+     "spe_records": [],
+     "notes": [
+      "Request asks for counts per calendar quarter of 2025; group_by only supports start_year, not quarter-level grouping."
+     ],
+     "unsupported": "Grouping inpatient stay counts by quarter is not supported by this plan (only yearly grouping via start_year is available), so quarterly bed-planning counts cannot be produced."
+    },
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 9.4,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [
+   "no numbers released (flagged)"
+  ],
+  "leaks": [],
+  "consistent": true
+ },
+ "S24": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Request explicitly asks for aggregate counts per sex ('how many patients had at least one...two or more') via 'health data request'/'anonymised statistics' - answerable with counts, no individual-level records needed.",
+     "explanation_for_applicant": "Your research purpose—studying readmissions to plan transitional care—is an allowed purpose under Art. 53 as it falls under health services/scientific research. However, since you are requesting aggregate statistics (counts per sex) rather than individual-level records, and your question can be fully answered with such aggregate counts, this is appropriately handled as a statistics request rather than requiring patient-level records."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "patients",
+     "cohort": [],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_at_least_one_inpatient_stay",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": [
+          "inpatient"
+         ],
+         "primary_icd10_prefixes": null,
+         "start_from": "2023-01-01",
+         "start_to": "2025-12-31",
+         "min_count": 1
+        }
+       ],
+       "distinct_patients": true
+      },
+      {
+       "kind": "count",
+       "name": "patients_with_two_or_more_inpatient_stays",
+       "where": [
+        {
+         "negate": false,
+         "kind": "encounter",
+         "types": [
+          "inpatient"
+         ],
+         "primary_icd10_prefixes": null,
+         "start_from": "2023-01-01",
+         "start_to": "2025-12-31",
+         "min_count": 2
+        }
+       ],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Interpreted 'at least one' and 'two or more' inpatient stays as EncounterCriterion min_count in each metric's where, counting distinct patients, grouped by sex."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "patients_with_at_least_one_inpatient_stay": 1393,
+      "patients_with_two_or_more_inpatient_stays": 174
+     },
+     "male": {
+      "patients_with_at_least_one_inpatient_stay": 1307,
+      "patients_with_two_or_more_inpatient_stays": 196
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       ((SELECT count(*) FROM encounters x WHERE (x.patient_id = p.patient_id) AND (x.type IN ('inpatient')) AND (x.start_date >= DATE '2023-01-01') AND (x.start_date <= DATE '2025-12-31')) >= 1) AS m0_in,\n       ((SELECT count(*) FROM encounters x WHERE (x.patient_id = p.patient_id) AND (x.type IN ('inpatient')) AND (x.start_date >= DATE '2023-01-01') AND (x.start_date <= DATE '2025-12-31')) >= 2) AS m1_in\nFROM patients p\nWHERE TRUE",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 3,
+     "plan_agreeing": 2
+    },
+    "seconds": 11.0,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"sex\", \"female\"]], [[\"patients_with_at_least_one_inpatient_stay\", 1393], [\"patients_with_two_or_more_inpatient_stays\", 174]]], [[[\"sex\", \"male\"]], [[\"patients_with_at_least_one_inpatient_stay\", 1307], [\"patients_with_two_or_more_inpatient_stays\", 196]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S25": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "policy_making_and_regulation",
+     "records_justified": false,
+     "justification": "\"Planning of emergency department capacity\" requested as aggregated counts of visits and distinct patients per hospital and year - answerable with anonymised statistics.",
+     "explanation_for_applicant": "Your purpose, planning emergency department capacity, is allowed under Art. 53 as a public health/policy-making activity. Since your question can be fully answered with aggregated counts per hospital and year, you only need anonymised statistics, not individual-level records, so this is granted as a statistics request."
+    },
+    "review_flags": [],
+    "plan": {
+     "unit": "encounters",
+     "cohort": [],
+     "encounter_filter": {
+      "types": [
+       "emergency"
+      ],
+      "primary_icd10_prefixes": null,
+      "start_from": "2023-01-01",
+      "start_to": "2025-12-31"
+     },
+     "group_by": [
+      {
+       "dimension": "data_holder",
+       "age_bands": null
+      },
+      {
+       "dimension": "start_year",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "emergency_visits",
+       "where": [],
+       "distinct_patients": false
+      },
+      {
+       "kind": "count",
+       "name": "distinct_patients_with_emergency_visit",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Hospital = data_holder; year = start_date year via start_year group_by, restricted to 2023-2025.",
+      "Distinct patients metric counts unique patients among emergency encounters within each hospital/year group."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Klinikum Nord": {
+      "2023": {
+       "emergency_visits": 481,
+       "distinct_patients_with_emergency_visit": 481
+      },
+      "2024": {
+       "emergency_visits": 464,
+       "distinct_patients_with_emergency_visit": 464
+      },
+      "2025": {
+       "emergency_visits": 461,
+       "distinct_patients_with_emergency_visit": 461
+      }
+     },
+     "Klinikum Süd": {
+      "2023": {
+       "emergency_visits": 391,
+       "distinct_patients_with_emergency_visit": 391
+      },
+      "2024": {
+       "emergency_visits": 410,
+       "distinct_patients_with_emergency_visit": 410
+      },
+      "2025": {
+       "emergency_visits": 369,
+       "distinct_patients_with_emergency_visit": 369
+      }
+     },
+     "Klinikum West": {
+      "2023": {
+       "emergency_visits": 243,
+       "distinct_patients_with_emergency_visit": 243
+      },
+      "2024": {
+       "emergency_visits": 266,
+       "distinct_patients_with_emergency_visit": 266
+      },
+      "2025": {
+       "emergency_visits": 272,
+       "distinct_patients_with_emergency_visit": 272
+      }
+     }
+    },
+    "sql": "SELECT e.encounter_id AS unit_id,\n       p.patient_id,\n       e.data_holder AS g0,\n       CAST(year(e.start_date) AS VARCHAR) AS g1,\n       TRUE AS m0_in,\n       TRUE AS m1_in\nFROM encounters e JOIN patients p ON p.patient_id = e.patient_id\nWHERE (e.type IN ('emergency')) AND (e.start_date >= DATE '2023-01-01') AND (e.start_date <= DATE '2025-12-31')",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 11.2,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"data_holder\", \"Klinikum Nord\"], [\"start_year\", \"2023\"]], [[\"emergency_visits\", 481], [\"distinct_patients_with_emergency_visit\", 481]]], [[[\"data_holder\", \"Klinikum Nord\"], [\"start_year\", \"2024\"]], [[\"emergency_visits\", 464], [\"distinct_patients_with_emergency_visit\", 464]]], [[[\"data_holder\", \"Klinikum Nord\"], [\"start_year\", \"2025\"]], [[\"emergency_visits\", 461], [\"distinct_patients_with_emergency_visit\", 461]]], [[[\"data_holder\", \"Klinikum Süd\"], [\"start_year\", \"2023\"]], [[\"emergency_visits\", 391], [\"distinct_patients_with_emergency_visit\", 391]]], [[[\"data_holder\", \"Klinikum Süd\"], [\"start_year\", \"2024\"]], [[\"emergency_visits\", 410], [\"distinct_patients_with_emergency_visit\", 410]]], [[[\"data_holder\", \"Klinikum Süd\"], [\"start_year\", \"2025\"]], [[\"emergency_visits\", 369], [\"distinct_patients_with_emergency_visit\", 369]]], [[[\"data_holder\", \"Klinikum West\"], [\"start_year\", \"2023\"]], [[\"emergency_visits\", 243], [\"distinct_patients_with_emergency_visit\", 243]]], [[[\"data_holder\", \"Klinikum West\"], [\"start_year\", \"2024\"]], [[\"emergency_visits\", 266], [\"distinct_patients_with_emergency_visit\", 266]]], [[[\"data_holder\", \"Klinikum West\"], [\"start_year\", \"2025\"]], [[\"emergency_visits\", 272], [\"distinct_patients_with_emergency_visit\", 272]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S26": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "scientific_research",
+     "records_justified": false,
+     "justification": "Request is for aggregate counts per region of heart failure patients aged 50-80 to inform trial site selection; this is a 'health data request' for anonymised statistics only.",
+     "explanation_for_applicant": "Your purpose of assessing feasibility for a clinical trial by region falls under scientific research, which is allowed under Art. 53. However, since you are requesting anonymised aggregate statistics (counts per region), this can be fully answered without individual-level records, so it is processed as a standard statistics request rather than a record-level data request."
+    },
+    "review_flags": [
+     "Words often linked to prohibited uses appear (recruit); the AI judged the purpose allowed. Staff should confirm."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "I50"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      },
+      {
+       "negate": false,
+       "kind": "age",
+       "min_age": 50,
+       "max_age": 80
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "region",
+       "age_bands": null
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_heart_failure_aged_50_to_80",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "Heart failure defined as ICD-10 starting with I50 per definitions."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "Burgenland": {
+      "patients_with_heart_failure_aged_50_to_80": "<10"
+     },
+     "Kärnten": {
+      "patients_with_heart_failure_aged_50_to_80": 11
+     },
+     "Niederösterreich": {
+      "patients_with_heart_failure_aged_50_to_80": 38
+     },
+     "Oberösterreich": {
+      "patients_with_heart_failure_aged_50_to_80": 20
+     },
+     "Salzburg": {
+      "patients_with_heart_failure_aged_50_to_80": 11
+     },
+     "Steiermark": {
+      "patients_with_heart_failure_aged_50_to_80": 20
+     },
+     "Tirol": {
+      "patients_with_heart_failure_aged_50_to_80": 12
+     },
+     "Vorarlberg": {
+      "patients_with_heart_failure_aged_50_to_80": "<10"
+     },
+     "Wien": {
+      "patients_with_heart_failure_aged_50_to_80": 37
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.region AS g0,\n       TRUE AS m0_in\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'I50%')))) AND ((p.age >= 50) AND (p.age <= 80))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 7.4,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"region\", \"Burgenland\"]], [[\"patients_with_heart_failure_aged_50_to_80\", \"<10\"]]], [[[\"region\", \"Kärnten\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 11]]], [[[\"region\", \"Niederösterreich\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 38]]], [[[\"region\", \"Oberösterreich\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 20]]], [[[\"region\", \"Salzburg\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 11]]], [[[\"region\", \"Steiermark\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 20]]], [[[\"region\", \"Tirol\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 12]]], [[[\"region\", \"Vorarlberg\"]], [[\"patients_with_heart_failure_aged_50_to_80\", \"<10\"]]], [[[\"region\", \"Wien\"]], [[\"patients_with_heart_failure_aged_50_to_80\", 37]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S27": {
+  "expected": {
+   "decision": "APPROVE_STATISTICAL",
+   "articles": [
+    "53",
+    "69"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+     "53",
+     "69"
+    ],
+    "assessment": {
+     "prohibited": false,
+     "prohibited_ground": "none",
+     "allowed_purpose": "public_interest_public_health",
+     "records_justified": false,
+     "justification": "Request is for \"health data request\" in \"anonymised statistics\" format, asking only aggregate counts of COPD patients per age group and sex, for tobacco control policy evidence.",
+     "explanation_for_applicant": "Your purpose—supporting tobacco control policy and prevention programmes—is an allowed purpose under Art. 53. Since you only need aggregate counts per age group and sex, this can be fully answered with anonymised statistics, so no individual-level records are needed or justified."
+    },
+    "review_flags": [
+     "Words often linked to prohibited uses appear (tobacco); the AI judged the purpose allowed. Staff should confirm."
+    ],
+    "plan": {
+     "unit": "patients",
+     "cohort": [
+      {
+       "negate": false,
+       "kind": "condition",
+       "icd10_prefixes": [
+        "J44"
+       ],
+       "onset_from": null,
+       "onset_to": null
+      }
+     ],
+     "encounter_filter": null,
+     "group_by": [
+      {
+       "dimension": "sex",
+       "age_bands": null
+      },
+      {
+       "dimension": "age_band",
+       "age_bands": [
+        {
+         "label": "0-39",
+         "min_age": 0,
+         "max_age": 39
+        },
+        {
+         "label": "40-59",
+         "min_age": 40,
+         "max_age": 59
+        },
+        {
+         "label": "60-79",
+         "min_age": 60,
+         "max_age": 79
+        },
+        {
+         "label": "80+",
+         "min_age": 80,
+         "max_age": null
+        }
+       ]
+      }
+     ],
+     "metrics": [
+      {
+       "kind": "count",
+       "name": "patients_with_copd",
+       "where": [],
+       "distinct_patients": true
+      }
+     ],
+     "spe_records": [],
+     "notes": [
+      "COPD mapped to ICD-10 J44 per definition.",
+      "Request order lists sex then age band; grouped accordingly."
+     ],
+     "unsupported": null
+    },
+    "answer": {
+     "female": {
+      "0-39": {
+       "patients_with_copd": "<10"
+      },
+      "40-59": {
+       "patients_with_copd": 35
+      },
+      "60-79": {
+       "patients_with_copd": 85
+      },
+      "80+": {
+       "patients_with_copd": 39
+      }
+     },
+     "male": {
+      "0-39": {
+       "patients_with_copd": "<10"
+      },
+      "40-59": {
+       "patients_with_copd": 38
+      },
+      "60-79": {
+       "patients_with_copd": 99
+      },
+      "80+": {
+       "patients_with_copd": 43
+      }
+     }
+    },
+    "sql": "SELECT p.patient_id AS unit_id,\n       p.patient_id,\n       p.sex AS g0,\n       CASE WHEN p.age >= 0 AND p.age <= 39 THEN '0-39' WHEN p.age >= 40 AND p.age <= 59 THEN '40-59' WHEN p.age >= 60 AND p.age <= 79 THEN '60-79' WHEN p.age >= 80 THEN '80+' END AS g1,\n       TRUE AS m0_in\nFROM patients p\nWHERE (EXISTS (SELECT 1 FROM conditions c WHERE (c.patient_id = p.patient_id) AND ((c.icd10 LIKE 'J44%'))))",
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 2,
+     "plan_agreeing": 2
+    },
+    "seconds": 14.4,
+    "signature": "{\"articles\": [\"53\", \"69\"], \"cohort\": null, \"decision\": \"APPROVE_STATISTICAL\", \"rows\": [[[[\"age_band\", \"0-39\"], [\"sex\", \"female\"]], [[\"patients_with_copd\", \"<10\"]]], [[[\"age_band\", \"0-39\"], [\"sex\", \"male\"]], [[\"patients_with_copd\", \"<10\"]]], [[[\"age_band\", \"40-59\"], [\"sex\", \"female\"]], [[\"patients_with_copd\", 35]]], [[[\"age_band\", \"40-59\"], [\"sex\", \"male\"]], [[\"patients_with_copd\", 38]]], [[[\"age_band\", \"60-79\"], [\"sex\", \"female\"]], [[\"patients_with_copd\", 85]]], [[[\"age_band\", \"60-79\"], [\"sex\", \"male\"]], [[\"patients_with_copd\", 99]]], [[[\"age_band\", \"80+\"], [\"sex\", \"female\"]], [[\"patients_with_copd\", 39]]], [[[\"age_band\", \"80+\"], [\"sex\", \"male\"]], [[\"patients_with_copd\", 43]]]]}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "ok"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S28": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "advertising_or_marketing",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"Commercial strategy for the launch of our new heart failure product... concentrate field force and sponsored specialist events where uptake will be highest\"",
+     "explanation_for_applicant": "Your request is for commercial strategy purposes — targeting sales field force and sponsored specialist events toward regions with the highest untreated patient pool. This is a form of marketing/advertising activity toward health professionals, which is prohibited under Art. 54. Health data access cannot be granted for product launch or marketing prioritisation, even when only aggregate statistics are requested."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 6.9,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ },
+ "S29": {
+  "expected": {
+   "decision": "REJECT",
+   "articles": [
+    "54"
+   ]
+  },
+  "runs": [
+   {
+    "decision": "REJECT",
+    "articles": [
+     "54"
+    ],
+    "assessment": {
+     "prohibited": true,
+     "prohibited_ground": "detrimental_decisions",
+     "allowed_purpose": "none",
+     "records_justified": false,
+     "justification": "\"link the pseudonymised records with our app's user base through birth date, region and sex to find the users who have obesity, and show those users personalised weight-loss programme offers\"",
+     "explanation_for_applicant": "Your request is prohibited under Art. 54 because you intend to re-identify individuals by matching the data against your own user base and then target them with marketing offers. Re-identification for commercial purposes and advertising to individuals are both explicitly excluded purposes, regardless of the pseudonymisation used. Also, since a region-level count of adults with obesity would answer an aggregate question, individual-level records are not justified here anyway."
+    },
+    "review_flags": [
+     "AI judged the purpose prohibited without any keyword match; check the reasoning."
+    ],
+    "plan": null,
+    "answer": null,
+    "sql": null,
+    "spe": null,
+    "consensus": {
+     "assessment_votes": 2,
+     "assessment_agreeing": 2,
+     "plan_votes": 0,
+     "plan_agreeing": 0
+    },
+    "seconds": 11.1,
+    "signature": "{\"articles\": [\"54\"], \"cohort\": null, \"decision\": \"REJECT\", \"rows\": []}"
+   }
+  ],
+  "decision_ok": [
+   true
+  ],
+  "numbers": [
+   "n/a"
+  ],
+  "problems": [],
+  "leaks": [],
+  "consistent": true
+ }
+}

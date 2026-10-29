@@ -110,7 +110,7 @@ Measured with `make eval-fresh`: live Claude Sonnet calls (low effort) through t
 | Correct numbers | **6 of 6** | 6 of 6 |
 | Privacy leaks | **0** | 0 |
 | Consistency (3 runs) | **10 of 10** | 10 of 10 |
-| Time to answer (slowest) | **14.9 s** | Under 60 s |
+| Time to answer (slowest) | **16.4 s** | Under 60 s |
 
 **12 extra jury-style requests** ([eval/hidden/](eval/hidden/), answers computed by separate hand-written SQL)
 
@@ -122,7 +122,19 @@ These cover: grouping by hospital, main-diagnosis filters on stays (heart failur
 | Correct numbers | **10 of 10** |
 | Privacy leaks | **0** |
 | Consistency | **12 of 12** |
-| Time to answer (slowest) | **12.6 s** |
+| Time to answer (slowest) | **14.7 s** |
+
+**29 adversarial stress requests** ([eval/stress/](eval/stress/), also checked against independent SQL)
+
+These were written to break the system: prose instead of a "Report" line, terms without codes, OR across conditions, stay-level filters, date windows, overlapping prescriptions, non-default denominators, and inexpressible asks (a median, a rate per 1,000, mean age, per-quarter). They also include subtle prohibited purposes (insurer "risk research", an employer wellness programme, pharma "education", an alcohol brand) and allowed industry research. The first run found four root causes; [eval/stress/FINDINGS.md](eval/stress/FINDINGS.md) has the details and fixes. After the fixes:
+
+| Metric | Result |
+|---|---|
+| Correct decisions | **29 of 29** |
+| Approved requests with correct numbers | **all** |
+| Inexpressible requests flagged for staff, no numbers released | **4 of 4** |
+| Privacy leaks | **0** |
+| Time to answer (slowest) | **30.8 s** |
 
 Rejections return in about 5 s, because they don't wait for the query plan. The cache is on by default, so a resubmitted request returns its stored reading in well under a second.
 

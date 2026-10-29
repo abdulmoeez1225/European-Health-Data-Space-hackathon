@@ -1,0 +1,19 @@
+{
+  "id": "S08",
+  "submitted": "2026-10-30T10:56:00+01:00",
+  "applicant": {
+    "name": "Dr. Katja Berger",
+    "organisation": "University Department of Psychiatry, epidemiology unit",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on the incidence of depression and obesity to plan outpatient services.",
+  "question": "How many people were newly diagnosed with depression in 2024 and how many with obesity, in each hospital?",
+  "definitions": [
+    "A new diagnosis in 2024 is a diagnosis whose onset date lies in 2024.",
+    "Depression = ICD-10 starting with F32. Obesity = ICD-10 starting with E66.",
+    "Hospital = data holder of the patient record.",
+    "Per hospital: patients with a depression onset in 2024 and patients with an obesity onset in 2024."
+  ]
+}

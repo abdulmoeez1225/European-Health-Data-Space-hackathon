@@ -1,0 +1,18 @@
+{
+  "id": "S03",
+  "submitted": "2026-10-30T09:21:00+01:00",
+  "applicant": {
+    "name": "Dr. Sabine Kofler",
+    "organisation": "Austrian Obesity Prevention Platform",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Public health: deciding where to place prevention programmes for different age groups.",
+  "question": "How many people with obesity are there in each federal state and age group?",
+  "definitions": [
+    "Obesity = any diagnosis with an ICD-10 code starting with E66.",
+    "Age groups by age on 31 December 2025: under 40, 40-64, 65+.",
+    "Count patients, one number for every combination of federal state and age group; list all combinations."
+  ]
+}

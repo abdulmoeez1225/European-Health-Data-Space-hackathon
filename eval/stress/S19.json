@@ -1,0 +1,19 @@
+{
+  "id": "S19",
+  "submitted": "2026-10-30T14:13:00+01:00",
+  "applicant": {
+    "name": "Dr. Anja Reisinger",
+    "organisation": "Salzburg Public Health Observatory",
+    "country": "AT"
+  },
+  "requested_as": "health data access application",
+  "requested_format": "pseudonymised records",
+  "purpose": "We monitor asthma and COPD care in Salzburg for the regional health report. Having the individual records would be more convenient for our analysts and would save us from sending follow-up requests.",
+  "question": "Provide pseudonymised records of all adults with asthma or COPD living in Salzburg.",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Asthma = ICD-10 starting with J45; COPD = ICD-10 starting with J44.",
+    "Only patients whose region is Salzburg.",
+    "Report per sex: adults with asthma and adults with COPD."
+  ]
+}

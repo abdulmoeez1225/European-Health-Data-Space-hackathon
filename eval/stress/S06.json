@@ -1,0 +1,20 @@
+{
+  "id": "S06",
+  "submitted": "2026-10-30T10:42:00+01:00",
+  "applicant": {
+    "name": "Dr. Ingrid Moser",
+    "organisation": "Diabetes quality circle, Klinikum Süd",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Quality assurance: how well glycaemic control is achieved in our own patient population.",
+  "question": "Among the patients of Klinikum Süd who have type 2 diabetes, how many in each age group have a latest HbA1c above 8 %, and what is that as a share of those who were measured?",
+  "definitions": [
+    "Only patients whose record is held by Klinikum Süd are included.",
+    "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
+    "Age groups on 31 December 2025: under 50, 50-69, 70+.",
+    "Use the latest HbA1c (LOINC 4548-4) per patient. Patients who were never measured are not part of the share.",
+    "For each age group: patients with type 2 diabetes, how many of them have an HbA1c measurement, how many have a latest HbA1c above 8.0 and that as a share of the measured patients in %, one decimal."
+  ]
+}

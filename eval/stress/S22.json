@@ -1,0 +1,18 @@
+{
+  "id": "S22",
+  "submitted": "2026-10-30T15:34:00+01:00",
+  "applicant": {
+    "name": "Dr. Martin Zeiler",
+    "organisation": "Austrian Diabetes Association, pharmaco-epidemiology",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on metformin use in 2024.",
+  "question": "In 2024, how many women and how many men were on metformin at any time during the year?",
+  "definitions": [
+    "Metformin = ATC A10BA02.",
+    "On metformin at any time during 2024 = a prescription that started on or before 31 December 2024 and had not ended before 1 January 2024 (or has no end date).",
+    "Report per sex: patients on metformin at any time during 2024."
+  ]
+}

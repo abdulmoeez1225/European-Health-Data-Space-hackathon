@@ -1,0 +1,19 @@
+{
+  "id": "S02",
+  "submitted": "2026-10-30T08:14:00+01:00",
+  "applicant": {
+    "name": "Dr. Markus Fellner",
+    "organisation": "Austrian Society for Metabolic Research",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on cardiometabolic risk management: how many people with a diabetes or obesity diagnosis are on lipid-lowering treatment.",
+  "question": "In each Bundesland, how many adults have type 2 diabetes or obesity (or both), and how many of them take a statin at the moment?",
+  "definitions": [
+    "An adult is somebody aged 18 or over at the end of 2025.",
+    "Count a person once even if they have both diagnoses.",
+    "Take a statin at the moment = has a statin prescription that is still active on 31 December 2025.",
+    "Give per Bundesland: adults with type 2 diabetes or obesity, those of them on a statin, and the share on a statin in percent with one decimal."
+  ]
+}

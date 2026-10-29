@@ -1,0 +1,18 @@
+{
+  "id": "S23",
+  "submitted": "2026-10-30T15:41:00+01:00",
+  "applicant": {
+    "name": "Mag. Sonja Brandl",
+    "organisation": "Federal Ministry of Health, hospital planning",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Policy-making: seasonal bed planning.",
+  "question": "How many inpatient stays started in each quarter of 2025?",
+  "definitions": [
+    "Inpatient stay = encounter with type 'inpatient'.",
+    "Quarters: Q1 = January to March, Q2 = April to June, Q3 = July to September, Q4 = October to December 2025.",
+    "Report per quarter: inpatient stays."
+  ]
+}

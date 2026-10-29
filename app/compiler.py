@@ -75,13 +75,13 @@ def _encounter_conditions(
     return parts
 
 
-def criterion_sql(criterion: Criterion) -> str:
-    """Boolean SQL expression over the patient alias `p`."""
-    sql = _positive_sql(criterion)
+def criterion_sql(criterion: Criterion, unit: str = "patients") -> str:
+    """Boolean SQL expression over the patient alias `p` (and the stay alias `e` for encounter units)."""
+    sql = _positive_sql(criterion, unit)
     return f"NOT ({sql})" if criterion.negate else sql
 
 
-def _positive_sql(criterion: Criterion) -> str:
+def _positive_sql(criterion: Criterion, unit: str) -> str:
     match criterion:
         case AgeCriterion(min_age=lo, max_age=hi):
             parts = []
@@ -109,6 +109,10 @@ def _positive_sql(criterion: Criterion) -> str:
                 day = _date(criterion.active_on)
                 parts += [f"m.start_date <= {day}", f"(m.end_date IS NULL OR m.end_date >= {day})"]
             parts += _range("m.start_date", criterion.started_from, criterion.started_to)
+            if criterion.overlaps_to:
+                parts.append(f"m.start_date <= {_date(criterion.overlaps_to)}")
+            if criterion.overlaps_from:
+                parts.append(f"(m.end_date IS NULL OR m.end_date >= {_date(criterion.overlaps_from)})")
             return f"EXISTS (SELECT 1 FROM medications m WHERE {_and(parts)})"
         case ObservationCriterion():
             dates = _range("o.date", criterion.date_from, criterion.date_to)
@@ -118,6 +122,11 @@ def _positive_sql(criterion: Criterion) -> str:
             assert criterion.value is not None  # guaranteed by the model validator
             latest = _latest_value(criterion.loinc, extra=dates)
             return f"COALESCE({latest} {criterion.comparator} {float(criterion.value)}, FALSE)"
+        case EncounterCriterion() if unit == "encounters":
+            # Counting stays: the criterion describes the stay itself, not the patient's other stays.
+            return _and(_encounter_conditions(
+                "e", criterion.types, criterion.primary_icd10_prefixes, criterion.start_from, criterion.start_to,
+            ))
         case EncounterCriterion():
             parts = ["x.patient_id = p.patient_id", *_encounter_conditions(
                 "x", criterion.types, criterion.primary_icd10_prefixes,
@@ -127,8 +136,8 @@ def _positive_sql(criterion: Criterion) -> str:
     raise ValueError(f"unsupported criterion {criterion!r}")
 
 
-def _all(criteria: list[Criterion]) -> str:
-    return _and([criterion_sql(c) for c in criteria])
+def _all(criteria: list[Criterion], unit: str = "patients") -> str:
+    return _and([criterion_sql(c, unit) for c in criteria])
 
 
 def _age_band_case(bands: list[AgeBand]) -> str:
@@ -176,21 +185,22 @@ def compile_plan(plan: QueryPlan) -> CompiledQuery:
     for index, metric in enumerate(plan.metrics):
         match metric:
             case CountMetric():
-                columns.append(f"{_all(metric.where)} AS m{index}_in")
+                columns.append(f"{_all(metric.where, plan.unit)} AS m{index}_in")
             case PercentMetric():
-                denominator = _all(metric.denominator_where)
+                denominator = _all(metric.denominator_where, plan.unit)
                 columns.append(f"{denominator} AS m{index}_den")
-                columns.append(f"({denominator}) AND ({_all(metric.numerator_where)}) AS m{index}_num")
+                columns.append(f"({denominator}) AND ({_all(metric.numerator_where, plan.unit)}) AS m{index}_num")
             case MeanMetric():
                 if metric.of == "length_of_stay_days":
                     if not encounters:
                         raise ValueError("length_of_stay_days needs unit 'encounters'")
                     value = "CAST(date_diff('day', e.start_date, e.end_date) AS DECIMAL(12,4))"
                 else:
-                    value = _latest_value(metric.loinc or "", metric.which)
-                columns.append(f"CASE WHEN {_all(metric.where)} THEN {value} END AS m{index}_val")
+                    window = _range("o.date", metric.date_from, metric.date_to)
+                    value = _latest_value(metric.loinc or "", metric.which, extra=window)
+                columns.append(f"CASE WHEN {_all(metric.where, plan.unit)} THEN {value} END AS m{index}_val")
 
-    where = [criterion_sql(c) for c in plan.cohort]
+    where = [criterion_sql(c, plan.unit) for c in plan.cohort]
     if encounters:
         source = "encounters e JOIN patients p ON p.patient_id = e.patient_id"
         flt = plan.encounter_filter or EncounterFilter()

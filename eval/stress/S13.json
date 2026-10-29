@@ -1,0 +1,19 @@
+{
+  "id": "S13",
+  "submitted": "2026-10-30T12:31:00+01:00",
+  "applicant": {
+    "name": "Dr. Gernot Pfeiffer",
+    "organisation": "Tyrolia Health Insurance, actuarial research unit",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Actuarial risk research: we want to quantify how chronic conditions drive long-term care costs, so that our product team can refine the risk classes and tariffs of our new supplementary health cover.",
+  "question": "How many adults have heart failure, type 2 diabetes or COPD, by age band?",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Heart failure = ICD-10 starting with I50; type 2 diabetes = E11; COPD = J44.",
+    "Age bands on 31 December 2025: 18-39, 40-59, 60-79, 80+.",
+    "Report per band: adults with heart failure, adults with type 2 diabetes and adults with COPD."
+  ]
+}

@@ -31,7 +31,8 @@ and add a note. Do not add restrictions the definitions do not state.
 "Women" = sex female. A diagnosis means any row in conditions (ConditionCriterion); only "main diagnosis" of a \
 stay uses primary_icd10.
 - Medication "active" = MedicationCriterion with active_on {REFERENCE_DATE.isoformat()}. "No active X" = the same \
-criterion with negate true.
+criterion with negate true. Taken "at any time in" a period = overlaps_from/overlaps_to; "started in" a period = \
+started_from/started_to. A diagnosis first recorded in a period = ConditionCriterion onset_from/onset_to.
 - "patients without a value are left out" or "who have a value" = an ObservationCriterion in the cohort. "Latest \
 value" = MeanMetric which "latest". A threshold on a measurement ("eGFR below 60") = ObservationCriterion with \
 comparator and value (applies to the latest value).
@@ -45,7 +46,13 @@ without_x_pct). A PercentMetric name always ends in "_pct" (prevalence -> preval
 always starts with "mean_". Never invent synonyms. The group population itself is a CountMetric \
 with no where. A sub-count adds `where`. A share/prevalence/% is a PercentMetric: numerator_where = what is \
 counted; denominator = the group population (denominator_where empty) unless stated otherwise. A mean of a \
-measurement is a MeanMetric. For stays use CountMetric on encounters; for distinct patients set distinct_patients.
+measurement is a MeanMetric. For stays use CountMetric on encounters; for distinct patients set \
+distinct_patients. With unit "encounters", an EncounterCriterion inside a metric's where describes the \
+counted stay itself (e.g. heart-failure stays among all inpatient stays: encounter_filter types inpatient, \
+metric where [encounter primary_icd10_prefixes I50]). A mean of values measured in a period = MeanMetric \
+date_from/date_to.
+- Report only the numbers the request asks for; never add an unrequested population count. A metric with a where \
+is never named just "patients" or "count".
 - Access applications for records: put the selected patients in cohort and list the record types the request \
 names in spe_records (patients, conditions, medications, observations, encounters). If only some measurements are \
 requested (e.g. "HbA1c values"), restrict observations with codes. If the request also defines numbers to report \
@@ -84,13 +91,16 @@ def canonical_metric_name(name: str) -> str:
     return "_".join(kept) or name
 
 
+_LISTING = re.compile(r"^\s*(report\b|.*\b(per|for each|by)\s+[\w\s×x-]+:)", re.IGNORECASE)
+
+
 def report_phrases(definitions: list[str]) -> list[str] | None:
-    """The reported numbers, in order, as the request's "Report ...: a, b and c" definition names them."""
-    report = next((d for d in definitions if d.strip().lower().startswith("report") and ":" in d), None)
+    """The reported numbers, in order, as a "Report per X: a, b and c" style definition lists them."""
+    report = next((d for d in definitions if ":" in d and _LISTING.match(d)), None)
     if report is None:
         return None
     listed = _PRECISION.sub("", report.split(":", 1)[1]).strip().rstrip(".")
-    phrases = [p.strip() for p in re.split(r",\s*(?:and\s+)?|\s+and\s+", listed) if p.strip()]
+    phrases = [p.strip() for p in re.split(r",(?!\d)\s*(?:and\s+)?|\s+and\s+", listed) if p.strip()]
     return phrases or None
 
 
@@ -98,7 +108,7 @@ def _names_from_report(phrases: list[str], plan: QueryPlan) -> list[str]:
     names: list[str] = []
     for phrase, metric in zip(phrases, plan.metrics, strict=True):
         lowered = phrase.lower()
-        if names and re.match(r"(that|this|the|their) (share|percentage|proportion)", lowered):
+        if names and re.match(r"(that|this|the|their)\b.*\b(share|percentage|proportion)\b", lowered):
             name = f"{names[-1]}_pct"
         else:
             name = canonical_metric_name(phrase)

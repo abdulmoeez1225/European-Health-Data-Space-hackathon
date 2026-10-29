@@ -21,7 +21,6 @@ from app.db import connection
 from app.decide import (
     ASSESSMENT_SYSTEM,
     decide,
-    keyword_hits,
     refused_assessment,
     request_text,
     rule_assessment,
@@ -163,8 +162,14 @@ def _ask_assessment(text: str, use_cache: bool, reading: int) -> tuple[PurposeAs
         return refused_assessment(), False
 
 
+_APPROXIMATION = re.compile(r"approximat|overcount|undercount|cannot be expressed|not expressible", re.IGNORECASE)
+
+
 def _ask_plan(text: str, definitions: list[str], use_cache: bool, reading: int) -> tuple[QueryPlan, bool]:
     plan, cached = ask(PLAN_SYSTEM, plan_prompt(text), QueryPlan, use_cache=use_cache, reading=reading)
+    admitted = next((note for note in plan.notes if _APPROXIMATION.search(note)), None)
+    if admitted and not plan.unsupported:
+        plan = plan.model_copy(update={"unsupported": admitted})
     return with_canonical_names(plan, definitions), cached
 
 
@@ -203,7 +208,7 @@ def _read_request(
             assessment, llm_used, cached_a = rule_assessment(request), False, False
             flags.append(ReviewFlag(reason=f"AI assessment unavailable: {errors[-1] if errors else 'no answer'}"))
 
-        if assessment.prohibited or keyword_hits(request):
+        if assessment.prohibited:
             return assessment, None, llm_used, cached_a, flags, consensus
 
         plans, errors, cached_p = _gather(plan_jobs, release_signature, deadline)

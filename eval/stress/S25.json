@@ -1,0 +1,17 @@
+{
+  "id": "S25",
+  "submitted": "2026-10-30T16:55:00+01:00",
+  "applicant": {
+    "name": "Dr. Maria Kofler",
+    "organisation": "Provincial emergency services, planning unit",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Planning of emergency department capacity.",
+  "question": "How many emergency visits did each hospital have in each of the years 2023, 2024 and 2025, and how many different patients were that?",
+  "definitions": [
+    "Emergency visit = encounter with type 'emergency'. Count visits by the year of start_date, per hospital (data holder of the visit).",
+    "Report per hospital and year: emergency visits and distinct patients with an emergency visit."
+  ]
+}

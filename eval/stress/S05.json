@@ -1,0 +1,18 @@
+{
+  "id": "S05",
+  "submitted": "2026-10-30T09:35:00+01:00",
+  "applicant": {
+    "name": "Mag. Peter Hollaus",
+    "organisation": "Federal Ministry of Health, department for emergency care",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Policy-making: assessing the pressure on emergency departments.",
+  "question": "For 2025, what share of all hospital contacts in each hospital were emergency visits?",
+  "definitions": [
+    "A contact is any encounter (inpatient, outpatient or emergency) that started in 2025; count contacts, not patients.",
+    "Hospital = the data holder of the encounter.",
+    "Report per hospital: all contacts, emergency visits, and emergency visits as % of all contacts, one decimal."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "S04",
+  "submitted": "2026-10-30T09:28:00+01:00",
+  "applicant": {
+    "name": "Dr. Gerhard Winkler",
+    "organisation": "Hospital Infection Control Board",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Quality management: burden of acute infections on inpatient wards.",
+  "question": "In 2024, how many admissions with pneumonia or a urinary tract infection as main diagnosis did each Spital have, how many different patients were that and how long did a stay last on average?",
+  "definitions": [
+    "An admission is an inpatient encounter; its main diagnosis is the primary diagnosis of the stay.",
+    "Pneumonia and urinary tract infection both count; the main diagnosis of a stay is one or the other.",
+    "Count admissions that started in 2024, per hospital (data holder of the stay).",
+    "Average stay length in days = end date minus start date, one decimal.",
+    "Per hospital: admissions, distinct patients admitted and the mean length of stay."
+  ]
+}

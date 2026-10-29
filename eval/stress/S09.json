@@ -1,0 +1,19 @@
+{
+  "id": "S09",
+  "submitted": "2026-10-30T11:03:00+01:00",
+  "applicant": {
+    "name": "Dr. Paul Eder",
+    "organisation": "Austrian Diabetes Association, research office",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on weight in type 2 diabetes to inform lifestyle counselling.",
+  "question": "What is the median BMI of adults with type 2 diabetes in each region?",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
+    "Use the latest BMI (LOINC 39156-5) per patient; patients without a BMI are left out.",
+    "Report per region: number of adults with a BMI and their median BMI, one decimal."
+  ]
+}

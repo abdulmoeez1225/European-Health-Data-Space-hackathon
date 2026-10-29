@@ -1,0 +1,18 @@
+{
+  "id": "S11",
+  "submitted": "2026-10-30T11:17:00+01:00",
+  "applicant": {
+    "name": "Dr. Walter Ebner",
+    "organisation": "Stroke unit, university hospital neurology",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on the age at which people have a stroke, to adjust screening recommendations.",
+  "question": "What is the average age of patients with a stroke, for women and for men?",
+  "definitions": [
+    "Stroke = cerebral infarction, any condition with an ICD-10 code starting with I63.",
+    "Age = age on 31 December 2025.",
+    "Report per sex: stroke patients and their mean age, one decimal."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "S21",
+  "submitted": "2026-10-30T15:27:00+01:00",
+  "applicant": {
+    "name": "Dr. Rosa Lehner",
+    "organisation": "Hospital quality office, regional health fund",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Policy-making: comparing the case mix of inpatient wards between hospitals.",
+  "question": "In 2025, how many inpatient stays had heart failure, how many pneumonia and how many a hip fracture as main diagnosis, in each hospital?",
+  "definitions": [
+    "Inpatient stay = encounter with type 'inpatient'; the main diagnosis is primary_icd10.",
+    "Heart failure = I50, pneumonia = J18, hip fracture = S72 (ICD-10 prefixes).",
+    "Count stays whose start_date is in 2025, per hospital (data holder of the stay).",
+    "Report per hospital: heart failure stays, pneumonia stays and hip fracture stays."
+  ]
+}

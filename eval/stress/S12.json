@@ -1,0 +1,18 @@
+{
+  "id": "S12",
+  "submitted": "2026-10-30T12:24:00+01:00",
+  "applicant": {
+    "name": "Dr. Birgit Aigner",
+    "organisation": "Austrian Diabetes Association, quality register",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Quality assurance of glycaemic control at baseline, the year 2023.",
+  "question": "What was the mean HbA1c of patients with type 2 diabetes who had an HbA1c measured in 2023, for women and men?",
+  "definitions": [
+    "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
+    "Use each patient's most recent HbA1c (LOINC 4548-4) measured within 2023. Patients with no HbA1c in 2023 are left out.",
+    "Report per sex: patients with type 2 diabetes with an HbA1c in 2023 and their mean HbA1c, one decimal."
+  ]
+}

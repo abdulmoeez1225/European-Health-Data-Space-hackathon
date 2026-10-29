@@ -1,0 +1,18 @@
+{
+  "id": "S26",
+  "submitted": "2026-10-30T16:02:00+01:00",
+  "applicant": {
+    "name": "Dr. Ruth Eibl",
+    "organisation": "Cardiotrial Research Austria GmbH, clinical operations",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Feasibility assessment for a phase III trial of a new heart failure therapy: we need to know in which regions enough eligible patients live to decide where to recruit trial sites.",
+  "question": "How many patients with heart failure aged 50 to 80 are there in each region?",
+  "definitions": [
+    "Heart failure = any condition with an ICD-10 code starting with I50.",
+    "Age on 31 December 2025, 50 to 80 inclusive.",
+    "Report per region: patients with heart failure aged 50 to 80."
+  ]
+}

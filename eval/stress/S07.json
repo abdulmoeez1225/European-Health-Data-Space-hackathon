@@ -1,0 +1,19 @@
+{
+  "id": "S07",
+  "submitted": "2026-10-30T10:49:00+01:00",
+  "applicant": {
+    "name": "Dr. Lukas Gruber",
+    "organisation": "Austrian Diabetes Association, health services research",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Health services research on treatment persistence in type 2 diabetes care.",
+  "question": "In each region, how many patients were ever prescribed metformin and how many of those are still on it at the end of 2025?",
+  "definitions": [
+    "Metformin = ATC A10BA02.",
+    "Ever prescribed = any prescription of metformin, whenever it started and whether or not it has ended.",
+    "Still on it = prescription active on 31 December 2025 (started on or before that day, and not ended before it).",
+    "Report per region: patients ever prescribed metformin, patients with an active metformin prescription, and the active ones as a share of the ever-prescribed in %, one decimal."
+  ]
+}

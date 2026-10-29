@@ -1,0 +1,21 @@
+{
+  "id": "S01",
+  "submitted": "2026-10-30T08:07:00+01:00",
+  "applicant": {
+    "name": "Dr. Helena Brandner",
+    "organisation": "Styrian Heart Failure Network, quality office",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Service planning for heart failure clinics: we want to see where an older and hypertensive caseload sits.",
+  "question": "How many patients with heart failure does each hospital hold, how many of those are older than 75, how many have a latest systolic blood pressure of 140 or higher and how many are currently on a loop diuretic?",
+  "definitions": [
+    "Heart failure means a recorded diagnosis of heart failure.",
+    "The hospital is the one that holds the patient's record.",
+    "Older than 75 means older than 75 on 31 December 2025, i.e. aged 76 or more.",
+    "For blood pressure use the systolic reading; where a patient has several, take the most recent one.",
+    "Currently on a loop diuretic means a prescription that is active on 31 December 2025.",
+    "For each hospital we would like four numbers: the number of patients, the number older than 75, the number whose latest systolic reading is at or above 140 mmHg, and the number on a loop diuretic."
+  ]
+}

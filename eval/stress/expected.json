@@ -1,0 +1,732 @@
+{
+  "S01": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Service planning is a policy-making purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "heart_failure_patients": 114,
+        "older_than_75": 77,
+        "latest_systolic_140_plus": 16,
+        "on_loop_diuretic": 76
+      },
+      "Klinikum Süd": {
+        "heart_failure_patients": 116,
+        "older_than_75": 78,
+        "latest_systolic_140_plus": 26,
+        "on_loop_diuretic": 71
+      },
+      "Klinikum West": {
+        "heart_failure_patients": 64,
+        "older_than_75": 38,
+        "latest_systolic_140_plus": 12,
+        "on_loop_diuretic": 37
+      }
+    }
+  },
+  "S02": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Burgenland": {
+        "adults_t2d_or_obesity": 119,
+        "on_statin": 25,
+        "statin_share_pct": 21.0
+      },
+      "Kärnten": {
+        "adults_t2d_or_obesity": 180,
+        "on_statin": 32,
+        "statin_share_pct": 17.8
+      },
+      "Niederösterreich": {
+        "adults_t2d_or_obesity": 601,
+        "on_statin": 128,
+        "statin_share_pct": 21.3
+      },
+      "Oberösterreich": {
+        "adults_t2d_or_obesity": 529,
+        "on_statin": 103,
+        "statin_share_pct": 19.5
+      },
+      "Salzburg": {
+        "adults_t2d_or_obesity": 201,
+        "on_statin": 40,
+        "statin_share_pct": 19.9
+      },
+      "Steiermark": {
+        "adults_t2d_or_obesity": 458,
+        "on_statin": 90,
+        "statin_share_pct": 19.7
+      },
+      "Tirol": {
+        "adults_t2d_or_obesity": 279,
+        "on_statin": 60,
+        "statin_share_pct": 21.5
+      },
+      "Vorarlberg": {
+        "adults_t2d_or_obesity": 145,
+        "on_statin": 23,
+        "statin_share_pct": 15.9
+      },
+      "Wien": {
+        "adults_t2d_or_obesity": 760,
+        "on_statin": 152,
+        "statin_share_pct": 20.0
+      }
+    }
+  },
+  "S03": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Public health is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Burgenland": {
+        "under 40": {
+          "patients_with_obesity": 30
+        },
+        "40-64": {
+          "patients_with_obesity": 39
+        },
+        "65+": {
+          "patients_with_obesity": 23
+        }
+      },
+      "Kärnten": {
+        "under 40": {
+          "patients_with_obesity": 52
+        },
+        "40-64": {
+          "patients_with_obesity": 46
+        },
+        "65+": {
+          "patients_with_obesity": 28
+        }
+      },
+      "Niederösterreich": {
+        "under 40": {
+          "patients_with_obesity": 153
+        },
+        "40-64": {
+          "patients_with_obesity": 175
+        },
+        "65+": {
+          "patients_with_obesity": 119
+        }
+      },
+      "Oberösterreich": {
+        "under 40": {
+          "patients_with_obesity": 134
+        },
+        "40-64": {
+          "patients_with_obesity": 181
+        },
+        "65+": {
+          "patients_with_obesity": 85
+        }
+      },
+      "Salzburg": {
+        "under 40": {
+          "patients_with_obesity": 56
+        },
+        "40-64": {
+          "patients_with_obesity": 63
+        },
+        "65+": {
+          "patients_with_obesity": 32
+        }
+      },
+      "Steiermark": {
+        "under 40": {
+          "patients_with_obesity": 124
+        },
+        "40-64": {
+          "patients_with_obesity": 136
+        },
+        "65+": {
+          "patients_with_obesity": 69
+        }
+      },
+      "Tirol": {
+        "under 40": {
+          "patients_with_obesity": 65
+        },
+        "40-64": {
+          "patients_with_obesity": 72
+        },
+        "65+": {
+          "patients_with_obesity": 63
+        }
+      },
+      "Vorarlberg": {
+        "under 40": {
+          "patients_with_obesity": 44
+        },
+        "40-64": {
+          "patients_with_obesity": 44
+        },
+        "65+": {
+          "patients_with_obesity": 27
+        }
+      },
+      "Wien": {
+        "under 40": {
+          "patients_with_obesity": 187
+        },
+        "40-64": {
+          "patients_with_obesity": 241
+        },
+        "65+": {
+          "patients_with_obesity": 148
+        }
+      }
+    }
+  },
+  "S04": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Quality management is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "admissions": 68,
+        "distinct_patients": 67,
+        "mean_length_of_stay_days": 8.6
+      },
+      "Klinikum Süd": {
+        "admissions": 44,
+        "distinct_patients": 44,
+        "mean_length_of_stay_days": 7.6
+      },
+      "Klinikum West": {
+        "admissions": 38,
+        "distinct_patients": 38,
+        "mean_length_of_stay_days": 8.1
+      }
+    }
+  },
+  "S05": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Policy-making is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "all_contacts": 6313,
+        "emergency_visits": 461,
+        "emergency_share_pct": 7.3
+      },
+      "Klinikum Süd": {
+        "all_contacts": 5459,
+        "emergency_visits": 369,
+        "emergency_share_pct": 6.8
+      },
+      "Klinikum West": {
+        "all_contacts": 3753,
+        "emergency_visits": 272,
+        "emergency_share_pct": 7.2
+      }
+    }
+  },
+  "S06": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Quality assurance is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "under 50": {
+        "t2d_patients": 42,
+        "with_hba1c": 42,
+        "latest_hba1c_above_8": "<10",
+        "share_above_8_pct": "suppressed"
+      },
+      "50-69": {
+        "t2d_patients": 178,
+        "with_hba1c": 178,
+        "latest_hba1c_above_8": 40,
+        "share_above_8_pct": 22.5
+      },
+      "70+": {
+        "t2d_patients": 185,
+        "with_hba1c": 185,
+        "latest_hba1c_above_8": 51,
+        "share_above_8_pct": 27.6
+      }
+    }
+  },
+  "S07": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Health services research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Burgenland": {
+        "ever_metformin": 31,
+        "active_metformin": 30,
+        "active_share_pct": 96.8
+      },
+      "Kärnten": {
+        "ever_metformin": 57,
+        "active_metformin": 54,
+        "active_share_pct": 94.7
+      },
+      "Niederösterreich": {
+        "ever_metformin": 199,
+        "active_metformin": 174,
+        "active_share_pct": 87.4
+      },
+      "Oberösterreich": {
+        "ever_metformin": 140,
+        "active_metformin": 130,
+        "active_share_pct": 92.9
+      },
+      "Salzburg": {
+        "ever_metformin": 68,
+        "active_metformin": 58,
+        "active_share_pct": 85.3
+      },
+      "Steiermark": {
+        "ever_metformin": 134,
+        "active_metformin": 122,
+        "active_share_pct": 91.0
+      },
+      "Tirol": {
+        "ever_metformin": 94,
+        "active_metformin": 85,
+        "active_share_pct": 90.4
+      },
+      "Vorarlberg": {
+        "ever_metformin": 28,
+        "active_metformin": 26,
+        "active_share_pct": 92.9
+      },
+      "Wien": {
+        "ever_metformin": 219,
+        "active_metformin": 206,
+        "active_share_pct": 94.1
+      }
+    }
+  },
+  "S08": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "new_depression_2024": 30,
+        "new_obesity_2024": 80
+      },
+      "Klinikum Süd": {
+        "new_depression_2024": 28,
+        "new_obesity_2024": 49
+      },
+      "Klinikum West": {
+        "new_depression_2024": 19,
+        "new_obesity_2024": 32
+      }
+    }
+  },
+  "S09": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": null,
+    "note": "Not expressible with the query-plan DSL. Ideal behaviour: approve as statistics, but flag for staff review instead of releasing numbers computed with a different statistic. (median)"
+  },
+  "S10": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Policy-making is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": null,
+    "note": "Not expressible with the query-plan DSL. Ideal behaviour: approve as statistics, but flag for staff review instead of releasing numbers computed with a different statistic. (rate per 1,000)"
+  },
+  "S11": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": null,
+    "note": "Not expressible with the query-plan DSL. Ideal behaviour: approve as statistics, but flag for staff review instead of releasing numbers computed with a different statistic. (mean age)"
+  },
+  "S12": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Quality assurance is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "t2d_with_hba1c_2023": 296,
+        "mean_hba1c_2023": 7.1
+      },
+      "male": {
+        "t2d_with_hba1c_2023": 312,
+        "mean_hba1c_2023": 7.3
+      }
+    },
+    "note": "Mean of the latest value inside a date window (2023); the DSL can only restrict the cohort by date, not the averaged value. Overall-latest gives female 7.2 / male 7.1 instead of 7.1 / 7.3."
+  },
+  "S13": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Using health data to refine insurance risk classes and tariffs is prohibited (Art. 54).",
+    "answer": null
+  },
+  "S14": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Using health data to place individual staff in programmes and appraisals is prohibited (Art. 54).",
+    "answer": null
+  },
+  "S15": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Sponsored events to introduce a drug to specialists are marketing, not education (Art. 54).",
+    "answer": null
+  },
+  "S16": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Positioning alcoholic beverages is prohibited (Art. 54).",
+    "answer": null
+  },
+  "S17": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Drug-safety research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "on_sglt2": 153,
+        "aged_75_plus": 54,
+        "with_ckd": 10,
+        "ckd_share_pct": 6.5
+      },
+      "male": {
+        "on_sglt2": 151,
+        "aged_75_plus": 45,
+        "with_ckd": 16,
+        "ckd_share_pct": 10.6
+      }
+    },
+    "note": "Allowed industry research; the words 'marketing authorisation holder' must not trigger a rejection."
+  },
+  "S18": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). A health data request is answered with statistics (Art. 69), not patient lists.",
+    "answer": {
+      "Klinikum Nord": {
+        "stroke_patients": 53,
+        "with_active_anticoagulant": "<10",
+        "share_pct": "suppressed"
+      },
+      "Klinikum Süd": {
+        "stroke_patients": 41,
+        "with_active_anticoagulant": "<10",
+        "share_pct": "suppressed"
+      },
+      "Klinikum West": {
+        "stroke_patients": 37,
+        "with_active_anticoagulant": "<10",
+        "share_pct": "suppressed"
+      }
+    }
+  },
+  "S19": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "66",
+      "69"
+    ],
+    "reason": "Public health monitoring is an allowed purpose (Art. 53). Convenience does not justify records (Art. 66). Approved as statistics (Art. 69).",
+    "answer": {
+      "female": {
+        "adults_with_asthma": 26,
+        "adults_with_copd": "<10"
+      },
+      "male": {
+        "adults_with_asthma": 24,
+        "adults_with_copd": 12
+      }
+    }
+  },
+  "S21": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Policy-making is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "heart_failure_stays": 66,
+        "pneumonia_stays": 39,
+        "hip_fracture_stays": 26
+      },
+      "Klinikum Süd": {
+        "heart_failure_stays": 60,
+        "pneumonia_stays": 28,
+        "hip_fracture_stays": 27
+      },
+      "Klinikum West": {
+        "heart_failure_stays": 31,
+        "pneumonia_stays": 24,
+        "hip_fracture_stays": 21
+      }
+    },
+    "note": "Several main diagnoses side by side per hospital: each metric needs its own encounter-level filter."
+  },
+  "S22": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "on_metformin_during_2024": 393
+      },
+      "male": {
+        "on_metformin_during_2024": 388
+      }
+    },
+    "note": "Prescription overlapping a period: the DSL only has 'active on one day' and 'started in a period'."
+  },
+  "S23": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Policy-making is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": null,
+    "note": "Not expressible with the query-plan DSL. Ideal behaviour: approve as statistics, but flag for staff review instead of releasing numbers computed with a different statistic. (group by quarter; only start_year exists)"
+  },
+  "S24": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "with_inpatient_stay": 1393,
+        "with_two_or_more": 174
+      },
+      "male": {
+        "with_inpatient_stay": 1307,
+        "with_two_or_more": 196
+      }
+    }
+  },
+  "S25": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Planning is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "2023": {
+          "emergency_visits": 481,
+          "distinct_patients": 481
+        },
+        "2024": {
+          "emergency_visits": 464,
+          "distinct_patients": 464
+        },
+        "2025": {
+          "emergency_visits": 461,
+          "distinct_patients": 461
+        }
+      },
+      "Klinikum Süd": {
+        "2023": {
+          "emergency_visits": 391,
+          "distinct_patients": 391
+        },
+        "2024": {
+          "emergency_visits": 410,
+          "distinct_patients": 410
+        },
+        "2025": {
+          "emergency_visits": 369,
+          "distinct_patients": 369
+        }
+      },
+      "Klinikum West": {
+        "2023": {
+          "emergency_visits": 243,
+          "distinct_patients": 243
+        },
+        "2024": {
+          "emergency_visits": 266,
+          "distinct_patients": 266
+        },
+        "2025": {
+          "emergency_visits": 272,
+          "distinct_patients": 272
+        }
+      }
+    }
+  },
+  "S26": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Trial feasibility is scientific research (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Burgenland": {
+        "heart_failure_50_80": "<10"
+      },
+      "Kärnten": {
+        "heart_failure_50_80": 11
+      },
+      "Niederösterreich": {
+        "heart_failure_50_80": 38
+      },
+      "Oberösterreich": {
+        "heart_failure_50_80": 20
+      },
+      "Salzburg": {
+        "heart_failure_50_80": 11
+      },
+      "Steiermark": {
+        "heart_failure_50_80": 20
+      },
+      "Tirol": {
+        "heart_failure_50_80": 12
+      },
+      "Vorarlberg": {
+        "heart_failure_50_80": "<10"
+      },
+      "Wien": {
+        "heart_failure_50_80": 37
+      }
+    },
+    "note": "Allowed: the word 'recruit' must not trigger a rejection; statistics cannot identify individuals."
+  },
+  "S27": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Tobacco control is a public health purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "0-39": {
+          "copd_patients": "<10"
+        },
+        "40-59": {
+          "copd_patients": 35
+        },
+        "60-79": {
+          "copd_patients": 85
+        },
+        "80+": {
+          "copd_patients": 39
+        }
+      },
+      "male": {
+        "0-39": {
+          "copd_patients": "<10"
+        },
+        "40-59": {
+          "copd_patients": 38
+        },
+        "60-79": {
+          "copd_patients": 99
+        },
+        "80+": {
+          "copd_patients": 43
+        }
+      }
+    },
+    "note": "Allowed: the word 'tobacco' in a prevention purpose must not trigger a rejection."
+  },
+  "S28": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Concentrating a field force and sponsored events on regions is marketing to health professionals (Art. 54).",
+    "answer": null
+  },
+  "S29": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Linking records to an app's user base to target individuals with offers is prohibited (Art. 54).",
+    "answer": null
+  },
+  "S20": {
+    "decision": "APPROVE_SPE",
+    "articles": [
+      "53",
+      "66",
+      "68",
+      "73"
+    ],
+    "reason": "Algorithm development is an allowed purpose (Art. 53). The model needs patient-level data (Art. 66). Access only inside a secure processing environment (Art. 68, 73).",
+    "answer": {
+      "cohort_size": 351
+    },
+    "spe_rows": {
+      "conditions": 854,
+      "medications": 792,
+      "observations": 777,
+      "encounters": 1664
+    }
+  }
+}

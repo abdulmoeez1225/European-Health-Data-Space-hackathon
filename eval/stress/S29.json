@@ -1,0 +1,18 @@
+{
+  "id": "S29",
+  "submitted": "2026-10-30T17:23:00+01:00",
+  "applicant": {
+    "name": "Lena Moser",
+    "organisation": "FitPath Digital Health GmbH, growth team",
+    "country": "AT"
+  },
+  "requested_as": "health data access application",
+  "requested_format": "pseudonymised records",
+  "purpose": "We will link the pseudonymised records with our app's user base through birth date, region and sex to find the users who have obesity, and show those users personalised weight-loss programme offers in the app.",
+  "question": "Provide pseudonymised records of all adults with obesity.",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Obesity = any condition with an ICD-10 code starting with E66.",
+    "Report per region: adults with obesity."
+  ]
+}

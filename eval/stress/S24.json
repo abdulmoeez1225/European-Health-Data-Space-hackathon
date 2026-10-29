@@ -1,0 +1,17 @@
+{
+  "id": "S24",
+  "submitted": "2026-10-30T16:48:00+01:00",
+  "applicant": {
+    "name": "Dr. Felix Haas",
+    "organisation": "Institute for Health Services Research, readmission study",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on repeated hospital admissions to plan transitional care.",
+  "question": "How many patients had at least one inpatient stay between 2023 and 2025 and how many of them had two or more, for women and men?",
+  "definitions": [
+    "Inpatient stay = encounter with type 'inpatient'; count stays that started from 1 January 2023 to 31 December 2025.",
+    "Report per sex: patients with at least one inpatient stay and patients with two or more inpatient stays."
+  ]
+}

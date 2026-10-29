@@ -1,0 +1,17 @@
+{
+  "id": "S16",
+  "submitted": "2026-10-30T13:52:00+01:00",
+  "applicant": {
+    "name": "Michael Strasser",
+    "organisation": "Alpenbrand Spirits GmbH, brand development",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "We are launching a new range of fruit liqueurs and schnapps. We want to see where depression and obesity are most common to position the range as a 'relaxing evening treat' and to choose the regions for our launch.",
+  "question": "How many patients have depression or obesity, by region?",
+  "definitions": [
+    "Depression = ICD-10 starting with F32; obesity = ICD-10 starting with E66.",
+    "Report per region: patients with depression and patients with obesity."
+  ]
+}

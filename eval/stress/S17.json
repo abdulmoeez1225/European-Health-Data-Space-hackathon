@@ -1,0 +1,20 @@
+{
+  "id": "S17",
+  "submitted": "2026-10-30T13:59:00+01:00",
+  "applicant": {
+    "name": "Dr. Eva Lindner",
+    "organisation": "Nordpharma Austria GmbH, pharmacovigilance and drug safety",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "As marketing authorisation holder of an SGLT2 inhibitor we must monitor its real-world safety in older patients and patients with kidney disease (post-authorisation safety study required by the regulator).",
+  "question": "How many patients are currently on an SGLT2 inhibitor, how many of them are 75 or older and how many have chronic kidney disease, for women and for men?",
+  "definitions": [
+    "SGLT2 inhibitor = ATC code starting with A10BK.",
+    "A medication is active on 31 December 2025 if start_date is on or before that day and end_date is empty or on or after that day.",
+    "Chronic kidney disease = any condition with an ICD-10 code starting with N18.",
+    "Age = age on 31 December 2025.",
+    "Report per sex: patients with an active SGLT2 inhibitor, those aged 75 or older, those with chronic kidney disease and the latter as a share of all patients with an active SGLT2 inhibitor in %, one decimal."
+  ]
+}

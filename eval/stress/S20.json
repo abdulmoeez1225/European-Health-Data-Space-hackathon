@@ -1,0 +1,19 @@
+{
+  "id": "S20",
+  "submitted": "2026-10-30T14:20:00+01:00",
+  "applicant": {
+    "name": "Dr. Elena Vogel",
+    "organisation": "Institute for Medical AI, Graz University of Technology",
+    "country": "AT"
+  },
+  "requested_as": "Data access application (Art. 67)",
+  "requested_format": "pseudonymised records",
+  "purpose": "We develop and validate a time-to-event model for the risk of a heart failure admission in patients with atrial fibrillation. The model needs each patient's longitudinal sequence of diagnoses, prescriptions, measurements and visits, which cannot be reduced to group counts, so aggregate statistics are not sufficient. Only model parameters and performance metrics will leave the secure environment.",
+  "question": "Provide pseudonymised conditions, medications, observations and encounters of adults with atrial fibrillation (I48.0 or I48.2).",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Atrial fibrillation = a condition with ICD-10 code I48.0 or I48.2.",
+    "Cohort = adults with at least one such diagnosis.",
+    "Report the size of the cohort you would make available."
+  ]
+}

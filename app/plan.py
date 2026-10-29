@@ -65,6 +65,8 @@ class MedicationCriterion(_Criterion):
 
     `active_on` restricts to prescriptions active on that day:
     start_date <= day and (end_date empty or end_date >= day).
+    `overlaps_from`/`overlaps_to` restrict to prescriptions taken at any time in that period
+    ("on metformin at any time in 2024"); `started_from`/`started_to` to prescriptions started in it.
     """
 
     kind: Literal["medication"] = "medication"
@@ -72,6 +74,8 @@ class MedicationCriterion(_Criterion):
     active_on: date | None = None
     started_from: date | None = None
     started_to: date | None = None
+    overlaps_from: date | None = None
+    overlaps_to: date | None = None
 
 
 class ObservationCriterion(_Criterion):
@@ -95,7 +99,12 @@ class ObservationCriterion(_Criterion):
 
 
 class EncounterCriterion(_Criterion):
-    """Patient has at least one encounter matching all given fields."""
+    """An encounter matching all given fields.
+
+    With unit "patients": the patient has at least `min_count` such encounters.
+    With unit "encounters": the counted stay itself matches (use it in a metric's `where` to count,
+    for example, only heart-failure stays among all inpatient stays).
+    """
 
     kind: Literal["encounter"] = "encounter"
     types: list[EncounterType] | None = None
@@ -169,8 +178,9 @@ class PercentMetric(BaseModel):
 class MeanMetric(BaseModel):
     """Mean of each patient's latest (or first) value of a LOINC measurement.
 
-    Only units meeting `where` that have a value are averaged. For encounter
-    units, `of` = "length_of_stay_days" averages end_date - start_date.
+    Only units meeting `where` that have a value are averaged. `date_from`/`date_to` take the
+    latest (or first) value within that period. For encounter units, `of` = "length_of_stay_days"
+    averages end_date - start_date.
     """
 
     kind: Literal["mean"] = "mean"
@@ -178,6 +188,8 @@ class MeanMetric(BaseModel):
     of: Literal["observation", "length_of_stay_days"] = "observation"
     loinc: Code | None = None
     which: Literal["latest", "first"] = "latest"
+    date_from: date | None = None
+    date_to: date | None = None
     where: list[Criterion] = Field(default_factory=list)
 
     @model_validator(mode="after")

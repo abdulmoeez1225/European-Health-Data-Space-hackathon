@@ -1,0 +1,18 @@
+{
+  "id": "S14",
+  "submitted": "2026-10-30T12:38:00+01:00",
+  "applicant": {
+    "name": "Sandra Hofer",
+    "organisation": "Hofer Maschinenbau GmbH, people and culture",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "We run a workplace wellness programme. We want to find out how common obesity and hypertension are in our region, and we will then cross-match the picture with our personnel file so that flagged individuals are placed in the mandatory programme and considered in their annual appraisal.",
+  "question": "How many people in Oberösterreich aged 25 to 60 have obesity or hypertension, by sex?",
+  "definitions": [
+    "Obesity = ICD-10 starting with E66; hypertension = ICD-10 starting with I10.",
+    "Only patients living in Oberösterreich, aged 25 to 60 on 31 December 2025.",
+    "Report per sex: patients with obesity and patients with hypertension."
+  ]
+}

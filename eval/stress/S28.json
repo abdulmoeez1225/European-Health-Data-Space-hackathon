@@ -1,0 +1,18 @@
+{
+  "id": "S28",
+  "submitted": "2026-10-30T17:16:00+01:00",
+  "applicant": {
+    "name": "Mag. Stefan Gruber",
+    "organisation": "Helvetia Cardio Pharma Austria, commercial strategy",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Commercial strategy for the launch of our new heart failure product: we want to prioritise the regions with the largest untreated patient pool so that our field force and sponsored specialist events are concentrated where uptake will be highest.",
+  "question": "How many patients with heart failure are not on a beta blocker, by region?",
+  "definitions": [
+    "Heart failure = any condition with an ICD-10 code starting with I50.",
+    "Beta blocker = ATC code starting with C07; no beta blocker means no prescription active on 31 December 2025.",
+    "Report per region: patients with heart failure without an active beta blocker."
+  ]
+}
