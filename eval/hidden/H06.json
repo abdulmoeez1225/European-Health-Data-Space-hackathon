@@ -1,0 +1,19 @@
+{
+  "id": "H06",
+  "submitted": "2026-10-29T14:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Michael Haider",
+    "organisation": "Institute for General Practice, university",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on blood pressure control in primary care to update teaching material.",
+  "question": "What is the mean systolic blood pressure of adults with hypertension, for women and for men?",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Hypertension = any condition with an ICD-10 code starting with I10.",
+    "Systolic blood pressure = LOINC 8480-6. Use the latest value per patient; patients without a value are left out.",
+    "Report per sex: adults with hypertension who have a systolic blood pressure value and their mean systolic blood pressure, one decimal."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "H09",
+  "submitted": "2026-10-29T17:00:00+01:00",
+  "applicant": {
+    "name": "Clara Reiter",
+    "organisation": "Donauland Bank AG, retail credit risk",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "To assess the long-term financial resilience of mortgage applicants, we want to understand how common chronic illness is in each region so that loan conditions can be adjusted for applicants from regions with a high disease burden.",
+  "question": "How many adults have heart failure or type 2 diabetes in each region?",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Heart failure = any condition with an ICD-10 code starting with I50.",
+    "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
+    "Report per region: adults with heart failure and adults with type 2 diabetes."
+  ]
+}

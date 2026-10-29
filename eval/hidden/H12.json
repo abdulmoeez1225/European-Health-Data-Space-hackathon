@@ -1,0 +1,20 @@
+{
+  "id": "H12",
+  "submitted": "2026-10-29T20:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Oliver Ritter",
+    "organisation": "Provincial Health Authority, respiratory care planning",
+    "country": "AT"
+  },
+  "requested_as": "health data access application",
+  "requested_format": "pseudonymised records",
+  "purpose": "We plan pulmonary rehabilitation capacity and want to see how widespread COPD is and how often long-acting inhalers are used in each hospital.",
+  "question": "Provide pseudonymised records of all adults with COPD and their medications.",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "COPD = any condition with an ICD-10 code starting with J44.",
+    "Hospital = the data holder of the patient record.",
+    "A medication is active on 31 December 2025 if start_date is on or before that day and end_date is empty or on or after that day.",
+    "Report per hospital: adults with COPD and the % with an active tiotropium prescription (ATC R03BB04), one decimal."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "H05",
+  "submitted": "2026-10-29T13:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Renate Pichler",
+    "organisation": "Austrian Nephrology Society, kidney health programme",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Public health planning for early detection of reduced kidney function.",
+  "question": "In each region, how many adults have a measured kidney function, for how many is the latest eGFR below 60 and for how many below 45?",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Kidney function = eGFR, LOINC 62238-1.",
+    "Use the latest eGFR per patient. Patients without an eGFR are left out.",
+    "Report per region: adults with an eGFR value, adults whose latest eGFR is below 60, adults whose latest eGFR is below 45 and the latter as a share of adults with an eGFR value in %, one decimal."
+  ]
+}

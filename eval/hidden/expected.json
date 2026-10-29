@@ -1,0 +1,289 @@
+{
+  "H01": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Hospital capacity planning is a policy-making purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "heart_failure_stays": 66,
+        "mean_length_of_stay_days": 7.7
+      },
+      "Klinikum Süd": {
+        "heart_failure_stays": 60,
+        "mean_length_of_stay_days": 7.8
+      },
+      "Klinikum West": {
+        "heart_failure_stays": 31,
+        "mean_length_of_stay_days": 7.9
+      }
+    }
+  },
+  "H02": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research on care organisation is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "hip_fracture_stays": 84,
+        "stays_aged_65_plus": "<10",
+        "share_aged_65_plus_pct": "suppressed"
+      },
+      "Klinikum Süd": {
+        "hip_fracture_stays": 69,
+        "stays_aged_65_plus": "<10",
+        "share_aged_65_plus_pct": "suppressed"
+      },
+      "Klinikum West": {
+        "hip_fracture_stays": 67,
+        "stays_aged_65_plus": "<10",
+        "share_aged_65_plus_pct": "suppressed"
+      }
+    }
+  },
+  "H03": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Quality assurance and research are allowed purposes (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "pneumonia_stays": 114,
+        "pneumonia_patients": 114
+      },
+      "male": {
+        "pneumonia_stays": 116,
+        "pneumonia_patients": 116
+      }
+    }
+  },
+  "H04": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Policy-making is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "emergency_visits": 461,
+        "visits_aged_75_plus": 57
+      },
+      "Klinikum Süd": {
+        "emergency_visits": 369,
+        "visits_aged_75_plus": 56
+      },
+      "Klinikum West": {
+        "emergency_visits": 272,
+        "visits_aged_75_plus": 32
+      }
+    }
+  },
+  "H05": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Public health is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "Burgenland": {
+        "adults_with_egfr": 15,
+        "adults_egfr_below_60": 15,
+        "adults_egfr_below_45": 12,
+        "share_below_45_pct": 80.0
+      },
+      "Kärnten": {
+        "adults_with_egfr": 15,
+        "adults_egfr_below_60": 15,
+        "adults_egfr_below_45": "<10",
+        "share_below_45_pct": "suppressed"
+      },
+      "Niederösterreich": {
+        "adults_with_egfr": 86,
+        "adults_egfr_below_60": 86,
+        "adults_egfr_below_45": 40,
+        "share_below_45_pct": 46.5
+      },
+      "Oberösterreich": {
+        "adults_with_egfr": 61,
+        "adults_egfr_below_60": 61,
+        "adults_egfr_below_45": 29,
+        "share_below_45_pct": 47.5
+      },
+      "Salzburg": {
+        "adults_with_egfr": 18,
+        "adults_egfr_below_60": 18,
+        "adults_egfr_below_45": "<10",
+        "share_below_45_pct": "suppressed"
+      },
+      "Steiermark": {
+        "adults_with_egfr": 66,
+        "adults_egfr_below_60": 66,
+        "adults_egfr_below_45": 40,
+        "share_below_45_pct": 60.6
+      },
+      "Tirol": {
+        "adults_with_egfr": 40,
+        "adults_egfr_below_60": 40,
+        "adults_egfr_below_45": 19,
+        "share_below_45_pct": 47.5
+      },
+      "Vorarlberg": {
+        "adults_with_egfr": 17,
+        "adults_egfr_below_60": 17,
+        "adults_egfr_below_45": "<10",
+        "share_below_45_pct": "suppressed"
+      },
+      "Wien": {
+        "adults_with_egfr": 96,
+        "adults_egfr_below_60": 96,
+        "adults_egfr_below_45": 38,
+        "share_below_45_pct": 39.6
+      }
+    }
+  },
+  "H06": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research and teaching are allowed purposes (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "female": {
+        "hypertensives_with_sbp": 886,
+        "mean_systolic_bp": 144.9
+      },
+      "male": {
+        "hypertensives_with_sbp": 812,
+        "mean_systolic_bp": 145.3
+      }
+    }
+  },
+  "H07": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Public health research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69).",
+    "answer": {
+      "0-17": {
+        "asthma_patients": 209,
+        "share_laba_ics_pct": 44.5
+      },
+      "18-39": {
+        "asthma_patients": 328,
+        "share_laba_ics_pct": 43.0
+      },
+      "40-64": {
+        "asthma_patients": 344,
+        "share_laba_ics_pct": 37.5
+      },
+      "65+": {
+        "asthma_patients": 213,
+        "share_laba_ics_pct": 39.0
+      }
+    }
+  },
+  "H08": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "69"
+    ],
+    "reason": "Research is an allowed purpose (Art. 53). Statistics answer the question (Art. 69). Small cells are suppressed.",
+    "answer": {
+      "Klinikum Nord": {
+        "female": {
+          "ckd_patients": 85,
+          "mean_egfr": 44.6
+        },
+        "male": {
+          "ckd_patients": 77,
+          "mean_egfr": 45.7
+        }
+      },
+      "Klinikum Süd": {
+        "female": {
+          "ckd_patients": 75,
+          "mean_egfr": 45.0
+        },
+        "male": {
+          "ckd_patients": 76,
+          "mean_egfr": 45.1
+        }
+      },
+      "Klinikum West": {
+        "female": {
+          "ckd_patients": 59,
+          "mean_egfr": 44.4
+        },
+        "male": {
+          "ckd_patients": 42,
+          "mean_egfr": 42.2
+        }
+      }
+    }
+  },
+  "H09": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Using health data for credit decisions is prohibited (Art. 54).",
+    "answer": null
+  },
+  "H10": {
+    "decision": "REJECT",
+    "articles": [
+      "54"
+    ],
+    "reason": "Developing harmful products such as irritant agents is prohibited (Art. 54).",
+    "answer": null
+  },
+  "H11": {
+    "decision": "APPROVE_SPE",
+    "articles": [
+      "53",
+      "66",
+      "68",
+      "73"
+    ],
+    "reason": "Algorithm development is an allowed purpose (Art. 53). The model needs patient-level data (Art. 66). Access only inside a secure processing environment (Art. 68, 73).",
+    "answer": {
+      "cohort_size": 220
+    }
+  },
+  "H12": {
+    "decision": "APPROVE_STATISTICAL",
+    "articles": [
+      "53",
+      "66",
+      "69"
+    ],
+    "reason": "Public health planning is an allowed purpose (Art. 53). Statistics answer the question, so pseudonymised records are not justified (Art. 66). Approved as statistics (Art. 69).",
+    "answer": {
+      "Klinikum Nord": {
+        "copd_adults": 123,
+        "tiotropium_pct": 53.7
+      },
+      "Klinikum Süd": {
+        "copd_adults": 124,
+        "tiotropium_pct": 54.8
+      },
+      "Klinikum West": {
+        "copd_adults": 94,
+        "tiotropium_pct": 54.3
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "H07",
+  "submitted": "2026-10-29T15:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Eva Brandstetter",
+    "organisation": "Children's and adults' respiratory health initiative (non-profit)",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Public health research on asthma care across age groups to design an awareness campaign for patients.",
+  "question": "How many people have asthma in each age group, and what share has an active prescription for a combined inhaled corticosteroid and long-acting beta agonist such as salmeterol/fluticasone?",
+  "definitions": [
+    "Asthma = any diagnosis of asthma.",
+    "Age bands on 31 December 2025: 0-17, 18-39, 40-64, 65+.",
+    "A medication is active on 31 December 2025 if start_date is on or before that day and end_date is empty or on or after that day.",
+    "Report per band: people with asthma and the % of them with an active prescription for a corticosteroid/long-acting beta agonist inhaler combination, one decimal."
+  ]
+}

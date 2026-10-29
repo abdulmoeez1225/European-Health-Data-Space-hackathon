@@ -1,0 +1,19 @@
+{
+  "id": "H08",
+  "submitted": "2026-10-29T16:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Stefan Wallner",
+    "organisation": "Clinical Institute for Nephrology, university hospital",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on the burden of chronic kidney disease to inform referral pathways between hospitals.",
+  "question": "How many patients with chronic kidney disease does each hospital hold, split by sex, and what is their mean kidney function?",
+  "definitions": [
+    "Chronic kidney disease = any diagnosis of chronic kidney disease, whatever the stage.",
+    "Hospital = the data holder of the patient record.",
+    "Kidney function = eGFR (LOINC 62238-1); use the latest value per patient. Patients without an eGFR are left out of the mean.",
+    "Report per hospital and sex: patients with chronic kidney disease and the mean latest eGFR, one decimal."
+  ]
+}

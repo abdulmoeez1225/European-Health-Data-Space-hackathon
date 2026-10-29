@@ -1,0 +1,19 @@
+{
+  "id": "H04",
+  "submitted": "2026-10-29T12:00:00+01:00",
+  "applicant": {
+    "name": "Mag. Thomas Eder",
+    "organisation": "Provincial health fund, emergency care department",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Policy-making: planning staffing of emergency departments.",
+  "question": "How many emergency visits started in 2025 in each hospital, and how many of them were by patients aged 75 or older?",
+  "definitions": [
+    "Emergency visit = encounter with type 'emergency'.",
+    "Count visits (not patients) whose start_date is in 2025, per hospital (data_holder of the visit).",
+    "Age = age on 31 December 2025.",
+    "Report per hospital: emergency visits and visits of patients aged 75 or older."
+  ]
+}

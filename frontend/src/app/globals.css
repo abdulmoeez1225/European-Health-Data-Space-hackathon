@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+/* Design tokens (see DESIGN.md). One deep-blue accent; status colours only for decisions. */
+:root {
+  color-scheme: light;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --line: #d8dee8;
+  --line-strong: #c3cbd8;
+  --fg: #141e30;
+  --muted: #536077;
+  --accent: #0f3d8a;
+  --accent-hover: #0c3373;
+  --accent-fg: #ffffff;
+  --accent-soft: #e7eefa;
+  --reject: #b1271f;
+  --reject-soft: #fcedec;
+  --stats: #17703a;
+  --stats-soft: #e6f4ec;
+  --spe: #1a52b5;
+  --spe-soft: #e7eefc;
+  --warn: #7a5200;
+  --warn-soft: #fdf4dc;
+  --code: #f2f5fa;
+  --on-status: #ffffff;
+  --shadow-card: 0 1px 2px rgb(16 32 64 / 0.05), 0 4px 16px rgb(16 32 64 / 0.05);
+  --shadow-raised: 0 2px 4px rgb(16 32 64 / 0.06), 0 12px 32px rgb(16 32 64 / 0.1);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c121c;
+  --surface: #141c29;
+  --surface-2: #1b2535;
+  --line: #2a3649;
+  --line-strong: #3a4860;
+  --fg: #e6ebf3;
+  --muted: #9ba7bb;
+  --accent: #86aef6;
+  --accent-hover: #a3c1f8;
+  --accent-fg: #0a1430;
+  --accent-soft: #1a2a48;
+  --reject: #ff8f86;
+  --reject-soft: #3a1d1c;
+  --stats: #74d49c;
+  --stats-soft: #13301f;
+  --spe: #90b6ff;
+  --spe-soft: #172b4e;
+  --warn: #f0c560;
+  --warn-soft: #352b0f;
+  --code: #0f1724;
+  --on-status: #170605;
+  --shadow-card: 0 0 0 1px rgb(0 0 0 / 0.2);
+  --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0c121c;
+    --surface: #141c29;
+    --surface-2: #1b2535;
+    --line: #2a3649;
+    --line-strong: #3a4860;
+    --fg: #e6ebf3;
+    --muted: #9ba7bb;
+    --accent: #86aef6;
+    --accent-hover: #a3c1f8;
+    --accent-fg: #0a1430;
+    --accent-soft: #1a2a48;
+    --reject: #ff8f86;
+    --reject-soft: #3a1d1c;
+    --stats: #74d49c;
+    --stats-soft: #13301f;
+    --spe: #90b6ff;
+    --spe-soft: #172b4e;
+    --warn: #f0c560;
+    --warn-soft: #352b0f;
+    --code: #0f1724;
+    --on-status: #170605;
+    --shadow-card: 0 0 0 1px rgb(0 0 0 / 0.2);
+    --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.45);
+  }
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-reject: var(--reject);
+  --color-reject-soft: var(--reject-soft);
+  --color-stats: var(--stats);
+  --color-stats-soft: var(--stats-soft);
+  --color-spe: var(--spe);
+  --color-spe-soft: var(--spe-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-code: var(--code);
+  --color-on-status: var(--on-status);
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-reveal: reveal 280ms var(--ease-out-soft) both;
+  --animate-fade: fade 200ms ease-out both;
+  --animate-pop: pop 320ms var(--ease-out-soft) both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

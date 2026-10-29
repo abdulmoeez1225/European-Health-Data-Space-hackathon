@@ -1,0 +1,20 @@
+{
+  "id": "H01",
+  "submitted": "2026-10-29T09:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Katharina Moser",
+    "organisation": "Austrian Hospital Planning Office, capacity planning",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "We plan cardiology bed capacity for the next hospital structure plan.",
+  "question": "How many inpatient stays had heart failure as the main diagnosis in 2025 in each hospital and how long did they last on average?",
+  "definitions": [
+    "Inpatient stay = encounter with type 'inpatient'.",
+    "Heart failure stay = inpatient stay whose main diagnosis (primary_icd10) starts with I50.",
+    "Count stays (not patients) whose start_date is in 2025, attributed to the hospital (data_holder) of the stay.",
+    "Length of stay = end_date minus start_date in days.",
+    "Report per hospital: heart failure stays and the mean length of stay in days, one decimal."
+  ]
+}

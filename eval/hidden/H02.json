@@ -1,0 +1,19 @@
+{
+  "id": "H02",
+  "submitted": "2026-10-29T10:00:00+01:00",
+  "applicant": {
+    "name": "Prof. Daniel Aigner",
+    "organisation": "Department of Trauma Surgery, medical university",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Research on orthogeriatric care to decide where to place fracture liaison services.",
+  "question": "How many inpatient stays for hip fracture were there from 2023 to 2025 in each hospital, and how many of them were of patients aged 65 or older?",
+  "definitions": [
+    "Hip fracture stay = inpatient stay whose main diagnosis (primary_icd10) starts with S72.",
+    "Count stays (not patients) with a start_date from 1 January 2023 to 31 December 2025, per hospital (data_holder of the stay).",
+    "Age = age on 31 December 2025.",
+    "Report per hospital: hip fracture stays, stays of patients aged 65 or older, and their share of all hip fracture stays in %, one decimal."
+  ]
+}

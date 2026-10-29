@@ -1,0 +1,20 @@
+{
+  "id": "H11",
+  "submitted": "2026-10-29T19:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Sabine Kofler",
+    "organisation": "Digital Health Lab, medical university (research group)",
+    "country": "AT"
+  },
+  "requested_as": "health data access application",
+  "requested_format": "pseudonymised records",
+  "purpose": "We train and validate a model that predicts readmission within 30 days after a hospital stay for heart failure. The model learns from the sequence of diagnoses, prescriptions, laboratory values and stays of each individual patient over time, so aggregated statistics are not enough; individual-level histories are required. We will only export model weights and performance metrics.",
+  "question": "Provide pseudonymised conditions, medications, kidney function values and encounters for adults with at least one inpatient stay for heart failure.",
+  "definitions": [
+    "Adult = aged 18 or older on 31 December 2025.",
+    "Heart failure stay = inpatient stay whose main diagnosis (primary_icd10) starts with I50, started from 2023 to 2025.",
+    "Cohort = adults with at least one heart failure stay.",
+    "Records: conditions, medications, eGFR observations (LOINC 62238-1) and encounters.",
+    "Report the size of the cohort you would make available."
+  ]
+}

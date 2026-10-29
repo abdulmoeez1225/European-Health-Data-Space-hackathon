@@ -1,0 +1,19 @@
+{
+  "id": "H03",
+  "submitted": "2026-10-29T11:00:00+01:00",
+  "applicant": {
+    "name": "Dr. Julia Steinbacher",
+    "organisation": "Austrian Society for Pulmonology, quality register",
+    "country": "AT"
+  },
+  "requested_as": "health data request",
+  "requested_format": "anonymised statistics",
+  "purpose": "Quality assurance and research on hospital admissions for community-acquired pneumonia.",
+  "question": "How many inpatient stays for pneumonia are there for women and for men, and how many different patients does that concern?",
+  "definitions": [
+    "Pneumonia stay = inpatient stay whose main diagnosis (primary_icd10) starts with J18.",
+    "Count all such stays from 2023 to 2025.",
+    "Group by the patient's sex.",
+    "Report per sex: pneumonia stays and the number of distinct patients with such a stay."
+  ]
+}
