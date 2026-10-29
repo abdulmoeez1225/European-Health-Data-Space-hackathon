@@ -1,0 +1,15 @@
+# Serves Gatekeeper on https://{$SITE_HOST}; Caddy obtains and renews the certificate.
+
+{$SITE_HOST} {
+	encode zstd gzip
+	reverse_proxy gatekeeper:8000 {
+		transport http {
+			read_timeout 180s
+		}
+	}
+}
+
+# Anything else on plain HTTP (e.g. the bare IP) goes to the HTTPS site.
+:80 {
+	redir https://{$SITE_HOST}{uri} permanent
+}

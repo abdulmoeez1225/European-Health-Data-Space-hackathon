@@ -1,0 +1,33 @@
+# Production override: Caddy in front with automatic HTTPS.
+#   docker compose -f compose.yaml -f compose.prod.yaml --env-file /etc/gatekeeper.env up -d --build
+# /etc/gatekeeper.env holds the LLM settings and SITE_HOST (the public hostname for the certificate).
+
+services:
+  gatekeeper:
+    env_file:
+      - path: /etc/gatekeeper.env
+        required: true
+    volumes:
+      - /var/lib/gatekeeper:/var/lib/gatekeeper
+
+  caddy:
+    image: caddy:2.10.2
+    container_name: gatekeeper-caddy
+    restart: unless-stopped
+    depends_on:
+      gatekeeper:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_HOST: ${SITE_HOST:?set SITE_HOST in /etc/gatekeeper.env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:
