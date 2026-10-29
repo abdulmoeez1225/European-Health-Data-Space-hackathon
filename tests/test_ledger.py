@@ -130,3 +130,14 @@ def test_percent_cell_is_suppressed_not_less_than() -> None:
     cell = _burgenland(second)
     assert cell.exact == "32/360"
     assert cell.shown == SUPPRESSED and "1 patient" in cell.suppressed_by
+
+
+def test_ledger_survives_a_restart() -> None:
+    ledger.apply_ledger("curious analytics gmbh", "RT-1", run_plan(_plan()))
+    ledger._loaded_from = None
+
+    second = run_plan(_plan({"kind": "age", "min_age": 40}))
+    events = ledger.apply_ledger("curious analytics gmbh", "RT-2", second)
+
+    assert [e.revealed_count for e in events] == [1]
+    assert _burgenland(second).shown == LESS_THAN

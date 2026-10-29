@@ -51,7 +51,10 @@ names in spe_records (patients, conditions, medications, observations, encounter
 requested (e.g. "HbA1c values"), restrict observations with codes. If the request also defines numbers to report \
 per group, fill group_by and metrics as well. "Report the size of the cohort" needs no metric.
 - Health data requests (statistics) never need spe_records.
-- Put any assumption you made in notes (short)."""
+- Put any assumption you made in notes (short).
+- If a requested number cannot be expressed with this plan (a median, a rate per 1,000, grouping by drug or \
+diagnosis code, a sum, a time trend not covered by start_year), set unsupported to a one-sentence explanation \
+instead of approximating it. Never approximate silently."""
 
 EXAMPLE = """Example (not one of the real requests):
 Definitions: "Chronic kidney disease = ICD-10 starting with N18." / "Use the latest eGFR (LOINC 62238-1); patients \

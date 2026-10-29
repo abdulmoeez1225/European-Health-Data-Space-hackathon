@@ -86,6 +86,15 @@ class CodeMapping(BaseModel):
     matched: list[str] = Field(description="'CODE label' entries present in the data.")
 
 
+class Consensus(BaseModel):
+    """How many independent AI readings of the request agreed with the released outcome."""
+
+    assessment_votes: int = 0
+    assessment_agreeing: int = 0
+    plan_votes: int = 0
+    plan_agreeing: int = 0
+
+
 class Timings(BaseModel):
     llm_s: float = 0.0
     compute_s: float = 0.0
@@ -107,5 +116,6 @@ class RequestResult(BaseModel):
     spe: SpeOutput | None = None
     llm_backend: str
     cached: bool = False
+    consensus: Consensus = Field(default_factory=Consensus)
     timings: Timings = Field(default_factory=Timings)
     processed_at: datetime

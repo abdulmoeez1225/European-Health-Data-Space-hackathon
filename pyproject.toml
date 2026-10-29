@@ -8,13 +8,13 @@ dependencies = [
     "anthropic==2.3.0",
     "duckdb==2.0.0",
     "fastapi==0.162.0",
+    "httpx==0.28.1",
     "pydantic==2.14.2",
     "uvicorn[standard]==0.54.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "httpx==0.28.1",
     "mypy==2.4.1",
     "pytest==9.2.0",
     "ruff==0.17.3",
@@ -37,7 +37,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 # Long literal strings: LLM prompt text, decision-letter wording and expected reasons.
 "app/decide.py" = ["E501"]
-"eval/hidden/reference.py" = ["E501"]
+"eval/*/reference.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app", "eval", "tests"]

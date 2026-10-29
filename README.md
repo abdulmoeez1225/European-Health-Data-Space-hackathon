@@ -24,13 +24,14 @@ Frontend development: run `make run` in one terminal and `make dev-frontend` in 
 
 | Value | Uses | Needs |
 |---|---|---|
+| `openai` | any OpenAI-compatible endpoint: Google Gemini (free tier), Groq, OpenRouter, Mistral, Cerebras, a local Ollama | `GATEKEEPER_LLM_BASE_URL`, `GATEKEEPER_LLM_API_KEY`, `GATEKEEPER_LLM_MODEL` |
 | `api` | Anthropic API (`claude-opus-5-5`, low effort) | `ANTHROPIC_API_KEY` |
 | `cli` | the local `claude` CLI (Claude Code), signed in with a Claude subscription | `claude` on PATH |
 | `rules` | keyword rules only; every decision is flagged for staff review and no new plans can be made | nothing |
 
-`auto` uses the API if a key is set, otherwise the CLI if it is installed, otherwise rules. Answers are cached in `.cache/llm/`. Delete that folder, or run `make eval-fresh`, to measure without the cache.
+Configure it in a `.env` file: copy [.env.example](.env.example), which documents every variable. Variables set in the real environment, for example on a hosting platform, take precedence. `auto` uses the OpenAI-compatible endpoint if a base URL and model are set, otherwise the Anthropic API if a key is set, otherwise the CLI if it is installed, otherwise rules. Answers are cached in `.cache/llm/`. Delete that folder, or run `make eval-fresh`, to measure without the cache.
 
-Other settings, all optional: `GATEKEEPER_LLM_EFFORT` (default `low`), `GATEKEEPER_API_MODEL`, `GATEKEEPER_CLI_MODEL`, `GATEKEEPER_DATA_DIR`, `GATEKEEPER_STATE_DIR`, `GATEKEEPER_CACHE_DIR`, `GATEKEEPER_CORS_ORIGINS`, `GATEKEEPER_LOG_LEVEL`. See [app/config.py](app/config.py).
+Other settings, all optional: `GATEKEEPER_LLM_READINGS` (default 3; see Reliability below), `GATEKEEPER_LLM_DEADLINE_S` (default 40), `GATEKEEPER_LLM_EFFORT` (default `low`), `GATEKEEPER_API_MODEL`, `GATEKEEPER_CLI_MODEL`, `GATEKEEPER_DATA_DIR`, `GATEKEEPER_STATE_DIR`, `GATEKEEPER_CACHE_DIR`, `GATEKEEPER_CORS_ORIGINS`, `GATEKEEPER_LOG_LEVEL`. See [app/config.py](app/config.py).
 
 ## What it does
 
@@ -79,6 +80,14 @@ The design rule: **AI reads the request; code computes the answer.** The LLM onl
 - **Claude:** Opus 5.5 through the API, or Sonnet through the Claude Code CLI, both at low effort. It receives only request text and the code catalog (code lists and labels, no counts or patient rows). Two calls run in parallel: purpose assessment and query plan. A rejected request returns as soon as the assessment is in, without waiting for the plan.
 - **Backend:** Python 3.12, DuckDB 2.0, FastAPI, pydantic 2, the Anthropic SDK; ruff and mypy.
 - **Frontend:** Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, TanStack Query 5, Vitest. No runtime CDN or web fonts, so the demo works offline.
+
+### Reliability
+
+- **Consensus readings:** each request gets 3 independent readings of the purpose and 3 of the definitions, run in parallel. The outcome most readings agree on is used. Plans are compared by the exact values they would release, not by their wording. Waiting stops as soon as a majority agrees, so one slow reading never delays the answer, and a hard deadline (`GATEKEEPER_LLM_DEADLINE_S`) caps the wait. Staff see how many readings agreed, and a split vote applies the stricter outcome and is flagged.
+- **Fail closed:** if the model refuses to assess a purpose, the request is rejected and flagged for staff. If a requested number cannot be expressed (a median, a rate per 1,000), the plan says so and staff are flagged; nothing is approximated.
+- **Deterministic output:** column names come from the request's own "Report …" sentence, and rejected requests do not wait for a plan.
+- **Retries:** a failed or malformed model answer is retried once. Answers are cached per backend and model.
+- **Persistence:** decisions and the release ledger are kept in `state/` and survive a restart.
 
 ### Red-team demo: the differencing attack
 

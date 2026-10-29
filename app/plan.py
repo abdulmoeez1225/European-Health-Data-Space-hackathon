@@ -208,3 +208,8 @@ class QueryPlan(BaseModel):
     metrics: list[Metric] = Field(default_factory=list)
     spe_records: list[RecordSelection] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list, description="Assumptions made while reading the definitions.")
+    unsupported: str | None = Field(
+        default=None,
+        description="Set only if a requested number cannot be expressed by this plan (e.g. a median, a rate per "
+                    "1,000, grouping by drug or diagnosis code); say what and why. Leave null otherwise.",
+    )

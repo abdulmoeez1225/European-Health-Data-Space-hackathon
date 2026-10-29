@@ -7,11 +7,16 @@ import json
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable, Hashable
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import get_args
 
 from app import audit
+from app.config import settings
+from app.consensus import release_signature, vote_assessments, vote_plans
 from app.db import connection
 from app.decide import (
     ASSESSMENT_SYSTEM,
@@ -24,6 +29,7 @@ from app.decide import (
 from app.ledger import applicant_key, apply_ledger
 from app.llm import LlmRefused, LlmUnavailable, ask, backend_name
 from app.models import (
+    Consensus,
     PrivacyCheck,
     PurposeAssessment,
     ReleasedCell,
@@ -34,7 +40,7 @@ from app.models import (
     Timings,
 )
 from app.plan import DataHolder, QueryPlan, Region
-from app.planner import PLAN_SYSTEM, plan_prompt, with_canonical_names
+from app.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
 from app.spe import create_spe
 from app.stats import LESS_THAN, MIN_CELL, SUPPRESSED, StatResult, run_plan
 from app.terminology import map_codes
@@ -43,6 +49,7 @@ _PATIENT_ID = re.compile(r"\bp-[0-9a-f]{8}\b|\be\d{6}\b")
 
 _results: dict[str, RequestResult] = {}
 _results_lock = threading.Lock()
+_results_loaded_from: Path | None = None
 
 
 def request_id(request: dict) -> str:
@@ -110,49 +117,115 @@ def _statistics(result: StatResult, checks: list[PrivacyCheck]) -> StatisticsOut
     )
 
 
+def _gather[T](
+    jobs: list[Future[tuple[T, bool]]], key: Callable[[T], Hashable], deadline: float,
+) -> tuple[list[T], list[BaseException], bool]:
+    """Collect readings until a majority agrees, all are in, or the deadline passes.
+
+    Returns (readings, errors, all_from_cache). Waiting stops at the first majority, so one
+    slow reading never holds up the answer.
+    """
+    quorum = len(jobs) // 2 + 1
+    readings: list[T] = []
+    errors: list[BaseException] = []
+    cached = True
+    counts: dict[Hashable, int] = {}
+    try:
+        for job in as_completed(jobs, timeout=max(deadline - time.perf_counter(), 0.1)):
+            try:
+                reading, from_cache = job.result()
+            except (LlmUnavailable, ValueError) as error:
+                errors.append(error)
+                continue
+            try:
+                signature = key(reading)
+            except ValueError as error:
+                errors.append(error)
+                continue
+            readings.append(reading)
+            cached = cached and from_cache
+            counts[signature] = counts.get(signature, 0) + 1
+            if counts[signature] >= quorum:
+                break
+    except FutureTimeout:
+        errors.append(TimeoutError("reading did not finish before the deadline"))
+    return readings, errors, cached and bool(readings)
+
+
+def _assessment_signature(assessment: PurposeAssessment) -> tuple[bool, bool]:
+    return assessment.prohibited, assessment.records_justified
+
+
+def _ask_assessment(text: str, use_cache: bool, reading: int) -> tuple[PurposeAssessment, bool]:
+    try:
+        return ask(ASSESSMENT_SYSTEM, text, PurposeAssessment, use_cache=use_cache, reading=reading)
+    except LlmRefused:
+        return refused_assessment(), False
+
+
+def _ask_plan(text: str, definitions: list[str], use_cache: bool, reading: int) -> tuple[QueryPlan, bool]:
+    plan, cached = ask(PLAN_SYSTEM, plan_prompt(text), QueryPlan, use_cache=use_cache, reading=reading)
+    return with_canonical_names(plan, definitions), cached
+
+
 def _read_request(
     request: dict, use_cache: bool
-) -> tuple[PurposeAssessment, QueryPlan | None, bool, bool, list[ReviewFlag]]:
-    """Run the purpose assessment and the plan translation in parallel.
+) -> tuple[PurposeAssessment, QueryPlan | None, bool, bool, list[ReviewFlag], Consensus]:
+    """Independent readings of the purpose and of the definitions, in parallel, decided by majority.
 
-    A prohibited purpose needs no plan, so the answer does not wait for it.
+    A prohibited purpose needs no plan, so the answer does not wait for the plans.
     """
+    config = settings()
+    readings = max(1, config.llm_readings)
+    deadline = time.perf_counter() + config.llm_deadline_s
     text = request_text(request)
+    definitions = list(request.get("definitions") or [])
     flags: list[ReviewFlag] = []
-    pool = ThreadPoolExecutor(max_workers=2)
+    consensus = Consensus()
+
+    pool = ThreadPoolExecutor(max_workers=2 * readings)
     try:
-        assessment_job = pool.submit(ask, ASSESSMENT_SYSTEM, text, PurposeAssessment, use_cache=use_cache)
-        plan_job = pool.submit(ask, PLAN_SYSTEM, plan_prompt(text), QueryPlan, use_cache=use_cache)
-        try:
-            assessment, cached_a = assessment_job.result()
-            llm_used = True
-        except LlmRefused:
-            assessment, cached_a, llm_used = refused_assessment(), False, True
-            flags.append(ReviewFlag(reason="The AI declined to assess this purpose as potentially harmful; "
-                                           "rejected (fail closed) pending staff review."))
-        except (LlmUnavailable, ValueError) as error:
-            assessment, cached_a, llm_used = rule_assessment(request), False, False
-            flags.append(ReviewFlag(reason=f"AI assessment unavailable: {error}"))
+        assessment_jobs = [pool.submit(_ask_assessment, text, use_cache, i) for i in range(readings)]
+        plan_jobs = [pool.submit(_ask_plan, text, definitions, use_cache, i) for i in range(readings)]
+
+        assessments, errors, cached_a = _gather(assessment_jobs, _assessment_signature, deadline)
+        if assessments:
+            vote = vote_assessments(assessments)
+            assessment, llm_used = vote.winner, True
+            consensus.assessment_votes, consensus.assessment_agreeing = vote.votes, vote.agreeing
+            if assessment.justification == refused_assessment().justification:
+                flags.append(ReviewFlag(reason="The AI declined to assess this purpose as potentially harmful; "
+                                               "rejected (fail closed) pending staff review."))
+            if not vote.has_majority:
+                flags.append(ReviewFlag(reason=f"AI readings of the purpose disagree ({vote.agreeing} of "
+                                               f"{vote.votes}); the stricter outcome was applied."))
+        else:
+            assessment, llm_used, cached_a = rule_assessment(request), False, False
+            flags.append(ReviewFlag(reason=f"AI assessment unavailable: {errors[-1] if errors else 'no answer'}"))
 
         if assessment.prohibited or keyword_hits(request):
-            return assessment, None, llm_used, cached_a, flags
+            return assessment, None, llm_used, cached_a, flags, consensus
 
-        try:
-            plan, cached_p = plan_job.result()
-            plan = with_canonical_names(plan, request.get("definitions") or [])
-        except (LlmUnavailable, ValueError) as error:
-            plan, cached_p = None, False
-            flags.append(ReviewFlag(reason=f"Could not translate the definitions into a query: {error}"))
-        return assessment, plan, llm_used, cached_a and cached_p, flags
+        plans, errors, cached_p = _gather(plan_jobs, release_signature, deadline)
+        if not plans:
+            flags.append(ReviewFlag(reason="Could not translate the definitions into a query: "
+                                           f"{errors[-1] if errors else 'no answer'}"))
+            return assessment, None, llm_used, False, flags, consensus
+        plan_vote = vote_plans(plans)
+        consensus.plan_votes, consensus.plan_agreeing = plan_vote.votes, plan_vote.agreeing
+        if not plan_vote.has_majority:
+            flags.append(ReviewFlag(reason=f"AI readings of the definitions give different numbers "
+                                           f"({plan_vote.agreeing} of {plan_vote.votes} agree); check the plan."))
+        return assessment, plan_vote.winner, llm_used, cached_a and cached_p, flags, consensus
     finally:
-        pool.shutdown(wait=False)
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
     started = time.perf_counter()
     rid = request_id(request)
 
-    assessment, plan, llm_used, cached, flags = _read_request(request, use_cache)
+    assessment, plan, llm_used, cached, flags, consensus = _read_request(request, use_cache)
     llm_done = time.perf_counter()
     decision = decide(request, assessment, llm_used=llm_used)
     flags += decision.flags
@@ -163,7 +236,15 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         if not mapping.matched:
             flags.append(ReviewFlag(reason=f"{mapping.system} code {mapping.prefix} matches nothing in the data."))
 
-    if decision.code == "APPROVE_STATISTICAL" and plan is not None:
+    phrases = report_phrases(list(request.get("definitions") or []))
+    if plan is not None and plan.metrics and phrases and len(phrases) != len(plan.metrics):
+        flags.append(ReviewFlag(reason=f"The request lists {len(phrases)} numbers to report; the plan computes "
+                                       f"{len(plan.metrics)}. Check that nothing is missing."))
+
+    if decision.code == "APPROVE_STATISTICAL" and plan is not None and plan.unsupported:
+        flags.append(ReviewFlag(reason=f"Cannot be computed automatically: {plan.unsupported} Staff must prepare "
+                                       "this answer."))
+    elif decision.code == "APPROVE_STATISTICAL" and plan is not None:
         if not plan.metrics:
             flags.append(ReviewFlag(reason="The request defines no numbers to report; staff must specify the output."))
         else:
@@ -196,6 +277,7 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         spe=spe,
         llm_backend=backend_name() if llm_used else "rules",
         cached=cached,
+        consensus=consensus,
         timings=Timings(
             llm_s=round(llm_done - started, 2),
             compute_s=round(finished - llm_done, 2),
@@ -208,15 +290,42 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         "applicant": request.get("applicant", {}).get("organisation"), "review_flags": len(flags),
     })
     with _results_lock:
+        _load_results()
         _results[rid] = outcome
+        path = _results_dir() / f"{rid}.json"
+        path.write_text(outcome.model_dump_json())
     return outcome
+
+
+def _results_dir() -> Path:
+    path = audit.state_dir() / "results"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _load_results() -> None:
+    """Load decisions saved by earlier runs once per state directory. Caller holds the lock."""
+    global _results_loaded_from
+    directory = _results_dir()
+    if _results_loaded_from == directory:
+        return
+    _results.clear()
+    for path in directory.glob("*.json"):
+        try:
+            loaded = RequestResult.model_validate_json(path.read_text())
+        except ValueError:
+            continue
+        _results[loaded.request_id] = loaded
+    _results_loaded_from = directory
 
 
 def results() -> list[RequestResult]:
     with _results_lock:
+        _load_results()
         return sorted(_results.values(), key=lambda r: r.processed_at, reverse=True)
 
 
 def get_result(rid: str) -> RequestResult | None:
     with _results_lock:
+        _load_results()
         return _results.get(rid)

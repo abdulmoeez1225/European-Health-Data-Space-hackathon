@@ -5,15 +5,18 @@ The small-cell rule judges each answer alone. An applicant who receives
 40+ (32) can subtract the two and learn about one patient. The ledger remembers
 the patient/encounter sets already released to each applicant and suppresses a
 value whose set is a strict subset or superset of an earlier release that
-differs by fewer than MIN_CELL units. ID sets stay in memory and are never
-written to the audit log.
+differs by fewer than MIN_CELL units. The ID sets are kept in the app's state
+directory so a restart does not forget earlier releases; they are never written
+to the audit log.
 """
 
 from __future__ import annotations
 
+import json
 import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +45,48 @@ class _Release:
 # applicant -> request -> sets released for that request
 _released: dict[str, dict[str, list[_Release]]] = {}
 _events: list[LedgerEvent] = []
+_loaded_from: Path | None = None
+
+
+def _store_path() -> Path:
+    return audit.state_dir() / "ledger.json"
+
+
+def _ensure_loaded() -> None:
+    """Load the persisted ledger once per state directory. Caller holds the lock."""
+    global _loaded_from
+    path = _store_path()
+    if _loaded_from == path:
+        return
+    _released.clear()
+    _events.clear()
+    if path.exists():
+        stored = json.loads(path.read_text())
+        for applicant, requests in stored["released"].items():
+            _released[applicant] = {
+                rid: [_Release(frozenset(r["units"]), datetime.fromisoformat(r["released_at"])) for r in releases]
+                for rid, releases in requests.items()
+            }
+        _events.extend(LedgerEvent.model_validate(e) for e in stored["events"])
+    _loaded_from = path
+
+
+def _save() -> None:
+    """Persist the ledger atomically. Caller holds the lock."""
+    stored = {
+        "released": {
+            applicant: {
+                rid: [{"units": sorted(r.units), "released_at": r.released_at.isoformat()} for r in releases]
+                for rid, releases in requests.items()
+            }
+            for applicant, requests in _released.items()
+        },
+        "events": [e.model_dump(mode="json") for e in _events],
+    }
+    path = _store_path()
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(stored))
+    tmp.replace(path)
 
 
 def applicant_key(request: dict) -> str:
@@ -87,6 +132,7 @@ def apply_ledger(applicant_key: str, request_id: str, result: StatResult) -> lis
     now = datetime.now(UTC)
     new_events: list[LedgerEvent] = []
     with _lock:
+        _ensure_loaded()
         history = _released.setdefault(applicant_key, {})
         others = {rid: releases for rid, releases in history.items() if rid != request_id}
         first_seen = {r.units: r.released_at for r in history.get(request_id, [])}
@@ -108,6 +154,7 @@ def apply_ledger(applicant_key: str, request_id: str, result: StatResult) -> lis
         history[request_id] = released
         _events[:] = [e for e in _events if (e.applicant_key, e.request_id) != (applicant_key, request_id)]
         _events.extend(new_events)
+        _save()
 
     for event in new_events:
         audit.record("ledger_blocked", "system", request_id, {
@@ -119,10 +166,13 @@ def apply_ledger(applicant_key: str, request_id: str, result: StatResult) -> lis
 
 def ledger_events() -> list[LedgerEvent]:
     with _lock:
+        _ensure_loaded()
         return list(_events)
 
 
 def reset_ledger() -> None:
     with _lock:
+        _ensure_loaded()
         _released.clear()
         _events.clear()
+        _save()

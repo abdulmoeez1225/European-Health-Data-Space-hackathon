@@ -44,10 +44,10 @@ def test_health_reports_loaded_patients(client: TestClient, monkeypatch) -> None
     assert 0 < body["patients"]["opted_out"] < total
 
 
-def test_samples_lists_main_and_hidden_requests(client: TestClient) -> None:
+def test_samples_are_the_ten_track_requests(client: TestClient) -> None:
     body = client.get("/api/samples").json()
-    ids = {sample["id"] for sample in body}
-    assert {"R01", "R10", "H01", "H12"} <= ids
+    ids = [sample["id"] for sample in body]
+    assert ids == [f"R{n:02d}" for n in range(1, 11)]
     assert all(isinstance(sample["applicant"], dict) and sample["purpose"] for sample in body)
 
 
