@@ -1,0 +1,20 @@
+# Gatekeeper: one container serving the API and the exported frontend on http://localhost:8000.
+# Configure the LLM in .env (copy .env.example). Start with: docker compose up -d --build
+
+services:
+  gatekeeper:
+    build: .
+    image: gatekeeper:latest
+    container_name: gatekeeper
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - gatekeeper-data:/var/lib/gatekeeper
+
+volumes:
+  gatekeeper-data:
+    name: gatekeeper-data
