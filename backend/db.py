@@ -13,7 +13,7 @@ from pathlib import Path
 
 import duckdb
 
-from app.config import settings
+from backend.config import settings
 
 DATA_DIR = settings().data_dir
 REFERENCE_DATE = date(2025, 12, 31)

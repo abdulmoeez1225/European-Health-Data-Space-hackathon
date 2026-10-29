@@ -1,8 +1,8 @@
 import pytest
 
-from app import audit, spe
-from app.db import connection
-from app.stats import cohort_size
+from backend import audit, spe
+from backend.db import connection
+from backend.stats import cohort_size
 from tests.reference_plans import REFERENCE_PLANS
 
 PLAN = REFERENCE_PLANS["R05"]

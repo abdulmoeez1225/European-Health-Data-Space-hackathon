@@ -1,8 +1,8 @@
 import pytest
 
-from app import audit, ledger
-from app.plan import QueryPlan
-from app.stats import LESS_THAN, SUPPRESSED, run_plan
+from backend import audit, ledger
+from backend.plan import QueryPlan
+from backend.stats import LESS_THAN, SUPPRESSED, run_plan
 
 BURGENLAND = {"kind": "region", "regions": ["Burgenland"]}
 ADULT = {"kind": "age", "min_age": 18}

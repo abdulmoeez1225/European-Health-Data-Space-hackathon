@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.stats import LESS_THAN, SUPPRESSED, cohort_size, round_half_up, run_plan
+from backend.stats import LESS_THAN, SUPPRESSED, cohort_size, round_half_up, run_plan
 from tests.reference_plans import REFERENCE_PLANS
 
 EXPECTED = json.loads((Path(__file__).resolve().parent.parent / "requests" / "expected.json").read_text())

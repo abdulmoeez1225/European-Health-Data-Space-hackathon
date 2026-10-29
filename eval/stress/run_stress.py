@@ -23,7 +23,7 @@ SCRATCH = Path(os.environ.get("STRESS_SCRATCH") or tempfile.mkdtemp(prefix="stre
 os.environ["GATEKEEPER_STATE_DIR"] = str(SCRATCH / "state")
 os.environ["GATEKEEPER_CACHE_DIR"] = str(SCRATCH / "cache")
 
-from app.models import RequestResult  # noqa: E402
+from backend.models import RequestResult  # noqa: E402
 from eval import metrics  # noqa: E402
 
 
@@ -89,7 +89,7 @@ def summarise(result: RequestResult | None, error: str | None, seconds: float) -
 
 
 def run_one(request: dict) -> tuple[RequestResult | None, str | None, float]:
-    from app.pipeline import process_request
+    from backend.pipeline import process_request
 
     started = time.perf_counter()
     try:

@@ -13,8 +13,8 @@ import json
 import re
 from dataclasses import dataclass
 
-from app.law import ARTICLES
-from app.models import AllowedPurpose, DecisionCode, ProhibitedGround, PurposeAssessment, ReviewFlag
+from backend.law import ARTICLES
+from backend.models import AllowedPurpose, DecisionCode, ProhibitedGround, PurposeAssessment, ReviewFlag
 
 ASSESSMENT_SYSTEM = """You assess applications to a national Health Data Access Body under the European Health \
 Data Space Regulation (EU) 2025/327, Chapter IV. You read only the application text; you never see patient data.

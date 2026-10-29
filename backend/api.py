@@ -1,4 +1,4 @@
-"""HTTP API and static web UI. Run: .venv/bin/uvicorn app.api:app --port 8000"""
+"""HTTP API and static web UI. Run: .venv/bin/uvicorn backend.api:app --port 8000"""
 
 from __future__ import annotations
 
@@ -18,13 +18,13 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import Scope
 
-from app import audit, ledger, spe
-from app.config import ROOT, settings
-from app.db import connection
-from app.law import ARTICLES, EUR_LEX_URL, Article
-from app.llm import backend_name
-from app.models import RequestResult
-from app.pipeline import get_result, process_request, results
+from backend import audit, ledger, spe
+from backend.config import ROOT, settings
+from backend.db import connection
+from backend.law import ARTICLES, EUR_LEX_URL, Article
+from backend.llm import backend_name
+from backend.models import RequestResult
+from backend.pipeline import get_result, process_request, results
 
 access_log = logging.getLogger("gatekeeper.access")
 

@@ -1,52 +1,29 @@
 # Gatekeeper: an automated Health Data Access Body
 
-Gatekeeper decides requests for European Health Data Space (EHDS) data within seconds. It cites Regulation (EU) 2025/327 and computes privacy-protected statistics. When a request justifies patient-level records, it creates a secure processing environment (SPE) from which nothing can be downloaded. It also blocks a privacy attack that the plain small-cell rule misses: combining two harmless answers to reveal one patient.
+Gatekeeper decides requests for European Health Data Space (EHDS) data in seconds. It reads an applicant's request, decides whether the purpose is allowed under Regulation (EU) 2025/327, explains the decision in plain language with the articles it relies on, and then either computes privacy-protected statistics or opens a secure workspace with the selected records, from which nothing can be downloaded. Staff of the access body review every decision in their own workspace.
 
-The track brief is in [docs/TRACK.md](docs/TRACK.md).
+Built for Track 3 of the hackathon. The original track brief is in [docs/TRACK.md](docs/TRACK.md).
 
-## Run it
+## The problem
 
-Requirements: Python 3.12 and Node 22.
+The EHDS lets researchers, public bodies and companies reuse health data, but every request has to be decided by a national **Health Data Access Body (HDAB)**. Today that work is manual:
 
-```bash
-make install          # Python venv + backend dependencies
-make frontend         # build the Next.js app into frontend/out
-make run              # API + app on http://localhost:8000 (builds the frontend first if missing)
-make check            # ruff + mypy + pytest
-make eval             # 10 requests × 3 runs → eval/results.md
-make eval-fresh       # the same, with the LLM cache off
-make eval-hidden      # 12 extra jury-style requests
-```
+- **Slow decisions.** A case officer reads the request, checks the purpose against the law, translates plain-English definitions ("type 2 diabetes", "active anticoagulant") into codes (ICD-10, ATC, LOINC), writes the queries and checks the output for privacy.
+- **Fragile privacy.** Opted-out patients must be left out everywhere, and small groups must be hidden. Even then, two harmless-looking answers can be subtracted to reveal one patient: the small-cell rule checks each answer alone.
+- **Hard to understand.** Applicants receive legal decisions they cannot easily act on, for example why they got statistics instead of the records they asked for.
+- **Prohibited uses.** Insurers, employers, marketers and makers of harmful products must be refused (Art. 54), even when the request is worded innocently.
 
-Frontend development: run `make run` in one terminal and `make dev-frontend` in another, then open http://localhost:3000. Adding `?mock=1` to any page shows the UI with built-in sample data and no backend. See [frontend/README.md](frontend/README.md).
+## Our solution
 
-**LLM backend:** set `GATEKEEPER_LLM` to choose one. The default is `auto`.
+Gatekeeper automates the access body's routine work and leaves the judgement calls visible to staff.
 
-| Value | Uses | Needs |
-|---|---|---|
-| `openai` | any OpenAI-compatible endpoint: Google Gemini (free tier), Groq, OpenRouter, Mistral, Cerebras, a local Ollama | `GATEKEEPER_LLM_BASE_URL`, `GATEKEEPER_LLM_API_KEY`, `GATEKEEPER_LLM_MODEL` |
-| `api` | Anthropic API (`claude-opus-5-5`, low effort) | `ANTHROPIC_API_KEY` |
-| `cli` | the local `claude` CLI (Claude Code), signed in with a Claude subscription | `claude` on PATH |
-| `rules` | keyword rules only; every decision is flagged for staff review and no new plans can be made | nothing |
+1. **Decide.** The request is read for its purpose and checked against Art. 54 (prohibited) and Art. 53 (allowed). The decision follows the brief's order: `REJECT` (Art. 54), `APPROVE_STATISTICAL` (Art. 53, 69), `APPROVE_SPE` when an access application explains why statistics are not enough (Art. 53, 66, 68, 73), otherwise statistics instead of records (Art. 53, 66, 69).
+2. **Compute statistics safely.** Definitions become a typed query plan; deterministic code computes the numbers. Every requested group is shown; counts below 10 become `<10`; percentages and means over fewer than 10 patients become `suppressed`; values are rounded to one decimal, halves up. Opted-out patients are removed before any query can see them.
+3. **Open a secure workspace.** For approved record access, only the selected patients and the requested record types are copied into a separate database per data permit. Researchers can query it; downloads are blocked (403), and only aggregate results checked for small cells can leave through an airlock.
+4. **Stop differencing attacks.** A release ledger remembers what each applicant has already received and withholds an answer that, combined with an earlier one, would reveal fewer than 10 patients.
+5. **Explain.** Applicants get a plain-language decision letter with the legal basis. Staff get the AI assessment, how many independent readings agreed, the code mappings, the plan, the SQL and the privacy checks, and can sign off or override.
 
-Configure it in a `.env` file: copy [.env.example](.env.example), which documents every variable. Variables set in the real environment, for example on a hosting platform, take precedence. `auto` uses the OpenAI-compatible endpoint if a base URL and model are set, otherwise the Anthropic API if a key is set, otherwise the CLI if it is installed, otherwise rules. Answers are cached in `.cache/llm/`. Delete that folder, or run `make eval-fresh`, to measure without the cache.
-
-Other settings, all optional: `GATEKEEPER_LLM_READINGS` (default 3; see Reliability below), `GATEKEEPER_LLM_DEADLINE_S` (default 40), `GATEKEEPER_LLM_EFFORT` (default `low`), `GATEKEEPER_API_MODEL`, `GATEKEEPER_CLI_MODEL`, `GATEKEEPER_DATA_DIR`, `GATEKEEPER_STATE_DIR`, `GATEKEEPER_CACHE_DIR`, `GATEKEEPER_CORS_ORIGINS`, `GATEKEEPER_LOG_LEVEL`. See [app/config.py](app/config.py).
-
-## What it does
-
-1. **Decides** `REJECT`, `APPROVE_STATISTICAL` or `APPROVE_SPE`, following the order in the brief, and cites the articles.
-2. **Computes statistics** under the small-cell rule:
-   - every group is shown, even when empty;
-   - counts below 10 are shown as `<10`;
-   - percentages and means are `suppressed` below 10 patients;
-   - values are rounded to one decimal, halves up, using exact decimals.
-3. **Builds an SPE:**
-   - a separate DuckDB file per data permit (`state/spe/permit-<id>.duckdb`), holding only the selected patients and the requested record types, with their patient IDs kept;
-   - a read-only SQL console;
-   - downloads return **403**, and `COPY`/`EXPORT`/file access are blocked;
-   - an **airlock** lets aggregate results out only after small-cell checking.
-4. **Shows** a plain-language decision letter to the applicant and a full audit view to staff.
+The design rule: **AI reads the request; code computes the answer.** The language model only sees request text, never patient data, and never writes SQL.
 
 ## Architecture
 
@@ -54,40 +31,36 @@ Other settings, all optional: `GATEKEEPER_LLM_READINGS` (default 3; see Reliabil
 
 Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw), which opens on excalidraw.com or in the VS Code Excalidraw extension.
 
-The design rule: **AI reads the request; code computes the answer.** The LLM only sees request text and never patient data. It never writes SQL.
+**Request flow:** request JSON → 3 parallel readings of the purpose and 3 of the definitions (LLM, request text only) → majority vote → decision ladder → compiler (plan → SQL) → DuckDB views without opted-out patients → statistics with the small-cell rule → release ledger → privacy firewall → decision letter. Approved record access goes to the secure-workspace builder instead. Rejections return without waiting for a plan.
 
 | Component | File | What it does |
 |---|---|---|
-| Database | [app/db.py](app/db.py) | Loads the 5 CSVs into in-memory DuckDB. All queries go through views that **already exclude opted-out patients** (Art. 71), so no query can forget them. |
-| Terminology catalog | [app/terminology.py](app/terminology.py) | Lists the ICD-10, ATC and LOINC codes that exist in the data. The LLM maps plain-English terms only onto these codes, and staff see what each code prefix matched. |
-| LLM layer | [app/llm.py](app/llm.py) | Structured output through the Anthropic API or the `claude` CLI. A disk cache keyed by the prompt hash means the same request always gets the same reading. |
-| Purpose assessment | [app/decide.py](app/decide.py) | The LLM judges the Art. 54 ground, the Art. 53 purpose, and whether records are justified. A keyword check catches prohibited uses; if the two disagree, the stricter outcome wins and staff are flagged. |
-| Decision ladder | [app/decide.py](app/decide.py) | Deterministic rules turn the assessment into the decision, articles and plain-language reason. |
-| Query plan | [app/plan.py](app/plan.py), [app/planner.py](app/planner.py) | The LLM translates the definitions into a typed, validated plan: cohort criteria, groupings (region, hospital, sex, age band, encounter type, year), and metrics (count, percent, mean of latest value). |
-| Compiler | [app/compiler.py](app/compiler.py) | Turns the plan into SQL deterministically. Covers main-diagnosis filters on stays (`primary_icd10`), grouping by hospital (`data_holder`), active-medication rules and measurement thresholds. |
-| Statistics + small-cell rule | [app/stats.py](app/stats.py) | Aggregates exactly and applies the small-cell rule. |
-| Release ledger | [app/ledger.py](app/ledger.py) | Remembers which patients stood behind every value released to each applicant. If a new value, combined with an earlier one, would reveal 1–9 patients, it is withheld and the reason is shown. |
-| Privacy firewall | [app/pipeline.py](app/pipeline.py) | Checks before release: no opted-out patient, no small cell, no patient-level identifiers, every group present. If any check fails, the release is blocked. |
-| SPE | [app/spe.py](app/spe.py) | Builds the permit database, read-only console, blocked downloads and the airlock (Art. 73). |
-| Audit log | [app/audit.py](app/audit.py) | Append-only log of decisions, SPE queries, blocked downloads and ledger blocks. |
-| API | [app/api.py](app/api.py) | FastAPI with a fully typed OpenAPI schema, `/api/health`, one JSON log line per request, and CORS for the dev server. It also serves the exported frontend. |
-| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, Radix primitives, TanStack Query. API types are generated from the OpenAPI schema. Four routes: `/` applicant portal, `/staff/` staff console, `/spe/` secure environment, `/privacy/` privacy & audit. Design rationale is in [frontend/DESIGN.md](frontend/DESIGN.md). |
+| Configuration | [backend/config.py](backend/config.py), [.env.example](.env.example) | Typed settings from environment variables or a `.env` file. |
+| LLM layer | [backend/llm.py](backend/llm.py) | Structured JSON output from any OpenAI-compatible endpoint (free tiers such as Gemini or Groq), the Anthropic API, or the local `claude` CLI. Failed or malformed answers are retried once. A disk cache keyed by prompt, backend, model and reading means the same request always gets the same reading. |
+| Consensus | [backend/consensus.py](backend/consensus.py), [backend/pipeline.py](backend/pipeline.py) | 3 independent readings of the purpose and of the definitions run in parallel, and the majority wins. Plans are compared by the exact values they would release. Waiting stops at the first majority, with a hard deadline. |
+| Purpose assessment | [backend/decide.py](backend/decide.py) | The LLM judges the Art. 54 ground, the Art. 53 purpose, and whether records are justified. Keywords linked to prohibited uses only add a staff review flag; they never override the AI, because they can't read context ("tobacco control" is public health). They decide alone only when no LLM is available. A model refusal rejects the request and flags it for staff. |
+| Decision ladder | [backend/decide.py](backend/decide.py), [backend/law.py](backend/law.py) | Deterministic rules turn the assessment into the decision, articles and plain-language reason. |
+| Terminology catalog | [backend/terminology.py](backend/terminology.py) | Lists the ICD-10, ATC and LOINC codes that exist in the data. The LLM maps plain-English terms only onto these codes, and staff see what each code prefix matched. |
+| Query plan | [backend/plan.py](backend/plan.py), [backend/planner.py](backend/planner.py) | The LLM translates the definitions into a typed, validated plan: cohort criteria (diagnoses with onset windows, active or period-overlapping medications, measurement thresholds, stays by type and main diagnosis), groupings (region, hospital, sex, age band, encounter type, year) and metrics (count, percent, mean of the latest value in an optional period, length of stay). If a number can't be expressed (a median, a rate per 1,000), the plan says so and staff prepare it; nothing is approximated. Metric names come from the request's own "Report …" list. |
+| Compiler | [backend/compiler.py](backend/compiler.py) | Turns the plan into SQL deterministically. Covers main-diagnosis filters on stays (`primary_icd10`), stay-level filters when counting stays, grouping by hospital (`data_holder`), active-medication rules and measurement thresholds. |
+| Database | [backend/db.py](backend/db.py) | Loads the 5 CSVs into in-memory DuckDB. All queries go through views that **already exclude opted-out patients** (Art. 71), so no query can forget them. |
+| Statistics + small-cell rule | [backend/stats.py](backend/stats.py) | Aggregates exactly and applies the small-cell rule. |
+| Release ledger | [backend/ledger.py](backend/ledger.py) | Remembers which patients stood behind every value released to each applicant, kept in `state/` so a restart does not reset it. If a new value, combined with an earlier one, would reveal 1–9 patients, it is withheld and the reason is shown. |
+| Privacy firewall | [backend/pipeline.py](backend/pipeline.py) | Checks before release: no opted-out patient, no small cell, no patient-level identifiers, every group present. If any check fails, the release is blocked. |
+| Secure workspace (SPE) | [backend/spe.py](backend/spe.py) | Builds a separate DuckDB file per data permit, a read-only SQL console, blocked downloads and the airlock (Art. 73). |
+| Audit log | [backend/audit.py](backend/audit.py) | Append-only log of decisions, workspace queries, blocked downloads and ledger blocks. |
+| API | [backend/api.py](backend/api.py) | FastAPI with a fully typed OpenAPI schema, `/api/health` and one JSON log line per request. It also serves the exported frontend. |
+| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). Light and dark themes. Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
+| Evaluation | [eval/](eval/) | Measures the brief's metrics over N runs on the 10 track requests, 12 jury-style requests (`eval/hidden/`) and 29 adversarial ones (`eval/stress/`), the latter two checked against separate hand-written SQL. |
 | CI | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend: ruff, mypy, pytest. Frontend: lint, typecheck, Vitest, build. Tests never call the LLM. |
-| Evaluation | [eval/](eval/) | Measures the brief's metrics over N runs. `eval/hidden/` holds 12 extra jury-style requests with answers computed by separate, hand-written SQL. |
-
-### Models and services
-
-- **Claude:** Opus 5.5 through the API, or Sonnet through the Claude Code CLI, both at low effort. It receives only request text and the code catalog (code lists and labels, no counts or patient rows). Two calls run in parallel: purpose assessment and query plan. A rejected request returns as soon as the assessment is in, without waiting for the plan.
-- **Backend:** Python 3.12, DuckDB 2.0, FastAPI, pydantic 2, the Anthropic SDK; ruff and mypy.
-- **Frontend:** Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, TanStack Query 5, Vitest. No runtime CDN or web fonts, so the demo works offline.
 
 ### Reliability
 
-- **Consensus readings:** each request gets 3 independent readings of the purpose and 3 of the definitions, run in parallel. The outcome most readings agree on is used. Plans are compared by the exact values they would release, not by their wording. Waiting stops as soon as a majority agrees, so one slow reading never delays the answer, and a hard deadline (`GATEKEEPER_LLM_DEADLINE_S`) caps the wait. Staff see how many readings agreed, and a split vote applies the stricter outcome and is flagged.
-- **Fail closed:** if the model refuses to assess a purpose, the request is rejected and flagged for staff. If a requested number cannot be expressed (a median, a rate per 1,000), the plan says so and staff are flagged; nothing is approximated.
+- **Consensus readings:** each request gets 3 independent readings of the purpose and 3 of the definitions, run in parallel. Plans are compared by the exact values they would release, not by their wording. Waiting stops as soon as a majority agrees, so one slow reading never delays the answer, and a hard deadline (`GATEKEEPER_LLM_DEADLINE_S`) caps the wait. Staff see how many readings agreed; a split vote applies the stricter outcome and is flagged.
+- **Fail closed:** if the model refuses to assess a purpose, the request is rejected and flagged for staff. If a requested number cannot be expressed, the plan says so and staff are flagged; nothing is approximated.
 - **Deterministic output:** column names come from the request's own "Report …" sentence, and rejected requests do not wait for a plan.
-- **Retries:** a failed or malformed model answer is retried once. Answers are cached per backend and model.
-- **Persistence:** decisions and the release ledger are kept in `state/` and survive a restart.
+- **Retries and cache:** a failed or malformed model answer is retried once; answers are cached per backend and model.
+- **Persistence:** decisions, the release ledger, secure workspaces and the audit log are kept in `state/` and survive a restart.
 
 ### Red-team demo: the differencing attack
 
@@ -96,7 +69,106 @@ The same applicant asks two questions:
 1. "Adults with type 2 diabetes in Burgenland" → **33**.
 2. "Adults aged 40+ with type 2 diabetes in Burgenland" → would be **32**.
 
-Both are 10 or more, so the brief's small-cell rule releases both, and 33 − 32 = **1** identifiable person. Gatekeeper withholds the second answer: *"combined with RT-1 this would reveal 1 patient"*. Try it in **Privacy & audit → Red team**.
+Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 = **1** identifiable person. Gatekeeper withholds the second answer: *"combined with RT-1 this would reveal 1 patient"*. Try it in the **Access body** workspace under **Privacy & audit → Red team**.
+
+### Models and services
+
+- **LLM:** any OpenAI-compatible model (for deployment, a free tier such as Google Gemini or Groq), Claude Opus 5.5 through the Anthropic API, or Claude Sonnet through the Claude Code CLI (used for the metrics below), at low effort. The model receives only request text and the code catalog (code lists and labels, no counts or patient rows).
+- **Backend:** Python 3.12, DuckDB 2.0, FastAPI, pydantic 2, httpx, the Anthropic SDK; ruff and mypy.
+- **Frontend:** Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, TanStack Query 5, Geist font (bundled), Vitest. No runtime CDN, so the demo works offline.
+
+## Folder structure
+
+```
+.
+├── backend/                 Python package: API, decision engine, LLM layer, privacy
+│   ├── api.py               FastAPI routes; serves the exported frontend
+│   ├── pipeline.py          one request end to end: read, decide, compute, protect, record
+│   ├── llm.py               LLM backends (OpenAI-compatible, Anthropic API, Claude CLI), retries, cache
+│   ├── consensus.py         majority vote over independent readings
+│   ├── decide.py            purpose assessment prompt, keyword flags, decision ladder
+│   ├── law.py               plain-language summaries of the cited EHDS articles
+│   ├── plan.py              query-plan schema the LLM fills
+│   ├── planner.py           plan prompt, deterministic metric names
+│   ├── terminology.py       ICD-10 / ATC / LOINC codes present in the data
+│   ├── compiler.py          plan → SQL
+│   ├── db.py                DuckDB load; views without opted-out patients
+│   ├── stats.py             aggregation and the small-cell rule
+│   ├── ledger.py            release ledger against differencing
+│   ├── spe.py               secure workspace, download block, airlock
+│   ├── audit.py             append-only audit log
+│   ├── models.py            API result models
+│   └── config.py            settings from environment / .env
+├── frontend/                Next.js app (static export to frontend/out)
+│   ├── src/app/             routes: applicant workspace and /staff/ access-body workspace
+│   ├── src/features/        pages per workspace
+│   ├── src/components/      decision letter, statistics table, shadcn-style UI primitives
+│   ├── src/api/             generated OpenAPI types, typed client, query hooks
+│   ├── DESIGN.md            design principles and tokens
+│   └── README.md            frontend scripts, mock mode, type generation
+├── eval/                    metric harness
+│   ├── run_eval.py          decisions, numbers, leaks, consistency, time over N runs
+│   ├── metrics.py           scoring logic
+│   ├── results.md           latest results on the 10 track requests
+│   ├── hidden/              12 jury-style requests + independent reference SQL
+│   └── stress/              29 adversarial requests, reference SQL, FINDINGS.md
+├── tests/                   backend tests (pytest; never call the LLM)
+├── data/                    synthetic patients, conditions, medications, observations, encounters (provided)
+├── requests/                the 10 track requests and expected.json (provided)
+├── docs/                    TRACK.md (original brief), architecture diagram
+├── .github/workflows/ci.yml CI
+├── .env.example             every configuration variable, documented
+├── Dockerfile, compose.yaml one-container deployment
+├── Makefile                 install, run, check, eval targets
+└── pyproject.toml           Python project, ruff, mypy and pytest config
+```
+
+`state/` (decisions, ledger, secure workspaces, audit log) and `.cache/` (LLM answers) are created at runtime and not committed.
+
+## Run it
+
+Requirements: Python 3.12 and Node 22.
+
+```bash
+make install          # Python venv + backend dependencies
+cp .env.example .env  # then set the LLM variables (see below)
+make frontend         # build the Next.js app into frontend/out
+make run              # API + app on http://localhost:8000 (builds the frontend first if missing)
+make check            # ruff + mypy + pytest
+make eval             # 10 requests × 3 runs → eval/results.md
+make eval-fresh       # the same, with the LLM cache off
+make eval-hidden      # 12 jury-style requests
+make eval-stress      # 29 adversarial requests
+```
+
+Frontend development: run `make run` in one terminal and `make dev-frontend` in another, then open http://localhost:3000. Adding `?mock=1` to any page shows the UI with built-in sample data and no backend. See [frontend/README.md](frontend/README.md).
+
+**LLM backend:** set `GATEKEEPER_LLM` in `.env`. The default is `auto`.
+
+| Value | Uses | Needs |
+|---|---|---|
+| `openai` | any OpenAI-compatible endpoint: Google Gemini (free tier), Groq, OpenRouter, Mistral, Cerebras, a local Ollama | `GATEKEEPER_LLM_BASE_URL`, `GATEKEEPER_LLM_API_KEY`, `GATEKEEPER_LLM_MODEL` |
+| `api` | Anthropic API (`claude-opus-5-5`, low effort) | `ANTHROPIC_API_KEY` |
+| `cli` | the local `claude` CLI (Claude Code), signed in with a Claude subscription | `claude` on PATH |
+| `rules` | keyword rules only; every decision is flagged for staff review and no new plans can be made | nothing |
+
+[.env.example](.env.example) documents every variable. Variables set in the real environment, for example on a hosting platform, take precedence over `.env`. `auto` uses the OpenAI-compatible endpoint if a base URL and model are set, otherwise the Anthropic API if a key is set, otherwise the CLI if it is installed, otherwise rules. Other optional settings: `GATEKEEPER_LLM_READINGS` (default 3), `GATEKEEPER_LLM_DEADLINE_S` (default 40), `GATEKEEPER_LLM_EFFORT` (default `low`), and the paths, CORS origins and log level in [backend/config.py](backend/config.py).
+
+## Deploy
+
+One process serves both the API and the built frontend.
+
+**Docker:** `docker compose up -d --build` builds the frontend and the backend into one image ([Dockerfile](Dockerfile), [compose.yaml](compose.yaml)), reads `.env`, and keeps `state/` on a named volume. The app is on http://localhost:8000.
+
+**Without Docker,** on any host with Python 3.12 and Node 22 (Render, Railway, Fly.io, a VM):
+
+```bash
+pip install -r requirements.txt
+cd frontend && npm ci && npm run build && cd ..        # writes frontend/out, served by FastAPI
+uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+```
+
+Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). Lower `GATEKEEPER_LLM_READINGS` to 1 on a provider with tight rate limits. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then run `make eval-fresh` once with the chosen model: the metrics below were measured with Claude, and another model must be re-measured.
 
 ## Metric results
 
@@ -140,7 +212,7 @@ Rejections return in about 5 s, because they don't wait for the query plan. The 
 
 ## What does not work (yet)
 
-- The article texts in [app/law.py](app/law.py) are plain-language summaries, not the official wording.
+- The article texts in [backend/law.py](backend/law.py) are plain-language summaries, not the official wording.
+- There is no sign-in. The applicant and access-body workspaces are separated in the UI by a workspace switcher, but the API does not authenticate anyone. In production, staff would sign in through their authority's single sign-on and applicants through eIDAS, and the staff endpoints (decision queue, audit log, ledger) would require the staff role.
 - Staff sign-off and override are shown in the UI but not stored.
-- The ledger state is in memory and resets when the server restarts. The audit log is kept on disk.
 - The ledger catches differencing between nested groups (one group contained in another). It does not catch every combination of overlapping queries.

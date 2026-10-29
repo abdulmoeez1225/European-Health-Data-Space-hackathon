@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.plan import QueryPlan
+from backend.plan import QueryPlan
 
 DecisionCode = Literal["REJECT", "APPROVE_STATISTICAL", "APPROVE_SPE"]
 

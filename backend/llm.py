@@ -26,7 +26,7 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from app.config import settings
+from backend.config import settings
 
 CACHE_DIR = settings().cache_dir
 API_MODEL = settings().api_model

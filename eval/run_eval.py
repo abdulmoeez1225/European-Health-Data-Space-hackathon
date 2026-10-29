@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.models import RequestResult
+from backend.models import RequestResult
 from eval import metrics
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,7 +64,7 @@ def load_set(name: str, only: set[str] | None = None) -> list[tuple[dict[str, An
 
 
 def opted_out_patients() -> list[str]:
-    from app.db import connection
+    from backend.db import connection
 
     return [row[0] for row in connection().execute("SELECT patient_id FROM raw_patients WHERE opted_out").fetchall()]
 
@@ -185,9 +185,9 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
 
     if process is None:
         try:
-            from app.pipeline import process_request as process
+            from backend.pipeline import process_request as process
         except ImportError as exc:
-            print(f"cannot import app.pipeline.process_request: {exc}")
+            print(f"cannot import backend.pipeline.process_request: {exc}")
             return 0
 
     only = {part.strip() for part in args.only.split(",") if part.strip()} or None

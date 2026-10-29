@@ -16,12 +16,12 @@ from typing import Any, Literal
 import duckdb
 from pydantic import BaseModel, Field
 
-from app import audit
-from app.compiler import cohort_sql
-from app.db import connection
-from app.models import SpeOutput
-from app.plan import QueryPlan, RecordSelection
-from app.stats import LESS_THAN, MIN_CELL, SUPPRESSED
+from backend import audit
+from backend.compiler import cohort_sql
+from backend.db import connection
+from backend.models import SpeOutput
+from backend.plan import QueryPlan, RecordSelection
+from backend.stats import LESS_THAN, MIN_CELL, SUPPRESSED
 
 COHORT_TABLE = "cohort"
 DEFAULT_ACTOR = "researcher"

@@ -12,9 +12,9 @@ import json
 from collections import Counter
 from dataclasses import dataclass
 
-from app.models import PurposeAssessment
-from app.plan import QueryPlan
-from app.stats import cohort_size, run_plan
+from backend.models import PurposeAssessment
+from backend.plan import QueryPlan
+from backend.stats import cohort_size, run_plan
 
 
 @dataclass(frozen=True)

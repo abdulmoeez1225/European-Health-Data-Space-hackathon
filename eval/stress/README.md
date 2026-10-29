@@ -3,7 +3,7 @@
 S01-S20 are the twenty new requests written to break the system the way a jury testing "new requests on the same data" would.
 Same JSON format as `requests/R*.json`. Expected answers come from `reference.py`, which uses hand-written
 DuckDB SQL over the opt-out-free views and its own small-cell rule (Decimal, one decimal, halves up). It does
-not import the query plan, compiler or `app.stats`. S21-S29 are follow-up probes added after the first run to confirm
+not import the query plan, compiler or `backend.stats`. S21-S29 are follow-up probes added after the first run to confirm
 that a root cause generalises (same failure with different words) or to look for new ones.
 
 ```

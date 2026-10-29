@@ -6,8 +6,8 @@ from typing import Any
 import duckdb
 import pytest
 
-from app.db import connection
-from app.models import (
+from backend.db import connection
+from backend.models import (
     PurposeAssessment,
     ReleasedCell,
     ReleasedRow,
@@ -15,8 +15,8 @@ from app.models import (
     SpeOutput,
     StatisticsOutput,
 )
-from app.plan import QueryPlan
-from app.stats import cohort_size, run_plan
+from backend.plan import QueryPlan
+from backend.stats import cohort_size, run_plan
 from eval import metrics, run_eval
 from tests.reference_plans import ADULT, REF, REFERENCE_PLANS, REGION
 

@@ -2,7 +2,7 @@
 
 One hand-written DuckDB query per request over the opt-out-free views, plus a
 small re-implementation of the small-cell rule. Nothing here uses the query
-plan, the compiler or app.stats, so the expected values can cross-check them.
+plan, the compiler or backend.stats, so the expected values can cross-check them.
 
     .venv/bin/python -m eval.hidden.reference
 """
@@ -16,7 +16,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
-from app.db import connection
+from backend.db import connection
 
 HERE = Path(__file__).resolve().parent
 MIN_CELL = 10

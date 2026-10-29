@@ -6,7 +6,7 @@ expected.json independently of the LLM. The app never uses them.
 
 from datetime import date
 
-from app.plan import QueryPlan
+from backend.plan import QueryPlan
 
 REF = date(2025, 12, 31)
 ADULT = {"kind": "age", "min_age": 18}

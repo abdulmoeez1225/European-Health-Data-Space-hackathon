@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from app.planner import canonical_metric_name, with_canonical_names
+from backend.planner import canonical_metric_name, with_canonical_names
 from tests.reference_plans import REFERENCE_PLANS
 
 

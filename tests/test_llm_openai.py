@@ -3,8 +3,8 @@ import json
 import httpx
 import pytest
 
-from app import llm
-from app.models import PurposeAssessment
+from backend import llm
+from backend.models import PurposeAssessment
 
 ANSWER = {
     "prohibited": True,

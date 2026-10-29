@@ -1,8 +1,8 @@
 """Regressions found by the stress test on unseen requests (eval/stress/FINDINGS.md)."""
 
-from app.db import connection
-from app.plan import QueryPlan
-from app.stats import run_plan
+from backend.db import connection
+from backend.plan import QueryPlan
+from backend.stats import run_plan
 
 
 def _sql(query: str) -> dict[str, int]:

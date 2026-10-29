@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from app.plan import (
+from backend.plan import (
     AgeBand,
     AgeCriterion,
     ConditionCriterion,

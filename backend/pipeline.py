@@ -14,20 +14,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import get_args
 
-from app import audit
-from app.config import settings
-from app.consensus import release_signature, vote_assessments, vote_plans
-from app.db import connection
-from app.decide import (
+from backend import audit
+from backend.config import settings
+from backend.consensus import release_signature, vote_assessments, vote_plans
+from backend.db import connection
+from backend.decide import (
     ASSESSMENT_SYSTEM,
     decide,
     refused_assessment,
     request_text,
     rule_assessment,
 )
-from app.ledger import applicant_key, apply_ledger
-from app.llm import LlmRefused, LlmUnavailable, ask, backend_name
-from app.models import (
+from backend.ledger import applicant_key, apply_ledger
+from backend.llm import LlmRefused, LlmUnavailable, ask, backend_name
+from backend.models import (
     Consensus,
     PrivacyCheck,
     PurposeAssessment,
@@ -38,11 +38,11 @@ from app.models import (
     StatisticsOutput,
     Timings,
 )
-from app.plan import DataHolder, QueryPlan, Region
-from app.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
-from app.spe import create_spe
-from app.stats import LESS_THAN, MIN_CELL, SUPPRESSED, StatResult, run_plan
-from app.terminology import map_codes
+from backend.plan import DataHolder, QueryPlan, Region
+from backend.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
+from backend.spe import create_spe
+from backend.stats import LESS_THAN, MIN_CELL, SUPPRESSED, StatResult, run_plan
+from backend.terminology import map_codes
 
 _PATIENT_ID = re.compile(r"\bp-[0-9a-f]{8}\b|\be\d{6}\b")
 

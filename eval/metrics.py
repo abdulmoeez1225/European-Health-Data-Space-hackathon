@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.models import RequestResult
+from backend.models import RequestResult
 
 OPTIONAL_ARTICLES = {"67", "71"}
 SMALL_CELL_TEXT = {"<10", "suppressed"}

@@ -2,7 +2,7 @@
 
 One hand-written DuckDB query per request over the opt-out-free views, plus its own
 small-cell rule (Decimal, one decimal, halves up). Nothing here imports the query plan,
-the compiler or app.stats.
+the compiler or backend.stats.
 
     .venv/bin/python -m eval.stress.reference
 """
@@ -17,7 +17,7 @@ from pathlib import Path
 from statistics import median
 from typing import Any
 
-from app.db import connection
+from backend.db import connection
 
 HERE = Path(__file__).resolve().parent
 MIN_CELL = 10

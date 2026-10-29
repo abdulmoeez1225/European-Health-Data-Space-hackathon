@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from typing import get_args
 
-from app.compiler import cohort_sql, compile_plan
-from app.db import connection
-from app.plan import (
+from backend.compiler import cohort_sql, compile_plan
+from backend.db import connection
+from backend.plan import (
     CountMetric,
     DataHolder,
     EncounterType,

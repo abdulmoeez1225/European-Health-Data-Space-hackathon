@@ -1,9 +1,9 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from app.consensus import vote_assessments, vote_plans
-from app.models import PurposeAssessment
-from app.pipeline import _gather
+from backend.consensus import vote_assessments, vote_plans
+from backend.models import PurposeAssessment
+from backend.pipeline import _gather
 from tests.reference_plans import REFERENCE_PLANS
 
 

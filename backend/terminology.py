@@ -10,9 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 
-from app.db import connection
-from app.models import CodeMapping
-from app.plan import (
+from backend.db import connection
+from backend.models import CodeMapping
+from backend.plan import (
     ConditionCriterion,
     CountMetric,
     Criterion,

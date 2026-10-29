@@ -21,7 +21,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["app"]
+packages = ["backend"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -36,11 +36,11 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
 # Long literal strings: LLM prompt text, decision-letter wording and expected reasons.
-"app/decide.py" = ["E501"]
+"backend/decide.py" = ["E501"]
 "eval/*/reference.py" = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app", "eval", "tests"]
+known-first-party = ["backend", "eval", "tests"]
 
 [tool.mypy]
 python_version = "3.12"

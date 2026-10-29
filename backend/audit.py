@@ -14,7 +14,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app.config import settings
+from backend.config import settings
 
 _lock = threading.Lock()
 _events: list[AuditEvent] = []

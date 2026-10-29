@@ -20,8 +20,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from app import audit
-from app.stats import LESS_THAN, MIN_CELL, SUPPRESSED, Cell, StatResult
+from backend import audit
+from backend.stats import LESS_THAN, MIN_CELL, SUPPRESSED, Cell, StatResult
 
 _lock = threading.Lock()
 

@@ -5,9 +5,9 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app import audit, spe
-from app.api import app
-from app.db import connection
+from backend import audit, spe
+from backend.api import app
+from backend.db import connection
 from tests.reference_plans import REFERENCE_PLANS
 
 PERMIT = "permit-api"
@@ -108,7 +108,7 @@ def test_submit_without_purpose_is_422(client: TestClient) -> None:
 
 def test_submit_with_rules_backend_needs_no_llm(client: TestClient, monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("GATEKEEPER_LLM", "rules")
-    monkeypatch.setattr("app.llm.CACHE_DIR", tmp_path / "llm-cache")
+    monkeypatch.setattr("backend.llm.CACHE_DIR", tmp_path / "llm-cache")
     request: dict[str, Any] = json.loads((REQUESTS_DIR / "R01.json").read_text())
     response = client.post("/api/requests", json=request)
     assert response.status_code == 200

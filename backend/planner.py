@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from app.db import REFERENCE_DATE
-from app.plan import QueryPlan
-from app.terminology import catalog_text
+from backend.db import REFERENCE_DATE
+from backend.plan import QueryPlan
+from backend.terminology import catalog_text
 
 PLAN_SYSTEM = f"""You translate a health data request into a QueryPlan (JSON, schema given). A deterministic \
 engine runs the plan; you never see patient data and never write SQL.
