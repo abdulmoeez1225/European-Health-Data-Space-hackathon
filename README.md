@@ -116,9 +116,10 @@ Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 =
 ├── data/                    synthetic patients, conditions, medications, observations, encounters (provided)
 ├── requests/                the 10 track requests and expected.json (provided)
 ├── docs/                    TRACK.md (original brief), architecture diagram
+├── deploy/                  Caddyfile (HTTPS reverse proxy) and deploy.sh for a server
 ├── .github/workflows/ci.yml CI
 ├── .env.example             every configuration variable, documented
-├── Dockerfile, compose.yaml one-container deployment
+├── Dockerfile, compose.yaml one-container deployment; compose.prod.yaml adds Caddy HTTPS
 ├── Makefile                 install, run, check, eval targets
 └── pyproject.toml           Python project, ruff, mypy and pytest config
 ```
@@ -159,6 +160,8 @@ Frontend development: run `make run` in one terminal and `make dev-frontend` in 
 One process serves both the API and the built frontend.
 
 **Docker:** `docker compose up -d --build` builds the frontend and the backend into one image ([Dockerfile](Dockerfile), [compose.yaml](compose.yaml)), reads `.env`, and keeps `state/` on a named volume. The app is on http://localhost:8000.
+
+**Production server with HTTPS:** [compose.prod.yaml](compose.prod.yaml) adds Caddy in front of the app, which obtains and renews the certificate ([deploy/Caddyfile](deploy/Caddyfile)). Put the LLM settings and `SITE_HOST` (the public hostname) in `/etc/gatekeeper.env`, check out the repo in `/opt/gatekeeper`, and run [deploy/deploy.sh](deploy/deploy.sh) as root. It pulls `origin/main`, builds, starts both containers and waits until they are healthy.
 
 **Without Docker,** on any host with Python 3.12 and Node 22 (Render, Railway, Fly.io, a VM):
 
