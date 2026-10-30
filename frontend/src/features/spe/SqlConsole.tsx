@@ -16,6 +16,7 @@ import { useT } from "@/i18n";
 import { capitalise, formatValue } from "@/lib/format";
 
 import { ResultTable } from "./ResultTable";
+import { Watermarked } from "./Watermark";
 
 export const PRESET_COPY = "COPY cohort TO 'out.csv'";
 
@@ -125,7 +126,9 @@ function QueryOutcome({ data }: { data: QueryResult }) {
         {data.truncated ? ` · ${t.truncated}` : ""}
         {data.truncated_cells ? ` · ${t.cellsTruncated(formatValue(data.truncated_cells))}` : ""}
       </p>
-      <ResultTable columns={data.columns} rows={data.rows} caption={t.queryResult} rawHeaders />
+      <Watermarked>
+        <ResultTable columns={data.columns} rows={data.rows} caption={t.queryResult} rawHeaders />
+      </Watermarked>
     </>
   );
 }

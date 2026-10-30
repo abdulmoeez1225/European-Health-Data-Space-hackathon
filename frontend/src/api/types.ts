@@ -37,4 +37,3 @@ export type ResultValue = string | number | boolean | null;
 export type Article = Schemas["Article"];
 export type LawResponse = Schemas["LawResponse"];
 export type Health = Schemas["Health"];
-export type DownloadBlocked = Schemas["DownloadBlocked"];

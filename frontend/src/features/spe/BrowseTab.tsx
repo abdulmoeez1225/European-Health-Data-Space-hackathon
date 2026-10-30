@@ -16,6 +16,7 @@ import { formatValue, humanise } from "@/lib/format";
 import { ResultTable } from "./ResultTable";
 import { browseSql, countSql, filterColumnsFor, PAGE_SIZE, type Filter } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
+import { Watermarked } from "./Watermark";
 
 /** An example prefix per coding system, for the "starts with" filter hint. */
 const CODE_EXAMPLES: Record<string, string> = {
@@ -164,11 +165,13 @@ function TableBrowser({
         </div>
       ) : (
         <div className="min-h-[480px]">
-          <ResultTable
-            columns={rows.data.columns}
-            rows={rows.data.rows}
-            caption={t.records(humanise(table.name))}
-          />
+          <Watermarked>
+            <ResultTable
+              columns={rows.data.columns}
+              rows={rows.data.rows}
+              caption={t.records(humanise(table.name))}
+            />
+          </Watermarked>
         </div>
       )}
 

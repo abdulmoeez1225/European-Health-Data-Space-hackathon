@@ -1,31 +1,29 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { Download, KeyRound, Loader2, ShieldAlert } from "lucide-react";
+import { KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ReactNode } from "react";
 
-import { api } from "@/api/client";
-import { ApiError } from "@/api/errors";
 import { useMyRequests, useSpeInfo } from "@/api/queries";
 import { readRequest } from "@/api/request";
 import type { SpeOutput } from "@/api/types";
-import { CopyButton } from "@/components/CopyButton";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, ErrorState } from "@/components/States";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useT } from "@/i18n";
-import { formatValue, shorten } from "@/lib/format";
+import { formatTime, formatValue, shorten } from "@/lib/format";
 import { useMyRequestIds } from "@/lib/my-requests";
 
 import { BrowseTab } from "./BrowseTab";
 import { SqlConsole } from "./SqlConsole";
 import { SummariseTab } from "./SummariseTab";
+import { WatermarkContext } from "./Watermark";
+
+/** When this browser tab opened the workspace; stamped on the record views' watermark. */
+const OPENED_AT = new Date().toISOString();
 
 type Permit = { spe: SpeOutput; organisation: string; requestId: string };
 
@@ -122,16 +120,18 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
   const t = useT().spe;
   const permitId = permit.spe.permit_id;
   const info = useSpeInfo(permitId);
-  const download = useMutation({ mutationFn: () => api.speDownload(permitId) });
-  const blocked = download.error instanceof ApiError && download.error.status === 403 ? download.error : null;
+  const watermark = [permitId, shorten(permit.organisation, 40), formatTime(OPENED_AT)]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="grid gap-8">
+      <SessionBar permit={permit} />
       <PageHeader
         title={t.title}
         description={t.description}
         actions={
-          <>
+          <div className="grid gap-2 lg:justify-items-end">
             <Select
               value={permitId}
               onValueChange={(id) => {
@@ -154,67 +154,13 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              className="h-9"
-              disabled={download.isPending}
-              onClick={() => {
-                download.mutate();
-              }}
-            >
-              {download.isPending ? (
-                <Loader2 aria-hidden className="animate-spin" />
-              ) : (
-                <Download aria-hidden />
-              )}
-              {t.download}
-            </Button>
-          </>
+            <p className="max-w-[44ch] text-xs text-muted-foreground lg:text-right">
+              <Lock aria-hidden className="mr-1.5 inline size-3 align-[-1px]" />
+              {t.downloadsDisabled}
+            </p>
+          </div>
         }
       />
-
-      <dl className="grid grid-cols-3 gap-6 rounded-lg border bg-card px-6 py-5">
-        <Property label={t.strip.patients}>
-          <span className="text-2xl font-medium tracking-tight tabular-nums">
-            {formatValue(permit.spe.cohort_size)}
-          </span>
-        </Property>
-        <Property label={t.strip.permit}>
-          <span className="font-mono text-ui">{permitId}</span>
-        </Property>
-        <Property label={t.strip.request}>
-          <span className="font-mono text-ui">{permit.requestId}</span>
-          {permit.organisation ? (
-            <span className="block truncate text-xs text-muted-foreground" title={permit.organisation}>
-              {permit.organisation}
-            </span>
-          ) : null}
-        </Property>
-      </dl>
-
-      {blocked ? (
-        <Alert key={download.submittedAt} variant="destructive" role="alert">
-          <ShieldAlert />
-          <AlertTitle>{t.downloadBlocked}</AlertTitle>
-          <AlertDescription>
-            <p>{blocked.message.replace(/^Download blocked:[^.]*\(Art\. 73\)\.\s*/i, "")}</p>
-            {blocked.auditId ? (
-              <p className="flex items-center gap-1">
-                {t.loggedAs} <span className="font-mono text-foreground">{blocked.auditId}</span>
-                <CopyButton text={blocked.auditId} label={t.copyAuditId} />
-              </p>
-            ) : null}
-          </AlertDescription>
-        </Alert>
-      ) : download.isError ? (
-        <ErrorState title={t.downloadCheckFailed} error={download.error} />
-      ) : download.isSuccess ? (
-        <Alert variant="destructive" role="alert">
-          <ShieldAlert />
-          <AlertTitle>{t.notBlocked.title}</AlertTitle>
-          <AlertDescription>{t.notBlocked.text}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <Tabs
         value={tab}
@@ -239,7 +185,7 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
         ) : info.isError ? (
           <ErrorState title={t.openFailed} error={info.error} onRetry={() => void info.refetch()} />
         ) : (
-          <>
+          <WatermarkContext value={watermark}>
             <TabsContent value="browse">
               <BrowseTab permitId={permitId} tables={info.data.tables} />
             </TabsContent>
@@ -249,18 +195,34 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
             <TabsContent value="sql">
               <SqlConsole permitId={permitId} />
             </TabsContent>
-          </>
+          </WatermarkContext>
         )}
       </Tabs>
     </div>
   );
 }
 
-function Property({ label, children }: { label: string; children: ReactNode }) {
+/** Pinned under the top bar while scrolling: whose session this is, and that it is watched. */
+function SessionBar({ permit }: { permit: Permit }) {
+  const t = useT().spe.session;
+  const patients = permit.spe.cohort_size;
   return (
-    <div className="grid min-w-0 content-start gap-1.5">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="min-w-0">{children}</dd>
-    </div>
+    <section
+      aria-label={t.label}
+      className="sticky top-12 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-card px-4 py-2 text-xs text-muted-foreground md:top-0"
+    >
+      <span className="flex items-center gap-1.5 font-medium text-foreground">
+        <Lock aria-hidden className="size-3.5 text-success" />
+        {t.label}
+      </span>
+      <span className="font-mono text-foreground">{permit.spe.permit_id}</span>
+      {permit.organisation ? (
+        <span className="max-w-[28ch] truncate max-sm:hidden" title={permit.organisation}>
+          {permit.organisation}
+        </span>
+      ) : null}
+      <span className="tabular-nums">{t.patients(patients, formatValue(patients))}</span>
+      <span className="sm:ml-auto">{t.watched}</span>
+    </section>
   );
 }

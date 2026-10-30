@@ -3,7 +3,6 @@ import { isObject } from "./request";
 import type {
   AirlockResult,
   AuditPage,
-  DownloadBlocked,
   JsonObject,
   LawResponse,
   LedgerEvent,
@@ -129,8 +128,6 @@ export const api = {
   /** The airlock takes no SQL: it counts patients per allowlisted group itself and suppresses small cells. */
   speAirlock: (permitId: string, request: AirlockRequest) =>
     call<AirlockResult>("POST", `${spePath(permitId)}/airlock`, request),
-  /** The server always answers 403 (Art. 73); this resolves only if the block failed. */
-  speDownload: (permitId: string) => call<DownloadBlocked>("GET", `${spePath(permitId)}/download`),
   audit: (query: AuditQuery) => call<AuditPage>("GET", `/api/audit?${auditParams(query)}`),
   ledger: () => call<LedgerEvent[]>("GET", "/api/ledger"),
 };

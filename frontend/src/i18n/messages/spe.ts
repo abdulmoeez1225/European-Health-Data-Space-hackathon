@@ -2,7 +2,7 @@
 
 const en = {
   title: "Secure workspace",
-  description: "Work with approved pseudonymised records under your data permit. Nothing can be downloaded.",
+  description: "Work with approved pseudonymised records under your data permit.",
   loadingPermits: "Loading data permits",
   empty: {
     title: "No secure workspace yet",
@@ -10,16 +10,14 @@ const en = {
     action: "Request data",
   },
   permitSelect: "Data permit",
-  download: "Download data",
-  downloadBlocked: "Download blocked — data cannot leave the secure processing environment (Art. 73)",
-  loggedAs: "Logged as audit event",
-  copyAuditId: "Copy audit event ID",
-  downloadCheckFailed: "Download check failed",
-  notBlocked: {
-    title: "Unexpected: the server did not block the download",
-    text: "Report this to the access body; data must not leave the environment.",
+  downloadsDisabled:
+    "Downloads are disabled (Art. 73). Results leave only as checked totals, through the airlock.",
+  session: {
+    label: "Secure processing environment",
+    patients: (count: number, formatted: string) =>
+      `${formatted} ${count === 1 ? "patient" : "patients"} (exact)`,
+    watched: "Every query is logged · No downloads",
   },
-  strip: { patients: "Patients (exact)", permit: "Permit", request: "Request" },
   tabsLabel: "Ways to work with the records",
   tabs: { browse: "Browse", summarise: "Summarise", sql: "SQL (advanced)" },
   opening: "Opening the workspace",
@@ -104,8 +102,7 @@ export type SpeMessages = typeof en;
 
 const de: SpeMessages = {
   title: "Sicherer Arbeitsbereich",
-  description:
-    "Arbeiten Sie mit den genehmigten pseudonymisierten Datensätzen unter Ihrer Datengenehmigung. Es kann nichts heruntergeladen werden.",
+  description: "Arbeiten Sie mit den genehmigten pseudonymisierten Datensätzen unter Ihrer Datengenehmigung.",
   loadingPermits: "Datengenehmigungen werden geladen",
   empty: {
     title: "Noch kein sicherer Arbeitsbereich",
@@ -113,17 +110,13 @@ const de: SpeMessages = {
     action: "Daten anfragen",
   },
   permitSelect: "Datengenehmigung",
-  download: "Daten herunterladen",
-  downloadBlocked:
-    "Download blockiert — Daten können die sichere Verarbeitungsumgebung nicht verlassen (Art. 73)",
-  loggedAs: "Protokolliert als Prüfereignis",
-  copyAuditId: "Prüfereignis-ID kopieren",
-  downloadCheckFailed: "Download-Prüfung fehlgeschlagen",
-  notBlocked: {
-    title: "Unerwartet: Der Server hat den Download nicht blockiert",
-    text: "Melden Sie dies der Zugangsstelle; Daten dürfen die Umgebung nicht verlassen.",
+  downloadsDisabled:
+    "Downloads sind gesperrt (Art. 73). Ergebnisse verlassen die Umgebung nur als geprüfte Summen, über die Schleuse.",
+  session: {
+    label: "Sichere Verarbeitungsumgebung",
+    patients: (count, formatted) => `${formatted} ${count === 1 ? "Person" : "Personen"} (exakt)`,
+    watched: "Jede Abfrage wird protokolliert · Keine Downloads",
   },
-  strip: { patients: "Personen (exakt)", permit: "Genehmigung", request: "Anfrage" },
   tabsLabel: "Möglichkeiten, mit den Datensätzen zu arbeiten",
   tabs: { browse: "Durchsuchen", summarise: "Zusammenfassen", sql: "SQL (für Fortgeschrittene)" },
   opening: "Der Arbeitsbereich wird geöffnet",

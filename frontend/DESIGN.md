@@ -102,7 +102,7 @@ Textarea, Label, Separator, Skeleton, DropdownMenu, Dialog, Sheet, Alert, Breadc
   A refusal has a card with the case reference and "Ask for a review…" (once), then "Review requested on …".
 - **My requests** (`/requests/`): this browser's requests as rows, tagged "Awaiting permit", "Withdrawn",
   "Reconsidering" or "Review requested".
-- **Secure workspace** (`/spe/`): permit header with Download data (always blocked, Art. 73, audit id);
+- **Secure workspace** (`/spe/`): pinned secure-session bar (permit, organisation, exact patients, "every query is logged · no downloads"), a lock line instead of any download button (Art. 73; the API still refuses and audits download attempts), a faint watermark naming permit, organisation and time over every record view;
   tabs Browse (tables, filters, 50-row pages), Summarise (no-code "count patients in … by … where …",
   preview, Export via airlock, Show SQL), SQL (advanced) with examples.
 
