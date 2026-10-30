@@ -1,6 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { Inbox, RotateCw } from "lucide-react";
+import { useState } from "react";
 
 import { useRequests } from "@/api/queries";
 import type { RequestResult } from "@/api/types";
@@ -32,10 +34,26 @@ export function Requests() {
   const requests = useRequests();
   const [filter, setFilter] = useViewState<QueueFilter>("staff.filter", "attention");
 
+  const selectedParam = useSearchParams().get("id");
+  // A request staff just acted on no longer matches the filter; it stays listed, and open, until
+  // staff pick another request or change the filter.
+  const [kept, setKept] = useState<{ id: string; filter: QueueFilter } | null>(null);
+  const [previous, setPrevious] = useState(requests.data);
+  if (requests.data !== previous) {
+    setPrevious(requests.data);
+    const acted = requests.data?.find((result) => {
+      const before = previous?.find((item) => item.request_id === result.request_id);
+      return before && result.staff_action?.at !== before.staff_action?.at;
+    });
+    if (acted) setKept({ id: acted.request_id, filter });
+  }
+  const keptId = kept?.filter === filter && (!selectedParam || selectedParam === kept.id) ? kept.id : null;
+
   const results = requests.data ?? [];
   const attention = filterQueue(results, "attention").length;
   const actioned = filterQueue(results, "actioned").length;
-  const shown = filterQueue(results, filter);
+  const matching = new Set(filterQueue(results, filter));
+  const shown = results.filter((result) => matching.has(result) || result.request_id === keptId);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">

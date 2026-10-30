@@ -1,8 +1,10 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
 
+from backend.plan import QueryPlan
 from backend.planner import canonical_metric_name, metric_labels, with_canonical_names
 from tests.reference_plans import REFERENCE_PLANS
 
@@ -75,3 +77,32 @@ def test_german_gendered_pair_and_back_reference() -> None:
     names = [m.name for m in with_canonical_names(plan, definitions).metrics]
     assert names == ["patienten_mit_vorhofflimmern", "kein_aktives_orales_antikoagulans",
                      "kein_aktives_orales_antikoagulans_pct"]
+
+
+_LONG = "adults with hypertension whose latest systolic blood pressure in 2025 is 140 mmHg or higher"
+_VALID = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+
+
+def _report_names(request_id: str, report: str) -> list[str]:
+    return [m.name for m in with_canonical_names(REFERENCE_PLANS[request_id], [report]).metrics]
+
+
+def test_long_report_phrase_gives_a_valid_name() -> None:
+    plan = with_canonical_names(REFERENCE_PLANS["R08"], [f"Report per region: {_LONG} and mean BMI."])
+    QueryPlan.model_validate(plan.model_dump())
+    assert plan.metrics[1].name == "mean_bmi"
+
+
+def test_long_percentage_keeps_its_suffix() -> None:
+    names = _report_names("R03", f"Report per band: patients with atrial fibrillation, no active oral anticoagulant "
+                                 f"and percentage of {_LONG} in the band.")
+    assert names[2].endswith("_pct") and _VALID.match(names[2])
+
+
+def test_long_phrases_cut_to_the_same_stem_stay_distinct() -> None:
+    names = _report_names("R08", f"Report per region: {_LONG} among women, {_LONG} among men.")
+    assert names[0] != names[1] and all(_VALID.match(n) for n in names)
+
+
+def test_short_names_are_unchanged() -> None:
+    assert _report_names("R08", "Report per region: women with BMI and mean BMI.") == ["women_with_bmi", "mean_bmi"]

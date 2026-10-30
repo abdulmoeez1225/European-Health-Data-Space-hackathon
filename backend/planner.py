@@ -166,6 +166,27 @@ def with_canonical_names(plan: QueryPlan, definitions: list[str] | None = None) 
     for metric, name in zip(plan.metrics, names, strict=True):
         while name in seen:
             name += "_2"
+        if not _NAME.match(name):
+            name = _valid_name(name, seen)
         seen.add(name)
         metrics.append(metric.model_copy(update={"name": name}))
     return plan.model_copy(update={"metrics": metrics})
+
+
+_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+_MAX_NAME = 64
+
+
+def _valid_name(name: str, taken: set[str]) -> str:
+    """A long report phrase cut to the name limit, keeping a trailing "_pct" and staying unique."""
+    if not name[:1].isalpha():
+        name = f"m_{name}"
+    suffix = "_pct" if name.endswith("_pct") else ""
+    stem = name.removesuffix(suffix)
+    candidate = stem[: _MAX_NAME - len(suffix)].rstrip("_") + suffix
+    number = 2
+    while candidate in taken:
+        tag = f"_{number}"
+        candidate = stem[: _MAX_NAME - len(suffix) - len(tag)].rstrip("_") + tag + suffix
+        number += 1
+    return candidate
