@@ -127,6 +127,13 @@ const en = {
         "Access to pseudonymised records was recommended. The secure workspace opens once the access body issues the data permit.",
       locked: "The workspace opens once the permit is issued.",
     },
+    noNumbers: {
+      badge: "Allowed, numbers pending",
+      headline: "Your purpose is allowed, but these numbers could not be computed",
+      sentence:
+        "The question could not be answered automatically from the available data. A case officer will review it and contact you.",
+      reason: "Why the numbers could not be computed",
+    },
     permitConditions: "Conditions set by the access body",
   },
 };
@@ -262,6 +269,13 @@ const de: CommonMessages = {
       sentence:
         "Der Zugang zu pseudonymisierten Datensätzen wurde empfohlen. Der sichere Arbeitsbereich öffnet sich, sobald die Zugangsstelle die Datengenehmigung erteilt.",
       locked: "Der Arbeitsbereich öffnet sich, sobald die Genehmigung erteilt ist.",
+    },
+    noNumbers: {
+      badge: "Zulässig, Zahlen ausstehend",
+      headline: "Ihr Zweck ist zulässig, aber diese Zahlen konnten nicht berechnet werden",
+      sentence:
+        "Die Frage ließ sich mit den verfügbaren Daten nicht automatisch beantworten. Die Zugangsstelle prüft sie und meldet sich bei Ihnen.",
+      reason: "Warum die Zahlen nicht berechnet werden konnten",
     },
     permitConditions: "Auflagen der Zugangsstelle",
   },

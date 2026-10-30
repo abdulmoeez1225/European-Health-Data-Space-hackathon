@@ -45,7 +45,10 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
   const action = result.staff_action;
   const staffReason = action && action.kind !== "permit_issued" ? action.reason.trim() : "";
   const conditions = action?.kind === "permit_issued" ? action.reason.trim() : "";
-  const explanation = result.assessment.explanation_for_applicant.trim();
+  const noNumbers = numbersPending(result);
+  const noNumbersReason = noNumbers ? (result.plan?.unsupported?.trim() ?? "") : "";
+  // The AI's explanation promises statistics; when none could be computed it would contradict the headline.
+  const explanation = noNumbers ? "" : result.assessment.explanation_for_applicant.trim();
   const footer = awaitingPermit ? t.letter.recommended : t.letter.issued;
 
   return (
@@ -66,6 +69,7 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
           <LetterHeadline result={result} headingId={headingId} />
         </div>
         {withdrawn && staffReason ? <StaffReason reason={staffReason} /> : null}
+        {noNumbersReason ? <QuotedNote label={t.letter.noNumbers.reason} text={noNumbersReason} /> : null}
 
         {!withdrawn && explanation ? (
           <section aria-labelledby={`${headingId}-why`} className="grid gap-2">
@@ -181,6 +185,18 @@ function LetterHeadline({ result, headingId }: { result: RequestResult; headingI
       </>
     );
   }
+  if (numbersPending(result)) {
+    return (
+      <>
+        <Badge variant="info">
+          <Hourglass aria-hidden />
+          {t.letter.noNumbers.badge}
+        </Badge>
+        {headline(t.letter.noNumbers.headline)}
+        {sentence(t.letter.noNumbers.sentence)}
+      </>
+    );
+  }
   return (
     <>
       <DecisionBadge decision={result.decision} />
@@ -188,6 +204,11 @@ function LetterHeadline({ result, headingId }: { result: RequestResult; headingI
       {sentence(plainSentence(result))}
     </>
   );
+}
+
+/** Statistics were granted but nothing could be computed, e.g. the question asks about data that does not exist. */
+function numbersPending(result: RequestResult): boolean {
+  return result.decision === "APPROVE_STATISTICAL" && result.status === "issued" && !result.statistics;
 }
 
 /** A note written by a person, quoted and labelled so it never reads as part of a sentence. */
