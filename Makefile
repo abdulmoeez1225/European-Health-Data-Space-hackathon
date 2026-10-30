@@ -2,6 +2,8 @@ PY := .venv/bin/python
 LIVE_HOST ?= ubuntu@85.217.173.14
 LIVE_KEY ?= ~/.ssh/exoscale_gatekeeper
 LIVE_EVAL ?= --runs 3 --no-cache --set main
+# Free-tier friendly: one reading per step, at most 8 model calls per minute, generous deadline.
+LIVE_ENV ?= GATEKEEPER_LLM_READINGS=1 GATEKEEPER_LLM_MAX_RPM=8 GATEKEEPER_LLM_DEADLINE_S=300
 
 .PHONY: install run test eval eval-fresh eval-hidden eval-german eval-stress eval-live lint typecheck check frontend dev-frontend
 
@@ -42,7 +44,7 @@ eval-stress:
 # The same evaluation on the Exoscale server, with the deployed image and its LLM settings.
 # Defaults to eval-fresh; narrow it with e.g. LIVE_EVAL="--runs 1 --no-cache --only R01,R02".
 eval-live:
-	ssh -i $(LIVE_KEY) $(LIVE_HOST) 'sudo bash -s -- $(LIVE_EVAL)' < deploy/eval-live.sh
+	ssh -i $(LIVE_KEY) $(LIVE_HOST) 'sudo bash -s -- $(LIVE_ENV) $(LIVE_EVAL)' < deploy/eval-live.sh
 
 frontend:
 	cd frontend && npm ci && npm run build

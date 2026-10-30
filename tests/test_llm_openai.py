@@ -72,8 +72,44 @@ def test_content_filter_is_a_refusal(monkeypatch) -> None:
         llm.ask("system", "prompt", PurposeAssessment)
 
 
-def test_rate_limit_is_retried_once_then_reported(monkeypatch) -> None:
-    seen = _serve(monkeypatch, lambda request: httpx.Response(429, text="rate limited"))
+def test_server_error_is_retried_once_then_reported(monkeypatch) -> None:
+    seen = _serve(monkeypatch, lambda request: httpx.Response(503, text="unavailable"))
     with pytest.raises(llm.LlmUnavailable):
         llm.ask("system", "prompt", PurposeAssessment)
     assert len(seen) == 2
+
+
+def test_rate_limit_waits_as_asked_then_succeeds(monkeypatch) -> None:
+    responses = iter([
+        httpx.Response(429, json=[{"error": {"details": [{"retryDelay": "7s"}]}}]),
+        _completion(json.dumps(ANSWER)),
+    ])
+    _serve(monkeypatch, lambda request: next(responses))
+    slept: list[float] = []
+    monkeypatch.setattr(llm.time, "sleep", slept.append)
+
+    answer, _ = llm.ask("system", "prompt", PurposeAssessment)
+
+    assert answer.prohibited is True
+    assert slept == [7.0]
+
+
+def test_rate_limit_gives_up_after_the_attempt_limit(monkeypatch) -> None:
+    seen = _serve(monkeypatch, lambda request: httpx.Response(429, headers={"retry-after": "1"}))
+    monkeypatch.setattr(llm.time, "sleep", lambda seconds: None)
+    with pytest.raises(llm.LlmRateLimited):
+        llm.ask("system", "prompt", PurposeAssessment)
+    assert len(seen) == llm.RATE_LIMIT_ATTEMPTS
+
+
+def test_request_budget_spaces_calls_evenly(monkeypatch) -> None:
+    clock = [100.0]
+    slept: list[float] = []
+    monkeypatch.setattr(llm.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(llm.time, "sleep", slept.append)
+    budget = llm._RequestBudget()
+
+    for _ in range(3):
+        budget.wait(max_rpm=30)
+
+    assert slept == [0.0, 2.0, 4.0]

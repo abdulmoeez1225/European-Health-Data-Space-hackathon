@@ -18,8 +18,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
+import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +40,45 @@ TIMEOUT_S = 90
 
 class LlmUnavailable(RuntimeError):
     pass
+
+
+class LlmRateLimited(LlmUnavailable):
+    """The provider asked us to slow down (HTTP 429)."""
+
+    def __init__(self, message: str, retry_after: float) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class _RequestBudget:
+    """Spaces calls evenly across all threads so a free tier's requests-per-minute limit is never hit."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._next_slot = 0.0
+
+    def wait(self, max_rpm: int) -> None:
+        if max_rpm <= 0:
+            return
+        with self._lock:
+            now = time.monotonic()
+            slot = max(now, self._next_slot)
+            self._next_slot = slot + 60.0 / max_rpm
+        time.sleep(max(slot - now, 0.0))
+
+
+_budget = _RequestBudget()
+_RETRY_DELAY = re.compile(r'"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"')
+RATE_LIMIT_ATTEMPTS = 5
+
+
+def _retry_after(response: httpx.Response) -> float:
+    """Seconds the provider asks us to wait: Retry-After header, or Gemini's retryDelay in the body."""
+    header = response.headers.get("retry-after", "")
+    if header.replace(".", "", 1).isdigit():
+        return float(header)
+    match = _RETRY_DELAY.search(response.text)
+    return float(match.group(1)) if match else 0.0
 
 
 class LlmRefused(LlmUnavailable):
@@ -119,6 +161,7 @@ def _call_api(system: str, prompt: str, schema: type[BaseModel]) -> dict:
     import anthropic
 
     client = anthropic.Anthropic()
+    _budget.wait(settings().llm_max_rpm)
     try:
         response = client.messages.parse(
             model=API_MODEL,
@@ -169,10 +212,13 @@ def _call_openai(system: str, prompt: str, schema: type[BaseModel]) -> dict:
                 "messages": [{"role": "system", "content": system_text}, {"role": "user", "content": prompt}],
                 "response_format": response_format,
             }
+            _budget.wait(config.llm_max_rpm)
             try:
                 response = client.post(url, json=body, headers=headers)
             except httpx.HTTPError as error:
                 raise LlmUnavailable(f"LLM endpoint unreachable: {error}") from error
+            if response.status_code == 429:
+                raise LlmRateLimited("LLM endpoint rate limit reached (429)", _retry_after(response))
             if response.status_code == 400 and response_format is schema_format:
                 continue
             if response.status_code != 200:
@@ -203,7 +249,8 @@ def ask[T: BaseModel](
     """Structured answer from the configured backend. Returns (answer, served_from_cache).
 
     `reading` numbers independent readings of the same prompt; each is cached separately.
-    A failed or malformed answer is retried once; a refusal is not.
+    A failed or malformed answer is retried once and a rate-limited one up to RATE_LIMIT_ATTEMPTS times,
+    waiting as long as the provider asks; a refusal is not retried.
     """
     backend = backend_name()
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -211,14 +258,20 @@ def ask[T: BaseModel](
     if use_cache and path.exists():
         return schema.model_validate_json(path.read_text()), True
 
-    for attempt in (1, 2):
+    attempt = 0
+    while True:
+        attempt += 1
         try:
             answer = schema.model_validate(_call(backend, system, prompt, schema))
             break
         except LlmRefused:
             raise
+        except LlmRateLimited as error:
+            if attempt >= RATE_LIMIT_ATTEMPTS:
+                raise
+            time.sleep(min(max(error.retry_after, 2.0 ** attempt), 30.0))
         except (LlmUnavailable, ValidationError, subprocess.TimeoutExpired) as error:
-            if attempt == 2 or backend == "rules":
+            if attempt >= 2 or backend == "rules":
                 raise LlmUnavailable(str(error)[:300]) from error
 
     path.write_text(answer.model_dump_json(indent=2))

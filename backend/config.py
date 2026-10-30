@@ -46,6 +46,7 @@ class Settings(BaseModel):
     cli_model: str = "sonnet"
     llm_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
     llm_readings: int = 3
+    llm_max_rpm: int = 0
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
@@ -71,6 +72,7 @@ class Settings(BaseModel):
             ("cli_model", "GATEKEEPER_CLI_MODEL"),
             ("llm_effort", "GATEKEEPER_LLM_EFFORT"),
             ("llm_readings", "GATEKEEPER_LLM_READINGS"),
+            ("llm_max_rpm", "GATEKEEPER_LLM_MAX_RPM"),
             ("llm_base_url", "GATEKEEPER_LLM_BASE_URL"),
             ("llm_api_key", "GATEKEEPER_LLM_API_KEY"),
             ("llm_model", "GATEKEEPER_LLM_MODEL"),

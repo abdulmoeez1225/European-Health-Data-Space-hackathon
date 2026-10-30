@@ -62,7 +62,7 @@ Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw), w
 - **Consensus readings:** each request gets 3 independent readings of the purpose and 3 of the definitions, run in parallel. Plans are compared by the exact values they would release, not by their wording. Waiting stops as soon as a majority agrees, so one slow reading never delays the answer, and a hard deadline (`GATEKEEPER_LLM_DEADLINE_S`) caps the wait. Staff see how many readings agreed; a split vote applies the stricter outcome and is flagged.
 - **Fail closed:** if the model refuses to assess a purpose, the request is rejected and flagged for staff. If a requested number cannot be expressed, the plan says so and staff are flagged; nothing is approximated.
 - **Deterministic output:** column names come from the request's own "Report …" sentence, and rejected requests do not wait for a plan.
-- **Retries and cache:** a failed or malformed model answer is retried once; answers are cached per backend and model.
+- **Retries, rate limits and cache:** a failed or malformed model answer is retried once. A rate-limited one (HTTP 429) waits as long as the provider asks, up to 5 attempts. An optional requests-per-minute budget keeps a free tier under its limit. Answers are cached per backend and model.
 - **Persistence:** decisions, the release ledger, secure workspaces and the audit log are kept in `state/` and survive a restart.
 
 ### Red-team demo: the differencing attack
@@ -145,7 +145,7 @@ make eval-fresh       # the same, with the LLM cache off
 make eval-hidden      # 12 jury-style requests
 make eval-german      # the 10 requests in German
 make eval-stress      # 29 adversarial requests
-make eval-live        # the 10 requests on the deployed server, with its live model (SSH access needed)
+make eval-live        # the 10 requests on the deployed server, with its live model (SSH access needed; free-tier settings via LIVE_ENV)
 ```
 
 Frontend development: run `make run` in one terminal and `make dev-frontend` in another, then open http://localhost:3000. Adding `?mock=1` to any page shows the UI with built-in sample data and no backend. See [frontend/README.md](frontend/README.md).
@@ -177,7 +177,7 @@ cd frontend && npm ci && npm run build && cd ..        # writes frontend/out, se
 uvicorn backend.api:app --host 0.0.0.0 --port $PORT
 ```
 
-Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). Lower `GATEKEEPER_LLM_READINGS` to 1 on a provider with tight rate limits. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then measure the deployed model with `make eval-live`. It runs the evaluation on the server inside the live image and settings, in a throwaway container that leaves the running site, its state and its cache untouched ([deploy/eval-live.sh](deploy/eval-live.sh)). The metrics below were measured with Claude, and another model must be re-measured.
+Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). On a free tier with a requests-per-minute limit, set `GATEKEEPER_LLM_READINGS=1` and `GATEKEEPER_LLM_MAX_RPM` just under the limit. Calls are then spaced evenly, and a rate-limited call waits as long as the provider asks before retrying. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then measure the deployed model with `make eval-live`. It runs the evaluation on the server inside the live image and settings, in a throwaway container that leaves the running site, its state and its cache untouched ([deploy/eval-live.sh](deploy/eval-live.sh)). The metrics below were measured with Claude, and another model must be re-measured.
 
 ## Metric results
 
