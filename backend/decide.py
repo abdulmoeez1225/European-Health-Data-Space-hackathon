@@ -50,7 +50,8 @@ application that does not justify records, receives anonymised statistics per gr
 the words "records", "individual" and "patient-level" must not appear (not even "rather than records"). A justified access application \
 receives pseudonymised records inside the secure processing environment once the data permit is issued. If the \
 purpose is allowed, never invite the applicant to explain more, resubmit or change the request. No legal jargon \
-beyond article numbers."""
+beyond article numbers. Write it in the language the application is written in (German application, German \
+explanation)."""
 
 _KEYWORDS: dict[ProhibitedGround, list[str]] = {
     "employment_or_insurance_or_credit": [
