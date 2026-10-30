@@ -112,6 +112,7 @@ Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 =
 │   ├── metrics.py           scoring logic
 │   ├── results.md           latest results on the 10 track requests
 │   ├── hidden/              12 jury-style requests + independent reference SQL
+│   ├── german/              the 10 track requests in German, scored against requests/expected.json
 │   └── stress/              29 adversarial requests, reference SQL, FINDINGS.md
 ├── tests/                   backend tests (pytest; never call the LLM)
 ├── data/                    synthetic patients, conditions, medications, observations, encounters (provided)
@@ -140,6 +141,7 @@ make check            # ruff + mypy + pytest
 make eval             # 10 requests × 3 runs → eval/results.md
 make eval-fresh       # the same, with the LLM cache off
 make eval-hidden      # 12 jury-style requests
+make eval-german      # the 10 requests in German
 make eval-stress      # 29 adversarial requests
 ```
 
@@ -187,6 +189,18 @@ Measured with `make eval-fresh`: live Claude Sonnet calls (low effort) through t
 | Privacy leaks | **0** | 0 |
 | Consistency (3 runs) | **10 of 10** | 10 of 10 |
 | Time to answer (slowest) | **16.4 s** | Under 60 s |
+
+**The same 10 requests in German** ([eval/german/](eval/german/), scored against the same `requests/expected.json`, `make eval-german`)
+
+Purpose, question and definitions are written in German (for example "Bericht pro Bundesland: Erwachsene, Erwachsene mit Typ-2-Diabetes und die Prävalenz"), and the application types are "Gesundheitsdatenanfrage" and "Antrag auf Zugang zu Gesundheitsdaten".
+
+| Metric | Result |
+|---|---|
+| Correct decisions | **10 of 10** |
+| Correct numbers | **6 of 6** |
+| Privacy leaks | **0** |
+| Consistency (3 runs) | **10 of 10** |
+| Time to answer (slowest) | **19.7 s** |
 
 **12 extra jury-style requests** ([eval/hidden/](eval/hidden/), answers computed by separate hand-written SQL)
 
