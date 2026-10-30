@@ -135,7 +135,7 @@ def health() -> Health:
 
 @app.get("/api/samples", response_model=list[dict[str, Any]])
 def samples() -> list[dict[str, Any]]:
-    return _load_requests(ROOT / "requests")
+    return _load_requests(ROOT / "requests") + _load_requests(ROOT / "backend" / "samples")
 
 
 @app.post("/api/requests", response_model=RequestResult, responses={422: {"model": ErrorBody}})
