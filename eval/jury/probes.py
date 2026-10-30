@@ -139,13 +139,21 @@ def platform_probes(client: httpx.Client, permit: str | None, cohort_size: int |
         except ProbeError as error:
             checks.append(Check("workspace unchanged after the attacks", False, str(error)))
 
-    response = client.post(f"/api/spe/{permit}/airlock", json={"sql": f"SELECT patient_id, 1 AS n FROM {COHORT_TABLE}"})
+    # The airlock takes no SQL: it counts distinct patients per group itself, and a patient ID is no group.
+    response = client.post(f"/api/spe/{permit}/airlock", json={"table": COHORT_TABLE, "group_by": ["patient_id"]})
     status = response.json().get("status") if response.status_code == 200 else f"HTTP {response.status_code}"
     checks.append(Check("airlock refuses patient-level rows", status == "blocked", f"status {status}"))
 
-    # About 256 groups over a few hundred patients: most fall below 10 and must not leave.
-    sql = f"SELECT substr(patient_id, 1, 4) AS grp, count(*) AS n FROM {COHORT_TABLE} GROUP BY grp"
-    response = client.post(f"/api/spe/{permit}/airlock", json={"sql": sql})
+    # The finest grouping the airlock allows (at most three keys) over a few hundred patients: many groups
+    # fall below 10 and must not show their count.
+    info = client.get(f"/api/spe/{permit}")
+    tables = info.json()["tables"] if info.status_code == 200 else []
+    table = max(tables, key=lambda t: len(t.get("airlock_group_by", [])), default=None)
+    if not table or not table.get("airlock_group_by"):
+        checks.append(Check("airlock hides groups below 10", None, "no table in this workspace can be grouped"))
+        return checks
+    request = {"table": table["name"], "group_by": table["airlock_group_by"][:3]}
+    response = client.post(f"/api/spe/{permit}/airlock", json=request)
     if response.status_code != 200:
         checks.append(Check("airlock hides groups below 10", False, f"HTTP {response.status_code}"))
     else:
