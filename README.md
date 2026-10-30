@@ -53,7 +53,7 @@ Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw), w
 | Audit log | [backend/audit.py](backend/audit.py) | Append-only log of decisions, workspace queries, blocked downloads and ledger blocks. |
 | Staff oversight | [backend/pipeline.py](backend/pipeline.py), [backend/api.py](backend/api.py) | Each decision is `awaiting_permit`, `issued`, `withdrawn` or `reopened`; `needs_attention` marks decisions awaiting a permit, issued decisions with review flags and refusals with an open appeal. `POST /api/requests/{id}/issue-permit` signs off the data permit and opens the secure workspace. `POST /api/requests/{id}/withdraw` takes back a grant (also from `awaiting_permit`): it pulls released statistics and closes the secure workspace. `POST /api/requests/{id}/reopen` sets a refusal aside for manual review. `POST /api/requests/{id}/appeal` lets the applicant contest an issued refusal, once. A reason is required. Stored in `state/` and audited. |
 | API | [backend/api.py](backend/api.py) | FastAPI with a fully typed OpenAPI schema, `/api/health` and one JSON log line per request. It also serves the exported frontend. Resubmitting an id that staff already acted on, or that awaits its permit or has an appeal, returns 409; an id outside letters, digits, `-` and `_` (64 at most) and oversized requests return 422. |
-| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). English and German interface (language switch, German number and date formats, decision letters rendered in German). The decision page shows the AI's explanation for the applicant; refusals show a case reference and an "Ask for a review" action. Light and dark themes. A screen-capture shield hides the page during screenshot shortcuts (on Windows from the first press of the Windows key) or when the window loses focus, and shows it again only after a click or key press in the page, since Snipping Tool hands focus back to the browser just before it takes the picture. It also blocks printing, saving, copying and the developer-tools shortcuts ([frontend/src/components/ScreenGuard.tsx](frontend/src/components/ScreenGuard.tsx)). Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
+| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). English and German interface (language switch, German number and date formats, decision letters rendered in German). The decision page shows the AI's explanation for the applicant; refusals show a case reference and an "Ask for a review" action. Light and dark themes. Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
 | Evaluation | [eval/](eval/) | Measures the brief's metrics over N runs on the 10 track requests, 12 jury-style requests (`eval/hidden/`) and 29 adversarial ones (`eval/stress/`), the latter two checked against separate hand-written SQL. |
 | CI/CD | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend: ruff, mypy, pytest. Frontend: lint, typecheck, Vitest, build. Tests never call the LLM. A push to `main` that passes all checks is deployed to the server automatically. |
 
@@ -122,7 +122,6 @@ Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 =
 ├── requests/                the 10 track requests and expected.json (provided)
 ├── docs/                    TRACK.md (original brief), architecture diagram
 ├── deploy/                  Caddyfile (HTTPS), deploy.sh, eval-live.sh, CI deploy setup
-├── desktop/                 secure viewer: an Electron window left out of screenshots and screen shares
 ├── .github/workflows/ci.yml CI
 ├── .env.example             every configuration variable, documented
 ├── Dockerfile, compose.yaml one-container deployment; compose.prod.yaml adds Caddy HTTPS
@@ -162,14 +161,6 @@ Frontend development: run `make run` in one terminal and `make dev-frontend` in 
 | `rules` | keyword rules only; every decision is flagged for staff review and no new plans can be made | nothing |
 
 [.env.example](.env.example) documents every variable. Variables set in the real environment, for example on a hosting platform, take precedence over `.env`. `auto` uses the OpenAI-compatible endpoint if a base URL and model are set, otherwise the Anthropic API if a key is set, otherwise the CLI if it is installed, otherwise rules. Other optional settings: `GATEKEEPER_LLM_READINGS` (default 3), `GATEKEEPER_LLM_DEADLINE_S` (default 40), `GATEKEEPER_LLM_EFFORT` (default `low`), `GATEKEEPER_ALLOW_LEDGER_RESET` (default `false`; when `true`, `POST /api/ledger/reset` may wipe the differencing guard, so keep it off on a public deployment), and the paths, CORS origins and log level in [backend/config.py](backend/config.py).
-
-**Secure viewer (optional):** a browser page cannot keep itself out of an operating-system screenshot, but a desktop window can. [desktop/](desktop/) opens Gatekeeper in a window that Windows 10 (2004 or later) and macOS leave out of every screenshot, screen recording and screen share: Print Screen, Snipping Tool, Game Bar, OBS, Teams, Zoom. Only a camera pointed at the screen still sees it.
-
-```bash
-cd desktop && npm install && npm start   # opens http://127.0.0.1:8000; set GATEKEEPER_URL for another server
-```
-
-`GATEKEEPER_CONTENT_PROTECTION=off npm start` shows the window in captures, for presenting over a screen share.
 
 ## Deploy
 
@@ -246,6 +237,5 @@ Rejections return in about 5 s, because they don't wait for the query plan. The 
 - The article texts in [backend/law.py](backend/law.py) are plain-language summaries, not the official wording.
 - There is no sign-in. The applicant and access-body workspaces are separated in the UI by a workspace switcher, but the API does not authenticate anyone, so anyone who can reach the server can use the staff actions (issuing a permit, withdrawing, reopening). The switch is a demo convenience. In production, staff would sign in through their authority's single sign-on and applicants through eIDAS, and the staff endpoints (decision queue, audit log, ledger) would require the staff role.
 - The ledger catches differencing between nested groups (one group contained in another) across answers, and recovery of a hidden small cell from other released cells. Two nested counts asked side by side inside one answer can still differ by fewer than 10; closing that would hide numbers the track's expected answers require. Differences across three or more sets that were never released as one cell are not tracked.
-- The screen-capture shield is a deterrent. A web page cannot stop an operating-system screenshot tool or a camera pointed at the screen. The [secure viewer](desktop/) can stop screenshot tools, recordings and screen shares, not a camera.
 - The metrics above were measured with Claude. The live site runs on a free Gemini key, which is rate-limited; `make eval-live` measures that setup, and its results can differ.
 - Text that comes from the model or the data stays in its original language in the German interface: review-flag sentences, the full reasoning, and column names taken from an English request.

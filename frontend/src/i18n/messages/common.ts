@@ -33,20 +33,6 @@ const en = {
       action: "Go to Request data",
     },
     moved: "Privacy & audit moved to",
-    screenGuard: {
-      title: "Content hidden to protect health data",
-      policy: "Screenshots and screen sharing of Gatekeeper are not allowed.",
-      resume: "Click anywhere or press any key to show the page again.",
-      reasons: {
-        capture: "Screenshots are not allowed. The page stays hidden while a screen capture may be running.",
-        print: "Printing is disabled. Pages contain protected health data.",
-        save: "Saving this page is disabled. Pages contain protected health data.",
-        source: "Viewing the page source is disabled.",
-        devtools: "Developer tools are disabled on this site.",
-        copy: "Copying from this page is disabled. Text fields still work.",
-      },
-      clipboard: "Screenshots are disabled on Gatekeeper.",
-    },
   },
   common: {
     tryAgain: "Try again",
@@ -166,21 +152,6 @@ const de: CommonMessages = {
       action: "Zu „Daten anfragen“",
     },
     moved: "Datenschutz & Protokoll ist umgezogen nach",
-    screenGuard: {
-      title: "Inhalt zum Schutz der Gesundheitsdaten ausgeblendet",
-      policy: "Bildschirmfotos und Bildschirmfreigaben von Gatekeeper sind nicht erlaubt.",
-      resume: "Klicken Sie irgendwo oder drücken Sie eine Taste, um die Seite wieder anzuzeigen.",
-      reasons: {
-        capture:
-          "Bildschirmfotos sind nicht erlaubt. Die Seite bleibt ausgeblendet, solange eine Bildschirmaufnahme laufen könnte.",
-        print: "Drucken ist deaktiviert. Die Seiten enthalten geschützte Gesundheitsdaten.",
-        save: "Speichern dieser Seite ist deaktiviert. Die Seiten enthalten geschützte Gesundheitsdaten.",
-        source: "Das Anzeigen des Seitenquelltexts ist deaktiviert.",
-        devtools: "Die Entwicklertools sind auf dieser Website deaktiviert.",
-        copy: "Kopieren von dieser Seite ist deaktiviert. In Textfeldern funktioniert es weiterhin.",
-      },
-      clipboard: "Bildschirmfotos sind in Gatekeeper deaktiviert.",
-    },
   },
   common: {
     tryAgain: "Erneut versuchen",
