@@ -61,7 +61,7 @@ def _ensure_loaded() -> None:
     _released.clear()
     _events.clear()
     if path.exists():
-        stored = json.loads(path.read_text(encoding="utf-8"))
+        stored = json.loads(path.read_text())
         for applicant, requests in stored["released"].items():
             _released[applicant] = {
                 rid: [_Release(frozenset(r["units"]), datetime.fromisoformat(r["released_at"])) for r in releases]
@@ -85,7 +85,7 @@ def _save() -> None:
     }
     path = _store_path()
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(stored), encoding="utf-8")
+    tmp.write_text(json.dumps(stored))
     tmp.replace(path)
 
 

@@ -299,7 +299,7 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         _load_results()
         _results[rid] = outcome
         path = _results_dir() / f"{rid}.json"
-        path.write_text(outcome.model_dump_json(), encoding="utf-8")
+        path.write_text(outcome.model_dump_json())
     return outcome
 
 
@@ -318,7 +318,7 @@ def _load_results() -> None:
     _results.clear()
     for path in directory.glob("*.json"):
         try:
-            loaded = RequestResult.model_validate_json(path.read_text(encoding="utf-8"))
+            loaded = RequestResult.model_validate_json(path.read_text())
         except ValueError:
             continue
         _results[loaded.request_id] = loaded
@@ -352,7 +352,7 @@ def _apply_staff_action(rid: str, kind: Literal["withdrawn", "reopened"], reason
         action = StaffAction(kind=kind, reason=reason.strip(), at=datetime.now(UTC), released_data_withdrawn=released)
         updated = current.model_copy(update={"status": kind, "staff_action": action, "statistics": None, "spe": None})
         _results[rid] = updated
-        (_results_dir() / f"{rid}.json").write_text(updated.model_dump_json(), encoding="utf-8")
+        (_results_dir() / f"{rid}.json").write_text(updated.model_dump_json())
     if current.spe is not None:
         delete_spe(current.spe.permit_id)
     audit.record(f"decision_{kind}", "staff", rid, {

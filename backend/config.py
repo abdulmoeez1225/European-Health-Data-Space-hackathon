@@ -25,7 +25,7 @@ def _load_env_file() -> None:
     path = Path(os.environ.get("GATEKEEPER_ENV_FILE", ROOT / ".env"))
     if not str(path) or not path.is_file():
         return
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue

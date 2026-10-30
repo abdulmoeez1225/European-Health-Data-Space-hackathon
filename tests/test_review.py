@@ -33,7 +33,7 @@ def client() -> TestClient:
 
 
 def _submit(client: TestClient, request_id: str) -> dict[str, Any]:
-    request = json.loads((REQUESTS_DIR / f"{request_id}.json").read_text(encoding="utf-8"))
+    request = json.loads((REQUESTS_DIR / f"{request_id}.json").read_text())
     return client.post("/api/requests", json=request).json()
 
 
@@ -44,7 +44,7 @@ def test_decisions_are_issued_and_flagged_ones_need_attention(client: TestClient
 
 
 def test_needs_attention_only_while_issued() -> None:
-    result = pipeline.process_request(json.loads((REQUESTS_DIR / "R04.json").read_text(encoding="utf-8")))
+    result = pipeline.process_request(json.loads((REQUESTS_DIR / "R04.json").read_text()))
     flagged = result.model_copy(update={"review_flags": [ReviewFlag(reason="readings disagree")]})
     assert flagged.needs_attention is True
     assert flagged.model_copy(update={"status": "withdrawn"}).needs_attention is False

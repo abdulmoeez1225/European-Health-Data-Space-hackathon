@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/PageHeader";
-import { ScreenGuard } from "@/components/ScreenGuard";
 import { SkipLink } from "@/components/ShellText";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BOOT_SCRIPT } from "@/lib/preferences";
@@ -44,7 +43,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </SidebarInset>
           </SidebarProvider>
         </Providers>
-        <ScreenGuard />
       </body>
     </html>
   );

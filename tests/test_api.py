@@ -112,7 +112,7 @@ def test_submit_without_purpose_is_422(client: TestClient) -> None:
 def test_submit_with_rules_backend_needs_no_llm(client: TestClient, monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("GATEKEEPER_LLM", "rules")
     monkeypatch.setattr("backend.llm.CACHE_DIR", tmp_path / "llm-cache")
-    request: dict[str, Any] = json.loads((REQUESTS_DIR / "R01.json").read_text(encoding="utf-8"))
+    request: dict[str, Any] = json.loads((REQUESTS_DIR / "R01.json").read_text())
     response = client.post("/api/requests", json=request)
     assert response.status_code == 200
     body = response.json()

@@ -21,7 +21,7 @@ from eval import metrics, run_eval
 from tests.reference_plans import ADULT, REF, REFERENCE_PLANS, REGION
 
 HIDDEN_DIR = Path(run_eval.__file__).resolve().parent / "hidden"
-HIDDEN_EXPECTED = json.loads((HIDDEN_DIR / "expected.json").read_text(encoding="utf-8"))
+HIDDEN_EXPECTED = json.loads((HIDDEN_DIR / "expected.json").read_text())
 
 DATA_HOLDER = {"dimension": "data_holder"}
 SEX = {"dimension": "sex"}
@@ -317,7 +317,7 @@ def test_consistency_compares_decision_articles_and_values() -> None:
 # --- reference data ----------------------------------------------------------------------------
 
 def test_hidden_set_is_complete_and_follows_decision_order() -> None:
-    requests = {r["id"]: r for r in (json.loads(p.read_text(encoding="utf-8")) for p in HIDDEN_DIR.glob("H*.json"))}
+    requests = {r["id"]: r for r in (json.loads(p.read_text()) for p in HIDDEN_DIR.glob("H*.json"))}
     assert set(requests) == set(HIDDEN_EXPECTED)
     for request_id, expected in HIDDEN_EXPECTED.items():
         if expected["decision"] == "REJECT":
@@ -332,7 +332,7 @@ def test_hidden_set_is_complete_and_follows_decision_order() -> None:
 
 @pytest.mark.parametrize("request_id", sorted(HIDDEN_PLANS))
 def test_engine_matches_independent_reference_sql(request_id: str) -> None:
-    request = json.loads((HIDDEN_DIR / f"{request_id}.json").read_text(encoding="utf-8"))
+    request = json.loads((HIDDEN_DIR / f"{request_id}.json").read_text())
     result = fake_process(request)
     check = metrics.check_numbers(result, HIDDEN_EXPECTED[request_id])
     assert check.correct, check.problems
@@ -388,6 +388,6 @@ def test_harness_flags_a_wrong_pipeline(tmp_path: Path) -> None:
 def test_report_is_written_in_readme_summary_format(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(run_eval, "RESULTS_PATH", tmp_path / "results.md")
     assert run_eval.main(["--runs", "1", "--only", "R07,R02"], process=fake_process) == 0
-    text = (tmp_path / "results.md").read_text(encoding="utf-8")
+    text = (tmp_path / "results.md").read_text()
     assert "| Metric | Result | Target |" in text
     assert "| Time to answer (slowest) |" in text
