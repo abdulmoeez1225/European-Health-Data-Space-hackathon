@@ -24,7 +24,6 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('frontend/package.json') != '' }}
     defaults:
       run:
         working-directory: frontend
@@ -40,3 +39,65 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+
+  # Pushes to main that pass both jobs are deployed to the Exoscale VM (deploy/deploy.sh via Compose).
+  # SSH on the VM is closed to the internet: the job opens port 22 for this runner's IP only and closes it again.
+  deploy:
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      EXO_VERSION: 1.102.1
+      EXOSCALE_API_KEY: ${{ secrets.EXOSCALE_API_KEY }}
+      EXOSCALE_API_SECRET: ${{ secrets.EXOSCALE_API_SECRET }}
+      SECURITY_GROUP: gatekeeper
+    steps:
+      - name: Install Exoscale CLI
+        run: |
+          cd "$RUNNER_TEMP"
+          base=https://github.com/exoscale/cli/releases/download/v$EXO_VERSION
+          curl -fsSLO "$base/exoscale-cli_${EXO_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "$base/exoscale-cli_${EXO_VERSION}_checksums.txt"
+          sha256sum --ignore-missing -c "exoscale-cli_${EXO_VERSION}_checksums.txt"
+          tar -xzf "exoscale-cli_${EXO_VERSION}_linux_amd64.tar.gz" exo
+          sudo install exo /usr/local/bin/exo
+
+      - name: Allow SSH from this runner
+        id: firewall
+        run: |
+          ip=$(curl -fsS https://api.ipify.org)
+          desc="ci-run-${{ github.run_id }}-${{ github.run_attempt }}"
+          exo compute security-group rule add "$SECURITY_GROUP" --network "$ip/32" --port 22 --protocol tcp --description "$desc" >/dev/null
+          rule_id=$(exo compute security-group show "$SECURITY_GROUP" -O json | jq -r --arg d "$desc" '.ingress_rules[] | select(.description == $d) | .id' | head -1)
+          test -n "$rule_id"
+          echo "rule_id=$rule_id" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key is restricted on the server to running `sudo gatekeeper-deploy`.
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "ubuntu@$DEPLOY_HOST"
+
+      - name: Check the live site
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS "${{ vars.SITE_URL }}/api/health"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+      - name: Close SSH again
+        if: always() && steps.firewall.outputs.rule_id != ''
+        run: exo compute security-group rule delete "$SECURITY_GROUP" "${{ steps.firewall.outputs.rule_id }}" --force
