@@ -57,7 +57,7 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
   } catch (error) {
     buildError = error instanceof Error ? error : new Error(String(error));
   }
-  const preview = useSpeSql(permitId, sql);
+  const preview = useSpeSql(permitId, sql, `${tableName}:${groupBy}`);
   // An export belongs to the summary it was made from; changing the controls clears it.
   const exported = exportRun.variables === sql ? exportRun : null;
 
@@ -219,13 +219,22 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
         ) : preview.isError ? (
           <ErrorState title={t.computeFailed} error={preview.error} />
         ) : preview.isPending ? (
-          <div className="grid gap-px" role="status" aria-label={t.computing}>
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="h-9" />
+          <div
+            className="grid h-[480px] max-w-2xl content-start gap-px overflow-hidden rounded-lg border bg-card"
+            role="status"
+            aria-label={t.computing}
+          >
+            {Array.from({ length: 11 }, (_, index) => (
+              <Skeleton key={index} className="h-10 rounded-none" />
             ))}
           </div>
         ) : (
-          <div className={cn("transition-opacity duration-100", preview.isPlaceholderData && "opacity-60")}>
+          <div
+            className={cn(
+              "min-h-[480px] transition-opacity duration-100",
+              preview.isPlaceholderData && "opacity-60",
+            )}
+          >
             <ResultTable
               className="max-w-2xl"
               columns={preview.data.columns}

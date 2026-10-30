@@ -22,14 +22,19 @@ export function useDebounced<T>(value: T, delay = 300): T {
 /**
  * A read-only query inside the permit's environment. The data never changes, and every run is
  * written to the audit log, so results are kept rather than refetched.
+ *
+ * `scope` names what the result is about (a table, a table and grouping). While a new query loads,
+ * the previous result stays visible only if it has the same scope, so a result of one table is
+ * never shown under another table's controls. Without a scope nothing stale is shown.
  */
-export function useSpeSql(permitId: string, sql: string | null) {
+export function useSpeSql(permitId: string, sql: string | null, scope?: string) {
   return useQuery({
-    queryKey: ["spe", permitId, "sql", sql],
+    queryKey: ["spe", permitId, "sql", sql, scope ?? null],
     queryFn: () => api.speQuery(permitId, sql ?? ""),
     enabled: sql !== null,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, previousQuery) =>
+      scope !== undefined && previousQuery?.queryKey[4] === scope ? keepPreviousData(previous) : undefined,
   });
 }

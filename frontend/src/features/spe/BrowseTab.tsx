@@ -17,6 +17,14 @@ import { ResultTable } from "./ResultTable";
 import { browseSql, countSql, filterColumnsFor, PAGE_SIZE, type Filter } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
 
+/** An example prefix per coding system, for the "starts with" filter hint. */
+const CODE_EXAMPLES: Record<string, string> = {
+  icd10: "E11",
+  primary_icd10: "E11",
+  atc: "A10",
+  loinc: "4548",
+};
+
 function firstRecordTable(tables: SpeTable[]): string {
   return (tables.find((table) => table.name !== "cohort") ?? tables[0])?.name ?? "";
 }
@@ -96,8 +104,10 @@ function TableBrowser({
     buildError = error instanceof Error ? error : new Error(String(error));
   }
 
+  // Rows: never show another page's or filter's rows under the new range (no placeholder).
+  // Count: the total may stay while a new filter's total loads.
   const rows = useSpeSql(permitId, sql?.rows ?? null);
-  const count = useSpeSql(permitId, sql?.count ?? null);
+  const count = useSpeSql(permitId, sql?.count ?? null, table.name);
   const counted = count.data?.rows[0]?.[0];
   const total = typeof counted === "number" ? counted : null;
   const first = page * PAGE_SIZE + 1;
@@ -120,7 +130,11 @@ function TableBrowser({
                 <Input
                   id={`${id}-${column}`}
                   value={values[column] ?? ""}
-                  placeholder={op === "starts_with" ? t.placeholderCode : t.placeholderText}
+                  placeholder={
+                    op === "starts_with"
+                      ? t.placeholderCode.replace("E11", CODE_EXAMPLES[column] ?? "E11")
+                      : t.placeholderText
+                  }
                   className="h-9 w-56 pl-8"
                   onChange={(event) => {
                     setValues({ ...values, [column]: event.target.value });
@@ -138,13 +152,18 @@ function TableBrowser({
       ) : rows.isError ? (
         <ErrorState title={t.loadFailed} error={rows.error} onRetry={() => void rows.refetch()} />
       ) : rows.isPending ? (
-        <div className="grid gap-px" role="status" aria-label={t.loading}>
-          {Array.from({ length: 8 }, (_, index) => (
-            <Skeleton key={index} className="h-9" />
+        // Same height as a full page of results, so the controls below do not jump.
+        <div
+          className="grid h-[480px] content-start gap-px overflow-hidden rounded-lg border bg-card"
+          role="status"
+          aria-label={t.loading}
+        >
+          {Array.from({ length: 11 }, (_, index) => (
+            <Skeleton key={index} className="h-10 rounded-none" />
           ))}
         </div>
       ) : (
-        <div className={cn("transition-opacity duration-100", rows.isPlaceholderData && "opacity-60")}>
+        <div className="min-h-[480px]">
           <ResultTable
             columns={rows.data.columns}
             rows={rows.data.rows}
@@ -154,8 +173,8 @@ function TableBrowser({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-ui text-muted-foreground tabular-nums" aria-live="polite">
-          {total === null
+        <p className="min-h-5 text-ui text-muted-foreground tabular-nums" aria-live="polite">
+          {total === null || rows.isPending
             ? " "
             : total === 0
               ? spe.noRows
