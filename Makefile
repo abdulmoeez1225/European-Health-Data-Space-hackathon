@@ -5,7 +5,7 @@ LIVE_EVAL ?= --runs 3 --no-cache --set main
 # Free-tier friendly: one reading per step, at most 8 model calls per minute, generous deadline.
 LIVE_ENV ?= GATEKEEPER_LLM_READINGS=1 GATEKEEPER_LLM_MAX_RPM=8 GATEKEEPER_LLM_DEADLINE_S=300
 
-.PHONY: install run test eval eval-fresh eval-hidden eval-german eval-stress eval-live lint typecheck check frontend dev-frontend
+.PHONY: install run test eval eval-fresh eval-hidden eval-german eval-stress eval-live jury jury-live jury-corpus jury-summary lint typecheck check frontend dev-frontend
 
 install:
 	python3 -m venv .venv
@@ -45,6 +45,23 @@ eval-stress:
 # Defaults to eval-fresh; narrow it with e.g. LIVE_EVAL="--runs 1 --no-cache --only R01,R02".
 eval-live:
 	ssh -i $(LIVE_KEY) $(LIVE_HOST) 'sudo bash -s -- $(LIVE_ENV) $(LIVE_EVAL)' < deploy/eval-live.sh
+
+# New jury-style requests over HTTP against a running app (make run), scored against independent answers.
+# Narrow it with e.g. JURY="--count 10 --runs 1" or repeat a set with JURY="--seed 123456".
+jury:
+	$(PY) -m eval.jury.run_jury $(JURY)
+
+# The same against the deployed site and its live model; asks before sending anything.
+jury-live:
+	$(PY) -m eval.jury.run_jury --live $(JURY)
+
+# Add 1,000 distinct requests to eval/jury/corpus.duckdb (no LLM); evaluate them with JURY="--from-corpus 200".
+jury-corpus:
+	$(PY) -m eval.jury.corpus build --count 1000
+
+# Coverage and results of the corpus -> eval/jury/CORPUS.md
+jury-summary:
+	$(PY) -m eval.jury.corpus summary
 
 frontend:
 	cd frontend && npm ci && npm run build

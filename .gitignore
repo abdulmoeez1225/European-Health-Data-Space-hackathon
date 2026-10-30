@@ -6,6 +6,7 @@ state/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+eval/jury/runs/
 
 # Local configuration with secrets
 .env
