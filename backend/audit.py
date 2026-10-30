@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -69,3 +70,20 @@ def events(limit: int = 200) -> list[AuditEvent]:
     with _lock:
         _load()
         return list(reversed(_events))[:limit]
+
+
+class AuditPage(BaseModel):
+    total: int = Field(description="Events matching the filter.")
+    counts: dict[str, int] = Field(description="All events per event type.")
+    events: list[AuditEvent] = Field(description="Newest first, at most `limit`.")
+
+
+def page(limit: int = 200, event: str | None = None, subject: str | None = None) -> AuditPage:
+    with _lock:
+        _load()
+        counts = dict(Counter(e.event for e in _events))
+        matching = [
+            e for e in reversed(_events)
+            if (event is None or e.event == event) and (subject is None or e.subject == subject)
+        ]
+    return AuditPage(total=len(matching), counts=counts, events=matching[:limit])

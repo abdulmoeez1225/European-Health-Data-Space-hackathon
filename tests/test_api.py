@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from backend import audit, spe
 from backend.api import app
 from backend.db import connection
+from backend.decide import is_access_application
 from tests.reference_plans import REFERENCE_PLANS
 
 PERMIT = "permit-api"
@@ -95,7 +96,9 @@ def test_ledger_reset_clears_ledger_and_is_audited(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert client.get("/api/ledger").json() == []
-    assert [e["event"] for e in client.get("/api/audit").json()] == ["ledger_reset"]
+    body = client.get("/api/audit").json()
+    assert [e["event"] for e in body["events"]] == ["ledger_reset"]
+    assert body["total"] == 1 and body["counts"] == {"ledger_reset": 1}
 
 
 def test_unknown_request_id_is_404(client: TestClient) -> None:
@@ -141,3 +144,17 @@ def test_cors_allows_dev_servers(client: TestClient, origin: str) -> None:
 def test_root_serves_the_ui_and_unknown_api_path_is_404(client: TestClient) -> None:
     assert client.get("/").status_code == 200
     assert client.get("/api/does-not-exist").status_code == 404
+
+
+def test_law_in_german(client: TestClient) -> None:
+    body = client.get("/api/law", params={"lang": "de"}).json()
+    titles = {a["number"]: a["title"] for a in body["articles"]}
+    assert titles["54"] == "Verbotene Sekundärnutzung" and titles["73"] == "Sichere Verarbeitungsumgebung"
+    assert {a["number"] for a in body["articles"]} == {a["number"] for a in client.get("/api/law").json()["articles"]}
+
+
+def test_german_application_types_are_recognised() -> None:
+    assert is_access_application({"requested_as": "Antrag auf Zugang zu Gesundheitsdaten"})
+    assert is_access_application({"requested_as": "health data access application"})
+    assert not is_access_application({"requested_as": "Gesundheitsdatenanfrage"})
+    assert not is_access_application({"requested_as": "health data request"})

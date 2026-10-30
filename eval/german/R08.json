@@ -1,0 +1,19 @@
+{
+  "id": "R08",
+  "submitted": "2026-10-29T20:05:00+01:00",
+  "applicant": {
+    "name": "Prof. Elena Rossi",
+    "organisation": "Comprehensive Cancer Centre, Arbeitsgruppe Epidemiologie",
+    "country": "IT"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Forschung zum Körpergewicht als Risikofaktor bei Brustkrebs als Grundlage für Präventionsempfehlungen.",
+  "question": "Wie hoch ist der mittlere BMI von Frauen mit Brustkrebs, nach Bundesland?",
+  "definitions": [
+    "Brustkrebs = jede Erkrankung mit einem ICD-10-Code, der mit C50 beginnt.",
+    "Frauen = Geschlecht 'female'.",
+    "Es wird der jeweils letzte BMI-Wert (LOINC 39156-5) pro Patientin verwendet; Patientinnen ohne BMI-Wert werden nicht berücksichtigt.",
+    "Bericht pro Bundesland: Anzahl der Frauen mit einem BMI-Wert und mittlerer BMI mit einer Nachkommastelle."
+  ]
+}

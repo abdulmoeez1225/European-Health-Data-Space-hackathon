@@ -1,6 +1,6 @@
 PY := .venv/bin/python
 
-.PHONY: install run test eval eval-fresh eval-hidden eval-stress lint typecheck check frontend dev-frontend
+.PHONY: install run test eval eval-fresh eval-hidden eval-german eval-stress lint typecheck check frontend dev-frontend
 
 install:
 	python3 -m venv .venv
@@ -29,6 +29,9 @@ eval-fresh:
 
 eval-hidden:
 	$(PY) -m eval.run_eval --runs 1 --set hidden
+
+eval-german:
+	$(PY) -m eval.run_eval --runs 3 --set german
 
 eval-stress:
 	$(PY) -m eval.stress.run_stress --runs 1

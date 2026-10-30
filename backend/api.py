@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,10 +21,10 @@ from starlette.types import Scope
 from backend import audit, ledger, spe
 from backend.config import ROOT, settings
 from backend.db import connection
-from backend.law import ARTICLES, EUR_LEX_URL, Article
+from backend.law import ARTICLES, ARTICLES_DE, EUR_LEX_URL, Article
 from backend.llm import backend_name
-from backend.models import RequestResult
-from backend.pipeline import get_result, process_request, results
+from backend.models import RequestResult, WithdrawRequest
+from backend.pipeline import get_result, process_request, results, withdraw_decision
 
 access_log = logging.getLogger("gatekeeper.access")
 
@@ -151,9 +151,22 @@ def get_request(request_id: str) -> RequestResult:
     return found
 
 
+@app.post(
+    "/api/requests/{request_id}/withdraw",
+    response_model=RequestResult,
+    responses={404: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+)
+def withdraw_request(request_id: str, body: WithdrawRequest) -> RequestResult:
+    withdrawn = withdraw_decision(request_id, body.reason)
+    if withdrawn is None:
+        raise HTTPException(404, f"No processed request {request_id}.")
+    return withdrawn
+
+
 @app.get("/api/law", response_model=LawResponse)
-def law() -> LawResponse:
-    return LawResponse(source=EUR_LEX_URL, articles=list(ARTICLES.values()))
+def law(lang: Literal["en", "de"] = "en") -> LawResponse:
+    articles = ARTICLES_DE if lang == "de" else ARTICLES
+    return LawResponse(source=EUR_LEX_URL, articles=list(articles.values()))
 
 
 @app.get("/api/spe/{permit_id}", response_model=spe.SpeInfo, responses={404: {"model": ErrorBody}})
@@ -207,9 +220,11 @@ def spe_airlock(permit_id: str, body: SqlBody) -> spe.AirlockResult:
         raise HTTPException(404, str(error)) from error
 
 
-@app.get("/api/audit", response_model=list[audit.AuditEvent])
-def audit_log(limit: int = 200) -> list[audit.AuditEvent]:
-    return audit.events(limit)
+@app.get("/api/audit", response_model=audit.AuditPage)
+def audit_log(
+    limit: int = Query(200, ge=1, le=1000), event: str | None = None, subject: str | None = None,
+) -> audit.AuditPage:
+    return audit.page(limit, event, subject)
 
 
 @app.get("/api/ledger", response_model=list[ledger.LedgerEvent])

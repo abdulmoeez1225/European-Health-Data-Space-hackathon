@@ -1,0 +1,18 @@
+{
+  "id": "R04",
+  "submitted": "2026-10-29T19:05:00+01:00",
+  "applicant": {
+    "name": "Julia Steiner",
+    "organisation": "Brightline Health Marketing GmbH",
+    "country": "DE"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Unser Kunde bringt einen neuen SGLT2-Hemmer auf den Markt. Wir möchten unsere Werbekampagne für Ärztinnen und Ärzte auf die Regionen ausrichten, in denen diese Arzneimittel bereits am häufigsten verschrieben werden.",
+  "question": "Wie viele Patientinnen und Patienten haben eine aktive Verschreibung eines SGLT2-Hemmers, nach Bundesland?",
+  "definitions": [
+    "SGLT2-Hemmer = ATC-Code, der mit A10BK beginnt.",
+    "Ein Medikament ist am 31. Dezember 2025 aktiv, wenn start_date an diesem Tag oder davor liegt und end_date leer ist oder an diesem Tag oder danach liegt.",
+    "Bericht pro Bundesland: Patientinnen und Patienten mit einem aktiven SGLT2-Hemmer."
+  ]
+}

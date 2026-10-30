@@ -1,6 +1,6 @@
 """Measure the README metrics on the main and hidden request sets.
 
-    .venv/bin/python -m eval.run_eval [--runs 3] [--no-cache] [--set main|hidden|all] [--only R01,R05]
+    .venv/bin/python -m eval.run_eval [--runs 3] [--no-cache] [--set main|hidden|german|all] [--only R01,R05]
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ RESULTS_PATH = Path(__file__).resolve().parent / "results.md"
 SETS = {
     "main": (ROOT / "requests", "R*.json", ROOT / "requests" / "expected.json"),
     "hidden": (ROOT / "eval" / "hidden", "H*.json", ROOT / "eval" / "hidden" / "expected.json"),
+    "german": (ROOT / "eval" / "german", "R*.json", ROOT / "requests" / "expected.json"),
 }
 
 ProcessFn = Callable[..., RequestResult]
@@ -181,7 +182,7 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--no-cache", action="store_true")
-    parser.add_argument("--set", choices=["main", "hidden", "all"], default="main", dest="request_set")
+    parser.add_argument("--set", choices=["main", "hidden", "german", "all"], default="main", dest="request_set")
     parser.add_argument("--only", default="", help="comma-separated request ids")
     args = parser.parse_args(argv)
 
@@ -198,7 +199,7 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
             return 0
 
     only = {part.strip() for part in args.only.split(",") if part.strip()} or None
-    names = ["main", "hidden"] if args.request_set == "all" else [args.request_set]
+    names = list(SETS) if args.request_set == "all" else [args.request_set]
     evaluations = [evaluate_set(name, process, args.runs, not args.no_cache, only, spe_dir) for name in names]
     report = render(evaluations, args.runs, not args.no_cache)
     print(report)

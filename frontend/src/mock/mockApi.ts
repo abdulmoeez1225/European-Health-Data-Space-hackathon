@@ -160,7 +160,43 @@ function sqlOf(body: unknown): string {
   return isObject(body) && typeof body.sql === "string" ? body.sql : "";
 }
 
-export const mockTransport: Transport = async (method, path, body) => {
+function auditPage(search: URLSearchParams) {
+  const limit = Number(search.get("limit") ?? 200);
+  const event = search.get("event");
+  const subject = search.get("subject");
+  const counts: Record<string, number> = {};
+  for (const entry of state.audit) counts[entry.event] = (counts[entry.event] ?? 0) + 1;
+  const matching = [...state.audit]
+    .reverse()
+    .filter((entry) => (!event || entry.event === event) && (!subject || entry.subject === subject));
+  return { total: matching.length, counts, events: matching.slice(0, limit) };
+}
+
+/** Staff withdraw an issued decision: released statistics and the secure workspace are pulled. */
+function withdraw(requestId: string, body: unknown): RequestResult {
+  const found = state.results.find((r) => r.request_id === requestId);
+  if (!found) throw new ApiError(404, `No processed request ${requestId}.`);
+  const reason = isObject(body) && typeof body.reason === "string" ? body.reason.trim() : "";
+  if (!reason) throw new ApiError(422, "A withdrawal needs a reason.");
+  const updated: RequestResult = {
+    ...found,
+    statistics: null,
+    spe: null,
+    status: "withdrawn",
+    needs_attention: false,
+    withdrawal: {
+      reason,
+      withdrawn_at: new Date().toISOString(),
+      released_data_withdrawn: Boolean(found.statistics ?? found.spe),
+    },
+  };
+  state.results = state.results.map((r) => (r.request_id === requestId ? updated : r));
+  audit("decision_withdrawn", "staff", requestId, { reason });
+  return updated;
+}
+
+export const mockTransport: Transport = async (method, fullPath, body) => {
+  const [path = "", query = ""] = fullPath.split("?");
   await delay(method === "POST" && path === "/api/requests" ? 6000 : 120);
   const spe = /^\/api\/spe\/([^/]+)(?:\/(query|download|airlock))?$/.exec(path);
 
@@ -188,7 +224,9 @@ export const mockTransport: Transport = async (method, path, body) => {
     if (!found) throw new ApiError(404, `No processed request ${single[1] ?? ""}.`);
     return found;
   }
-  if (path === "/api/audit") return [...state.audit].reverse();
+  const withdrawPath = /^\/api\/requests\/([^/]+)\/withdraw$/.exec(path);
+  if (withdrawPath && method === "POST") return withdraw(decodeURIComponent(withdrawPath[1] ?? ""), body);
+  if (path === "/api/audit") return auditPage(new URLSearchParams(query));
   if (path === "/api/ledger") return state.ledger;
   if (path === "/api/ledger/reset" && method === "POST") {
     state.ledger = [];

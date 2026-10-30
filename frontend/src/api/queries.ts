@@ -1,6 +1,6 @@
 import { useMutation, useMutationState, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "./client";
+import { api, type AuditQuery } from "./client";
 import type { JsonObject, RequestResult } from "./types";
 
 export const AUTO_REFRESH_MS = 5000;
@@ -54,8 +54,13 @@ export const useSpeInfo = (permitId: string | null) =>
     enabled: permitId !== null,
   });
 
-export const useAudit = (live: boolean) =>
-  useQuery({ queryKey: keys.audit, queryFn: api.audit, refetchInterval: live ? AUTO_REFRESH_MS : false });
+export const useAudit = (query: AuditQuery, live: boolean) =>
+  useQuery({
+    queryKey: [...keys.audit, query] as const,
+    queryFn: () => api.audit(query),
+    refetchInterval: live ? AUTO_REFRESH_MS : false,
+    placeholderData: (previous) => previous,
+  });
 
 export const useLedger = (live: boolean) =>
   useQuery({ queryKey: keys.ledger, queryFn: api.ledger, refetchInterval: live ? AUTO_REFRESH_MS : false });
@@ -72,11 +77,20 @@ export function useInvalidateAfterDecision() {
 }
 
 /** Submitting is keyed so the latest outcome survives navigating away and back. */
-export function useDecisionMutation(mutationKey: readonly unknown[]) {
+export function useDecisionMutation(
+  mutationKey: readonly unknown[],
+  onDecided?: (result: RequestResult) => void,
+) {
+  const client = useQueryClient();
   const invalidate = useInvalidateAfterDecision();
   return useMutation({
     mutationKey,
     mutationFn: (request: JsonObject) => api.submit(request),
+    // Runs even if the page was left while deciding, unlike callbacks passed to mutate().
+    onSuccess: (result) => {
+      client.setQueryData(keys.request(result.request_id), result);
+      onDecided?.(result);
+    },
     // Not awaited: the decision is shown as soon as it arrives, lists refresh in the background.
     onSettled: () => {
       void invalidate();
@@ -111,6 +125,21 @@ export function useResetLedger() {
     mutationFn: api.resetLedger,
     onSettled: () => {
       void invalidate();
+    },
+  });
+}
+
+/** Staff withdraw an issued decision: released statistics or the workspace are pulled. */
+export function useWithdraw(requestId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) => api.withdraw(requestId, reason),
+    onSuccess: (result) => {
+      client.setQueryData(keys.request(result.request_id), result);
+      client.setQueryData<RequestResult[]>(keys.requests, (current) =>
+        current?.map((item) => (item.request_id === result.request_id ? result : item)),
+      );
+      void client.invalidateQueries({ queryKey: keys.audit });
     },
   });
 }

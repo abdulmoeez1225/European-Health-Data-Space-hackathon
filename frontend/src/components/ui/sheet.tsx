@@ -26,7 +26,7 @@ export function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed inset-y-0 z-50 flex h-full flex-col bg-background shadow-xl transition ease-out data-[state=closed]:animate-out data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=open]:duration-150",
+          "fixed inset-y-0 z-50 flex h-full flex-col bg-background shadow-float transition ease-out data-[state=closed]:animate-out data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=open]:duration-150",
           side === "right" &&
             "right-0 w-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-xl",
           side === "left" &&
@@ -51,7 +51,7 @@ export function SheetTitle({ className, ...props }: ComponentProps<typeof SheetP
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-sm font-medium text-foreground", className)}
+      className={cn("text-card-title font-semibold text-foreground", className)}
       {...props}
     />
   );
@@ -61,7 +61,7 @@ export function SheetDescription({ className, ...props }: ComponentProps<typeof 
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-[13px] text-muted-foreground", className)}
+      className={cn("text-ui text-muted-foreground", className)}
       {...props}
     />
   );

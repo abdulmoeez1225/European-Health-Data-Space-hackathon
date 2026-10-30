@@ -2,7 +2,7 @@ import { ApiError } from "./errors";
 import { isObject } from "./request";
 import type {
   AirlockResult,
-  AuditEvent,
+  AuditPage,
   DownloadBlocked,
   JsonObject,
   LawResponse,
@@ -93,6 +93,15 @@ async function call<T>(method: Method, path: string, body?: unknown): Promise<T>
 
 const spePath = (permitId: string) => `/api/spe/${encodeURIComponent(permitId)}`;
 
+export type AuditQuery = { limit: number; event?: string; subject?: string };
+
+function auditParams({ limit, event, subject }: AuditQuery): string {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (event) params.set("event", event);
+  if (subject) params.set("subject", subject);
+  return params.toString();
+}
+
 export const api = {
   law: () => call<LawResponse>("GET", "/api/law"),
   samples: () => call<JsonObject[]>("GET", "/api/samples"),
@@ -100,6 +109,8 @@ export const api = {
   request: (requestId: string) =>
     call<RequestResult>("GET", `/api/requests/${encodeURIComponent(requestId)}`),
   submit: (request: JsonObject) => call<RequestResult>("POST", "/api/requests", request),
+  withdraw: (requestId: string, reason: string) =>
+    call<RequestResult>("POST", `/api/requests/${encodeURIComponent(requestId)}/withdraw`, { reason }),
   speInfo: (permitId: string) => call<SpeInfo>("GET", spePath(permitId)),
   speQuery: (permitId: string, sql: string) =>
     call<QueryResult>("POST", `${spePath(permitId)}/query`, { sql }),
@@ -107,7 +118,7 @@ export const api = {
     call<AirlockResult>("POST", `${spePath(permitId)}/airlock`, { sql }),
   /** The server always answers 403 (Art. 73); this resolves only if the block failed. */
   speDownload: (permitId: string) => call<DownloadBlocked>("GET", `${spePath(permitId)}/download`),
-  audit: () => call<AuditEvent[]>("GET", "/api/audit"),
+  audit: (query: AuditQuery) => call<AuditPage>("GET", `/api/audit?${auditParams(query)}`),
   ledger: () => call<LedgerEvent[]>("GET", "/api/ledger"),
   resetLedger: () => call<LedgerResetResult>("POST", "/api/ledger/reset"),
 };

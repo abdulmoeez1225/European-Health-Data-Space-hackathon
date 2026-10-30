@@ -1,0 +1,20 @@
+{
+  "id": "R03",
+  "submitted": "2026-10-29T18:50:00+01:00",
+  "applicant": {
+    "name": "Mag. Petra Wimmer",
+    "organisation": "Bundesministerium für Gesundheit, Abteilung für Qualität im Gesundheitswesen",
+    "country": "AT"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Leitlinien empfehlen für die meisten älteren Patientinnen und Patienten mit Vorhofflimmern eine orale Antikoagulation. Wir möchten wissen, wie groß die Behandlungslücke ist, um ein Qualitätsprogramm zu planen.",
+  "question": "Wie viele Patientinnen und Patienten mit Vorhofflimmern im Alter von 65 Jahren und älter haben kein aktives orales Antikoagulans, nach Altersgruppe?",
+  "definitions": [
+    "Vorhofflimmern = jede Erkrankung mit einem ICD-10-Code, der mit I48 beginnt.",
+    "Altersgruppen am 31. Dezember 2025: 65-74, 75-84, 85+.",
+    "Orales Antikoagulans = ATC-Code, der mit B01AA oder B01AF beginnt.",
+    "Ein Medikament ist am 31. Dezember 2025 aktiv, wenn start_date an diesem Tag oder davor liegt und end_date leer ist oder an diesem Tag oder danach liegt.",
+    "Bericht pro Altersgruppe: Patientinnen und Patienten mit Vorhofflimmern, wie viele davon kein aktives orales Antikoagulans haben und dieser Anteil in %, eine Nachkommastelle."
+  ]
+}

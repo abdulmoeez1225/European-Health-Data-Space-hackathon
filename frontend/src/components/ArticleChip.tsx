@@ -18,7 +18,7 @@ export function ArticleChip({ article, detail }: { article: string; detail?: str
         <button
           type="button"
           aria-label={`Art. ${article}: ${title}`}
-          className="inline-flex h-5 shrink-0 cursor-help items-center rounded-[4px] border px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums transition-colors duration-100 outline-none hover:border-foreground/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-6 shrink-0 cursor-help items-center rounded-md bg-accent px-2 text-data font-medium text-foreground/85 tabular-nums transition-colors duration-100 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           Art. {article}
         </button>
@@ -28,7 +28,7 @@ export function ArticleChip({ article, detail }: { article: string; detail?: str
           Art. {article} · {title}
         </span>
         {detail ? <span className="mt-1 block">{detail}</span> : null}
-        {entry ? <span className="mt-1 block text-muted-foreground">{entry.summary}</span> : null}
+        {entry ? <span className="mt-1.5 block text-muted-foreground">{entry.summary}</span> : null}
       </TooltipContent>
     </Tooltip>
   );

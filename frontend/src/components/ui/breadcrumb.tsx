@@ -11,7 +11,7 @@ export function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
   return (
     <ol
       data-slot="breadcrumb-list"
-      className={cn("flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground", className)}
+      className={cn("flex min-w-0 items-center gap-1.5 text-ui text-muted-foreground", className)}
       {...props}
     />
   );

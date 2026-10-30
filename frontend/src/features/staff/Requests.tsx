@@ -3,36 +3,58 @@
 import { Inbox, RotateCw } from "lucide-react";
 
 import { useRequests } from "@/api/queries";
-import { useSignatures } from "@/app/providers";
+import type { RequestResult } from "@/api/types";
+import { useViewState } from "@/app/providers";
 import { ListDetail } from "@/components/ListDetail";
 import { PageHeader } from "@/components/PageHeader";
 import { RequestList } from "@/components/RequestList";
 import { EmptyState, ErrorState } from "@/components/States";
 import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
-import { plural } from "@/lib/format";
 
 import { RequestDetail } from "./RequestDetail";
 
-/** Every automated decision, for a case officer to confirm or override. */
+export type QueueFilter = "attention" | "all" | "withdrawn";
+
+export function filterQueue(results: RequestResult[], filter: QueueFilter): RequestResult[] {
+  if (filter === "attention") return results.filter((result) => result.needs_attention);
+  if (filter === "withdrawn") return results.filter((result) => result.status === "withdrawn");
+  return results;
+}
+
+const EMPTY_TEXT: Record<QueueFilter, { title: string; text: string }> = {
+  attention: {
+    title: "Nothing needs attention",
+    text: "Every decision was issued without a doubt from the AI. You are alerted here when it is unsure.",
+  },
+  all: {
+    title: "No decisions yet",
+    text: "Decisions appear here as soon as an applicant submits a request.",
+  },
+  withdrawn: { title: "Nothing withdrawn", text: "Decisions you withdraw are listed here." },
+};
+
+/** Every decision, issued instantly; staff look at the ones the AI was unsure about. */
 export function Requests() {
   const requests = useRequests();
-  const { signatures } = useSignatures();
+  const [filter, setFilter] = useViewState<QueueFilter>("staff.filter", "attention");
 
   const results = requests.data ?? [];
-  const flagged = results.filter((result) => (result.review_flags?.length ?? 0) > 0).length;
-  const toReview = results.filter((result) => !signatures[result.request_id]).length;
+  const attention = filterQueue(results, "attention").length;
+  const withdrawn = filterQueue(results, "withdrawn").length;
+  const shown = filterQueue(results, filter);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="border-b px-4 py-4 sm:px-6">
+      <div className="grid gap-5 border-b border-divider px-6 pt-10 pb-5">
         <PageHeader
           title="Decision queue"
           description={
             requests.isSuccess
-              ? `AI-drafted decisions to confirm or override · ${plural(results.length, "decision")}, ${toReview} to review${flagged ? `, ${flagged} flagged` : ""}`
-              : "AI-drafted decisions to confirm or override."
+              ? `${attention} need attention · Decisions are issued instantly; you are alerted when the AI was unsure.`
+              : "Decisions are issued instantly; you are alerted when the AI was unsure."
           }
           actions={
             <Button variant="outline" onClick={() => void requests.refetch()}>
@@ -41,10 +63,24 @@ export function Requests() {
             </Button>
           }
         />
+        <Segmented
+          label="Show decisions"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            {
+              value: "attention",
+              label: "Needs attention",
+              count: requests.isSuccess ? attention : undefined,
+            },
+            { value: "all", label: "All", count: requests.isSuccess ? results.length : undefined },
+            { value: "withdrawn", label: "Withdrawn", count: requests.isSuccess ? withdrawn : undefined },
+          ]}
+        />
       </div>
 
       {requests.isError && !requests.data ? (
-        <div className="p-6">
+        <div className="p-8">
           <ErrorState
             title="Could not load decisions"
             error={requests.error}
@@ -54,25 +90,26 @@ export function Requests() {
       ) : requests.isPending ? (
         <div className="grid gap-px p-4" role="status" aria-label="Loading decisions">
           {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-9" />
+            <Skeleton key={index} className="h-10" />
           ))}
         </div>
-      ) : results.length === 0 ? (
-        <EmptyState icon={<Inbox />} title="No decisions yet">
-          Decisions appear here as soon as an applicant submits a request.
+      ) : shown.length === 0 ? (
+        <EmptyState icon={<Inbox />} title={EMPTY_TEXT[filter].title}>
+          {EMPTY_TEXT[filter].text}
         </EmptyState>
       ) : (
         <ListDetail
-          results={results}
+          results={shown}
+          lookup={results}
           basePath="/staff/"
           list={({ selectedId, onSelect, selectOnArrow }) => (
             <RequestList
               label="Decision queue"
-              results={results}
+              results={shown}
               selectedId={selectedId}
               onSelect={onSelect}
               selectOnArrow={selectOnArrow}
-              signatures={signatures}
+              staff
             />
           )}
           detail={(result) => <RequestDetail result={result} />}

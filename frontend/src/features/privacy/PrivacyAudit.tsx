@@ -1,94 +1,85 @@
 "use client";
 
-import { LoaderCircle, Play, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AUTO_REFRESH_MS, useAudit, useLedger } from "@/api/queries";
 import { PageHeader } from "@/components/PageHeader";
 import { ErrorState } from "@/components/States";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatValue } from "@/lib/format";
+import { scrollBehavior } from "@/lib/motion";
 
-import { AuditPanel } from "./AuditPanel";
-import { LedgerPanel } from "./LedgerPanel";
+import { ActivityPanel, COUNTS_QUERY } from "./ActivityPanel";
+import { filterOptions } from "./auditLabels";
+import { BlockedReleasesPanel } from "./BlockedReleasesPanel";
 import { RedTeamResults } from "./RedTeamResults";
 import { useRedTeam } from "./useRedTeam";
 
-type Tab = "ledger" | "audit";
+type Tab = "blocked" | "activity";
 
 function Count({ value }: { value: number | undefined }) {
   if (value === undefined) return null;
-  return <span className="text-xs font-normal text-muted-foreground tabular-nums">{value}</span>;
+  return (
+    <span className="text-data font-normal text-muted-foreground tabular-nums">{formatValue(value)}</span>
+  );
 }
 
 export function PrivacyAudit() {
   const redTeam = useRedTeam();
-  const [tab, setTab] = useState<Tab>("ledger");
-  const ledgerCount = useLedger(false).data?.length;
-  const auditCount = useAudit(false).data?.length;
+  const [tab, setTab] = useState<Tab>("blocked");
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const blockedCount = useLedger(false).data?.length;
+  const counts = useAudit(COUNTS_QUERY, false).data?.counts;
+  const activityCount = counts ? filterOptions(counts)[0]?.count : undefined;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-10">
       <PageHeader
         title="Privacy & audit"
-        description="Release ledger, red-team check and the audit log."
-        actions={
-          <>
-            <Button
-              variant="ghost"
-              disabled={redTeam.running || redTeam.resetting}
-              onClick={redTeam.resetLedger}
-            >
-              {redTeam.resetting ? (
-                <LoaderCircle aria-hidden className="animate-spin" />
-              ) : (
-                <RotateCcw aria-hidden />
-              )}
-              Reset ledger
-            </Button>
-            <Button disabled={redTeam.running || redTeam.resetting} onClick={() => void redTeam.run()}>
-              {redTeam.running ? <LoaderCircle aria-hidden className="animate-spin" /> : <Play aria-hidden />}
-              {redTeam.running ? "Running attack…" : "Run attack"}
-            </Button>
-          </>
-        }
+        description="Oversight for the access body: what was withheld to protect patients, and a complete record of what the system did."
       />
 
       {redTeam.resetError ? (
         <ErrorState title="Could not reset the ledger" error={redTeam.resetError} />
       ) : null}
 
-      <RedTeamResults redTeam={redTeam} />
+      <RedTeamResults
+        redTeam={redTeam}
+        onShowBlocked={() => {
+          setTab("blocked");
+          tabsRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+        }}
+      />
 
       <Tabs
+        ref={tabsRef}
         value={tab}
         onValueChange={(value) => {
           setTab(value as Tab);
         }}
+        className="gap-5"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <TabsList aria-label="Release ledger and audit log">
-            <TabsTrigger value="ledger">
-              Ledger <Count value={ledgerCount} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TabsList aria-label="Blocked releases and activity log">
+            <TabsTrigger value="blocked">
+              Blocked releases <Count value={blockedCount} />
             </TabsTrigger>
-            <TabsTrigger value="audit">
-              Audit log <Count value={auditCount} />
+            <TabsTrigger value="activity">
+              Activity log <Count value={activityCount} />
             </TabsTrigger>
           </TabsList>
-          {tab === "audit" ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          {tab === "activity" ? (
+            <span className="inline-flex items-center gap-2 text-data text-muted-foreground">
               <span aria-hidden className="size-1.5 rounded-full bg-success" />
               Live · updates every {AUTO_REFRESH_MS / 1000} s
             </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">Values withheld to stop differencing</span>
-          )}
+          ) : null}
         </div>
-        <TabsContent value="ledger">
-          <LedgerPanel />
+        <TabsContent value="blocked">
+          <BlockedReleasesPanel />
         </TabsContent>
-        <TabsContent value="audit">
-          <AuditPanel />
+        <TabsContent value="activity">
+          <ActivityPanel />
         </TabsContent>
       </Tabs>
     </div>

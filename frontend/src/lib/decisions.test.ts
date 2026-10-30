@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import type { Decision, ProhibitedGround } from "@/api/types";
 
-import { DECISIONS, decisionMeta, prohibitionFor, purposeLabel, TONE_DOT } from "./decisions";
+import { DECISIONS, decisionMeta, prohibitionFor, purposeLabel, TONE_BADGE, TONE_DOT } from "./decisions";
 
 describe("decisionMeta", () => {
   it.each<[Decision, string, string]>([
-    ["REJECT", "Rejected", "reject"],
-    ["APPROVE_STATISTICAL", "Approved – statistics", "stats"],
-    ["APPROVE_SPE", "Approved – secure environment", "spe"],
+    ["REJECT", "Refused", "reject"],
+    ["APPROVE_STATISTICAL", "Statistics granted", "stats"],
+    ["APPROVE_SPE", "Secure access granted", "spe"],
   ])("%s is labelled %s with tone %s", (decision, label, tone) => {
     const meta = decisionMeta(decision);
     expect(meta.label).toBe(label);
@@ -17,16 +17,25 @@ describe("decisionMeta", () => {
   });
 
   it.each<[Decision, string]>([
-    ["REJECT", "Rejected"],
+    ["REJECT", "Refused"],
     ["APPROVE_STATISTICAL", "Statistics"],
-    ["APPROVE_SPE", "Secure env."],
+    ["APPROVE_SPE", "Secure access"],
   ])("%s has the short label %s", (decision, short) => {
     expect(decisionMeta(decision).short).toBe(short);
   });
 
-  it("separates the approval labels with an en dash", () => {
-    expect(decisionMeta("APPROVE_STATISTICAL").label).toContain("–");
-    expect(decisionMeta("APPROVE_SPE").label).toContain("–");
+  it("gives every decision its own headline", () => {
+    const headlines = Object.values(DECISIONS).map((meta) => meta.headline);
+    expect(new Set(headlines).size).toBe(headlines.length);
+    expect(decisionMeta("APPROVE_STATISTICAL").headline).toBe("Your statistics are ready");
+  });
+
+  it("never calls an automated decision approved: approval is what staff do", () => {
+    for (const meta of Object.values(DECISIONS)) {
+      expect(meta.label).not.toMatch(/approved/i);
+      expect(meta.short).not.toMatch(/approved/i);
+      expect(meta.headline).not.toMatch(/approved/i);
+    }
   });
 });
 
@@ -35,6 +44,16 @@ describe("TONE_DOT", () => {
     const dots = Object.values(DECISIONS).map((meta) => TONE_DOT[meta.tone]);
     expect(dots.every(Boolean)).toBe(true);
     expect(new Set(dots).size).toBe(dots.length);
+  });
+});
+
+describe("TONE_BADGE", () => {
+  it("tints a refusal as destructive, statistics as success and secure access as info", () => {
+    expect(TONE_BADGE).toEqual({ reject: "destructive", stats: "success", spe: "info" });
+  });
+
+  it("covers every decision tone", () => {
+    for (const meta of Object.values(DECISIONS)) expect(TONE_BADGE[meta.tone]).toBeDefined();
   });
 });
 

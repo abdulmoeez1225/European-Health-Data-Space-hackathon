@@ -14,7 +14,7 @@ export default function PrivacyRedirect() {
   }, [router]);
   return (
     <PageBody>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-ui text-muted-foreground">
         Privacy & audit moved to{" "}
         <Link href="/staff/privacy/" className="text-foreground underline underline-offset-4">
           /staff/privacy/

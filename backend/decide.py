@@ -48,14 +48,22 @@ _KEYWORDS: dict[ProhibitedGround, list[str]] = {
     "employment_or_insurance_or_credit": [
         r"\bpremiums?\b", r"underwrit", r"creditworth", r"credit (score|scoring|limit|decision|condition)",
         r"\bloan", r"\bemployees?\b", r"\bhiring\b", r"recruit", r"renew(ing)? contracts", r"job offer",
+        r"pr(ä|ae)mie", r"versicherungstarif", r"bonit(ä|ae)t", r"kredit", r"mitarbeiter", r"arbeitnehmer",
+        r"bewerber", r"vertragsverl(ä|ae)ngerung",
     ],
-    "advertising_or_marketing": [r"advertis", r"marketing", r"promotional campaign", r"sales (target|campaign)"],
+    "advertising_or_marketing": [
+        r"advertis", r"marketing", r"promotional campaign", r"sales (target|campaign)", r"werbung", r"werbekampagne",
+    ],
     "harmful_products": [
         r"nicotine", r"tobacco", r"cigarette", r"\bvap(e|ing)\b", r"alcoholic", r"weapon", r"gambling",
         r"crowd[- ]control", r"riot control", r"irritant", r"chemical agent", r"military",
         r"defen[cs]e (technolog|industr|contractor)",
+        r"nikotin", r"tabak", r"zigarette", r"alkoholische", r"waffe", r"glücksspiel",
     ],
-    "detrimental_decisions": [r"re-?identif", r"match(ing)? (the )?records with", r"employee list", r"customer list"],
+    "detrimental_decisions": [
+        r"re-?identif", r"match(ing)? (the )?records with", r"employee list", r"customer list",
+        r"mitarbeiterliste", r"kundenliste", r"abgleich",
+    ],
 }
 
 _GROUND_TEXT: dict[ProhibitedGround, str] = {
@@ -81,11 +89,17 @@ _PURPOSE_TEXT: dict[AllowedPurpose, str] = {
 _RECORDS_KEYWORDS = [
     r"aggregates? (are|is) not enough", r"statistics (are|is) not (enough|sufficient)", r"individual[- ]level",
     r"patient[- ]level", r"\btrain(ing)?\b.*\bmodel", r"machine learning",
+    r"aggregat\w* (reich|genüg)\w* nicht", r"statistik\w* (reich|genüg)\w* nicht", r"individual\w*daten",
+    r"patientenbezogen", r"einzelfallbezogen", r"\btrainier\w*.*\bmodell", r"maschinelles lernen",
 ]
+_ACCESS_APPLICATION = re.compile(
+    r"access application|zugangsantrag|antrag auf (daten)?zugang|zugang zu gesundheitsdaten", re.IGNORECASE
+)
 
 
 def is_access_application(request: dict) -> bool:
-    return "access application" in str(request.get("requested_as", "")).lower()
+    """A health data access application (records), in English or German wording."""
+    return bool(_ACCESS_APPLICATION.search(str(request.get("requested_as", ""))))
 
 
 def request_text(request: dict) -> str:

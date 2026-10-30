@@ -31,7 +31,7 @@ export function ThemeMenu() {
         <SidebarMenuButton tooltip={`Theme: ${current?.label ?? "System"}`} aria-label="Theme">
           <Icon aria-hidden />
           <span className="flex-1">Theme</span>
-          <span className="text-xs text-muted-foreground">{current?.label}</span>
+          <span className="text-caption text-subtle-foreground">{current?.label}</span>
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-44">

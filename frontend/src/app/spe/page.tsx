@@ -12,9 +12,9 @@ export default function SpePage() {
     <PageBody>
       <Suspense
         fallback={
-          <div className="grid gap-6">
+          <div className="grid gap-8">
             <PageHeader title="Secure workspace" description={SPE_DESCRIPTION} />
-            <Skeleton className="h-14" />
+            <Skeleton className="h-20" />
             <Skeleton className="h-64" />
           </div>
         }

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 from backend.plan import QueryPlan
 
@@ -86,6 +86,27 @@ class CodeMapping(BaseModel):
     matched: list[str] = Field(description="'CODE label' entries present in the data.")
 
 
+DecisionStatus = Literal["issued", "withdrawn"]
+
+
+class Withdrawal(BaseModel):
+    """Staff withdrew an issued decision; released data was pulled and the case is handled manually."""
+
+    reason: str
+    withdrawn_at: datetime
+    released_data_withdrawn: bool
+
+
+class WithdrawRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def _reason_not_blank(self) -> WithdrawRequest:
+        if not self.reason.strip():
+            raise ValueError("a withdrawal needs a reason")
+        return self
+
+
 class Consensus(BaseModel):
     """How many independent AI readings of the request agreed with the released outcome."""
 
@@ -117,5 +138,13 @@ class RequestResult(BaseModel):
     llm_backend: str
     cached: bool = False
     consensus: Consensus = Field(default_factory=Consensus)
+    status: DecisionStatus = "issued"
+    withdrawal: Withdrawal | None = None
     timings: Timings = Field(default_factory=Timings)
     processed_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def needs_attention(self) -> bool:
+        """Issued with review flags: staff should look at it."""
+        return self.status == "issued" and bool(self.review_flags)

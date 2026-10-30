@@ -18,15 +18,33 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatValue, shorten } from "@/lib/format";
 import { useMyRequestIds } from "@/lib/my-requests";
 
+import { BrowseTab } from "./BrowseTab";
 import { SqlConsole } from "./SqlConsole";
+import { SummariseTab } from "./SummariseTab";
 
 export const SPE_DESCRIPTION =
   "Work with approved pseudonymised records under your data permit. Nothing can be downloaded.";
 
 type Permit = { spe: SpeOutput; organisation: string; requestId: string };
+
+const TABS = [
+  { value: "browse", label: "Browse" },
+  { value: "summarise", label: "Summarise" },
+  { value: "sql", label: "SQL (advanced)" },
+] as const;
+type Tab = (typeof TABS)[number]["value"];
+
+const isTab = (value: string | null): value is Tab => TABS.some((tab) => tab.value === value);
+
+function workspaceUrl(permitId: string, tab: Tab): string {
+  const query = new URLSearchParams({ permit: permitId });
+  if (tab !== "browse") query.set("tab", tab);
+  return `/spe/?${query.toString()}`;
+}
 
 const TITLE = "Secure workspace";
 
@@ -49,6 +67,8 @@ export function SecureEnvironment() {
   );
   const wanted = params.get("permit");
   const permit = permits.find((p) => p.spe.permit_id === wanted) ?? permits[0] ?? null;
+  const requestedTab = params.get("tab");
+  const tab: Tab = isTab(requestedTab) ? requestedTab : "browse";
 
   if (permit) {
     return (
@@ -56,8 +76,9 @@ export function SecureEnvironment() {
         key={permit.spe.permit_id}
         permit={permit}
         permits={permits}
-        onSelect={(id) => {
-          router.replace(`/spe/?permit=${encodeURIComponent(id)}`, { scroll: false });
+        tab={tab}
+        onNavigate={(permitId, nextTab) => {
+          router.replace(workspaceUrl(permitId, nextTab), { scroll: false });
         }}
       />
     );
@@ -88,24 +109,36 @@ export function SecureEnvironment() {
   );
 }
 
-type WorkspaceProps = { permit: Permit; permits: Permit[]; onSelect: (permitId: string) => void };
+type WorkspaceProps = {
+  permit: Permit;
+  permits: Permit[];
+  tab: Tab;
+  onNavigate: (permitId: string, tab: Tab) => void;
+};
 
-function Workspace({ permit, permits, onSelect }: WorkspaceProps) {
+function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
   const permitId = permit.spe.permit_id;
   const info = useSpeInfo(permitId);
   const download = useMutation({ mutationFn: () => api.speDownload(permitId) });
   const blocked = download.error instanceof ApiError && download.error.status === 403 ? download.error : null;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-8">
       <PageHeader
         title={TITLE}
         description={SPE_DESCRIPTION}
         actions={
           <>
-            <Select value={permitId} onValueChange={onSelect}>
-              <SelectTrigger aria-label="Data permit" className="w-60 max-w-full">
-                <SelectValue />
+            <Select
+              value={permitId}
+              onValueChange={(id) => {
+                onNavigate(id, tab);
+              }}
+            >
+              <SelectTrigger aria-label="Data permit" className="h-9 w-60 max-w-full">
+                <SelectValue>
+                  <span className="font-mono">{permitId}</span>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent align="end">
                 {permits.map((p) => (
@@ -120,6 +153,7 @@ function Workspace({ permit, permits, onSelect }: WorkspaceProps) {
             </Select>
             <Button
               variant="outline"
+              className="h-9"
               disabled={download.isPending}
               onClick={() => {
                 download.mutate();
@@ -136,18 +170,22 @@ function Workspace({ permit, permits, onSelect }: WorkspaceProps) {
         }
       />
 
-      <dl className="grid grid-cols-2 rounded-md border text-[13px] sm:grid-cols-4 sm:divide-x">
-        <Property label="Permit">
-          <span className="font-mono">{permitId}</span>
-        </Property>
-        <Property label="Applicant">
-          <span title={permit.organisation}>{permit.organisation || "Unknown applicant"}</span>
-        </Property>
+      <dl className="grid grid-cols-3 gap-6 rounded-lg border bg-card px-6 py-5">
         <Property label="Patients (exact)">
-          <span className="tabular-nums">{formatValue(permit.spe.cohort_size)}</span>
+          <span className="text-2xl font-medium tracking-tight tabular-nums">
+            {formatValue(permit.spe.cohort_size)}
+          </span>
+        </Property>
+        <Property label="Permit">
+          <span className="font-mono text-ui">{permitId}</span>
         </Property>
         <Property label="Request">
-          <span className="font-mono">{permit.requestId}</span>
+          <span className="font-mono text-ui">{permit.requestId}</span>
+          {permit.organisation ? (
+            <span className="block truncate text-xs text-muted-foreground" title={permit.organisation}>
+              {permit.organisation}
+            </span>
+          ) : null}
         </Property>
       </dl>
 
@@ -179,60 +217,55 @@ function Workspace({ permit, permits, onSelect }: WorkspaceProps) {
         </Alert>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <section aria-labelledby="spe-tables" className="grid min-w-0 gap-2">
-          <h2 id="spe-tables" className="text-[13px] font-medium text-muted-foreground">
-            Tables
-          </h2>
-          {info.isPending ? (
-            <div className="grid gap-2" role="status" aria-label="Loading tables">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="h-11" />
-              ))}
-            </div>
-          ) : info.isError ? (
-            <ErrorState
-              title="Could not open the environment"
-              error={info.error}
-              onRetry={() => void info.refetch()}
-            />
-          ) : (
-            <>
-              <ul className="min-w-0 divide-y rounded-md border">
-                {info.data.tables.map((table) => (
-                  <li key={table.name} className="px-3 py-2">
-                    <div className="flex items-baseline justify-between gap-3 text-[13px]">
-                      <span className="font-mono">{table.name}</span>
-                      <span className="tabular-nums">{formatValue(table.rows)}</span>
-                    </div>
-                    <p
-                      className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground"
-                      title={table.columns.join(", ")}
-                    >
-                      {table.columns.join(", ")}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-muted-foreground">
-                Only the cohort and the record types named in the permit were copied in. Patient IDs are
-                pseudonymised.
-              </p>
-            </>
-          )}
-        </section>
-
-        <SqlConsole permitId={permitId} />
-      </div>
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          if (isTab(value)) onNavigate(permitId, value);
+        }}
+        className="gap-6"
+      >
+        <TabsList aria-label="Ways to work with the records" className="h-9">
+          {TABS.map(({ value, label }) => (
+            <TabsTrigger key={value} value={value} className="px-3">
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {info.isPending ? (
+          <div className="grid gap-2" role="status" aria-label="Opening the workspace">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-9" />
+            ))}
+          </div>
+        ) : info.isError ? (
+          <ErrorState
+            title="Could not open the workspace"
+            error={info.error}
+            onRetry={() => void info.refetch()}
+          />
+        ) : (
+          <>
+            <TabsContent value="browse">
+              <BrowseTab permitId={permitId} tables={info.data.tables} />
+            </TabsContent>
+            <TabsContent value="summarise">
+              <SummariseTab permitId={permitId} tables={info.data.tables} />
+            </TabsContent>
+            <TabsContent value="sql">
+              <SqlConsole permitId={permitId} />
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
     </div>
   );
 }
 
 function Property({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 px-3 py-2">
+    <div className="grid min-w-0 content-start gap-1.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 truncate">{children}</dd>
+      <dd className="min-w-0">{children}</dd>
     </div>
   );
 }

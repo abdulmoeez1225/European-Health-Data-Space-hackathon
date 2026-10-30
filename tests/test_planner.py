@@ -44,3 +44,23 @@ def test_model_names_used_when_report_does_not_match_metric_count() -> None:
     plan = REFERENCE_PLANS["R07"]
     renamed = with_canonical_names(plan, ["Report per region: inpatient stays and patients."])
     assert [m.name for m in renamed.metrics] == ["inpatient_stays"]
+
+
+def test_german_report_line_gives_clean_names() -> None:
+    plan = REFERENCE_PLANS["R01"]
+    definitions = [
+        "Bericht pro Bundesland: Erwachsene, Erwachsene mit Typ-2-Diabetes und die Prävalenz, eine Nachkommastelle."
+    ]
+    names = [m.name for m in with_canonical_names(plan, definitions).metrics]
+    assert names == ["erwachsene", "erwachsene_mit_typ_2_diabetes", "praevalenz_pct"]
+
+
+def test_german_gendered_pair_and_back_reference() -> None:
+    plan = REFERENCE_PLANS["R03"]
+    definitions = [
+        "Bericht pro Altersgruppe: Patientinnen und Patienten mit Vorhofflimmern, wie viele davon kein aktives "
+        "orales Antikoagulans haben und dieser Anteil in %, eine Nachkommastelle."
+    ]
+    names = [m.name for m in with_canonical_names(plan, definitions).metrics]
+    assert names == ["patienten_mit_vorhofflimmern", "kein_aktives_orales_antikoagulans",
+                     "kein_aktives_orales_antikoagulans_pct"]

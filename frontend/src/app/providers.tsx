@@ -21,23 +21,6 @@ function makeQueryClient() {
   });
 }
 
-export type Signature = { kind: "sign" | "override"; at: string };
-
-type SignatureStore = {
-  signatures: Record<string, Signature>;
-  sign: (requestId: string, kind: Signature["kind"]) => void;
-  undo: (requestId: string) => void;
-};
-
-const SignatureContext = createContext<SignatureStore | null>(null);
-
-/** Staff sign-off is local UI state only; the backend has no endpoint for it. */
-export function useSignatures(): SignatureStore {
-  const store = useContext(SignatureContext);
-  if (!store) throw new Error("useSignatures must be used inside <Providers>");
-  return store;
-}
-
 type ViewState = { values: Record<string, unknown>; set: (key: string, value: unknown) => void };
 
 const ViewStateContext = createContext<ViewState | null>(null);
@@ -62,29 +45,16 @@ export function useViewState<T>(key: string, initial: T): [T, (value: T) => void
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(makeQueryClient);
-  const [signatures, setSignatures] = useState<Record<string, Signature>>({});
   const [values, setValues] = useState<Record<string, unknown>>({});
   const setViewValue = useCallback((key: string, value: unknown) => {
     setValues((current) => ({ ...current, [key]: value }));
   }, []);
   const viewState = useMemo(() => ({ values, set: setViewValue }), [values, setViewValue]);
 
-  const sign = useCallback((requestId: string, kind: Signature["kind"]) => {
-    setSignatures((current) => ({ ...current, [requestId]: { kind, at: new Date().toISOString() } }));
-  }, []);
-  const undo = useCallback((requestId: string) => {
-    setSignatures((current) =>
-      Object.fromEntries(Object.entries(current).filter(([id]) => id !== requestId)),
-    );
-  }, []);
-  const store = useMemo(() => ({ signatures, sign, undo }), [signatures, sign, undo]);
-
   return (
     <QueryClientProvider client={client}>
       <TooltipProvider>
-        <SignatureContext.Provider value={store}>
-          <ViewStateContext.Provider value={viewState}>{children}</ViewStateContext.Provider>
-        </SignatureContext.Provider>
+        <ViewStateContext.Provider value={viewState}>{children}</ViewStateContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
   );

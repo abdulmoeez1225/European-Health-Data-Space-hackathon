@@ -4,24 +4,28 @@ export type DecisionTone = "reject" | "stats" | "spe";
 
 export type DecisionMeta = { label: string; short: string; tone: DecisionTone; headline: string };
 
+/**
+ * What the applicant gets, issued at once. Never "approved": staff do not approve decisions, they
+ * are alerted when the AI was unsure and can withdraw one.
+ */
 export const DECISIONS: Record<Decision, DecisionMeta> = {
   REJECT: {
-    label: "Rejected",
-    short: "Rejected",
+    label: "Refused",
+    short: "Refused",
     tone: "reject",
-    headline: "Your request cannot be granted.",
+    headline: "Your request cannot be granted",
   },
   APPROVE_STATISTICAL: {
-    label: "Approved – statistics",
+    label: "Statistics granted",
     short: "Statistics",
     tone: "stats",
-    headline: "You receive anonymised statistics.",
+    headline: "Your statistics are ready",
   },
   APPROVE_SPE: {
-    label: "Approved – secure environment",
-    short: "Secure env.",
+    label: "Secure access granted",
+    short: "Secure access",
     tone: "spe",
-    headline: "You may analyse pseudonymised records in a secure environment.",
+    headline: "You can work with the records in a secure workspace",
   },
 };
 
@@ -29,11 +33,17 @@ export function decisionMeta(decision: Decision): DecisionMeta {
   return DECISIONS[decision];
 }
 
-/** Status colour of a decision, used for its dot. */
+/** Status colour of a decision: its dot, and its badge tint. */
 export const TONE_DOT: Record<DecisionTone, string> = {
   reject: "bg-destructive",
   stats: "bg-success",
   spe: "bg-info",
+};
+
+export const TONE_BADGE: Record<DecisionTone, "destructive" | "success" | "info"> = {
+  reject: "destructive",
+  stats: "success",
+  spe: "info",
 };
 
 /** Fallback titles until /api/law has loaded. */

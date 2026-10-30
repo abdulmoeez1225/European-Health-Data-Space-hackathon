@@ -1,0 +1,19 @@
+{
+  "id": "R01",
+  "submitted": "2026-10-29T18:30:00+01:00",
+  "applicant": {
+    "name": "Dr. Sophie Lechner",
+    "organisation": "Donau-Institut für Diabetesforschung (universitäre Forschungsgruppe)",
+    "country": "AT"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Wir untersuchen regionale Unterschiede bei Typ-2-Diabetes, um gemeinsam mit den regionalen Gesundheitsbehörden ein Präventionsprogramm zu planen.",
+  "question": "Wie viele Erwachsene haben in den einzelnen Bundesländern Typ-2-Diabetes und wie hoch ist die Prävalenz?",
+  "definitions": [
+    "Erwachsene = Personen im Alter von 18 Jahren oder älter am 31. Dezember 2025.",
+    "Typ-2-Diabetes = jede Erkrankung mit einem ICD-10-Code, der mit E11 beginnt.",
+    "Prävalenz = Erwachsene mit Typ-2-Diabetes / alle Erwachsenen im Bundesland × 100, eine Nachkommastelle.",
+    "Bericht pro Bundesland: Erwachsene, Erwachsene mit Typ-2-Diabetes und die Prävalenz, eine Nachkommastelle."
+  ]
+}

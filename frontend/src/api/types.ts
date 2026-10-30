@@ -22,6 +22,8 @@ export type SpeTable = Schemas["SpeTable"];
 export type QueryResult = Schemas["QueryResult"];
 export type AirlockResult = Schemas["AirlockResult"];
 export type AuditEvent = Schemas["AuditEvent"];
+export type AuditPage = Schemas["AuditPage"];
+export type Withdrawal = Schemas["Withdrawal"];
 export type LedgerEvent = Schemas["LedgerEvent"];
 export type SqlBody = Schemas["SqlBody"];
 

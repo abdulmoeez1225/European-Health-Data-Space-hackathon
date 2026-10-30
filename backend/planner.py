@@ -78,20 +78,35 @@ def plan_prompt(request_text: str) -> str:
 
 # Words the model adds or drops inconsistently when naming the same reported number.
 _FILLER = {"a", "an", "the", "how", "many", "number", "of", "them", "that", "who", "which", "have", "has",
-           "having", "are", "is", "count", "share", "in"}
-_SYNONYMS = {"without": "no", "percent": "pct", "percentage": "pct", "average": "mean"}
-_PRECISION = re.compile(r",?\s*(with |to |rounded to )?(one|1|two|2) decimals?", re.IGNORECASE)
+           "having", "are", "is", "count", "share", "in",
+           "der", "die", "das", "den", "anzahl", "wie", "viele", "davon", "deren", "anteil",
+           "haben", "hat", "sind", "ist", "wurde", "wurden"}
+_SYNONYMS = {"without": "no", "percent": "pct", "percentage": "pct", "average": "mean",
+             "ohne": "no", "prozent": "pct", "durchschnitt": "mean", "mittelwert": "mean", "mittlere": "mean"}
+_UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
+_PRECISION = re.compile(
+    r",?\s*(with |to |rounded to |mit |auf )?(one|1|two|2|einer|eine|zwei) (decimals?|nachkommastellen?)",
+    re.IGNORECASE,
+)
 
 
 def canonical_metric_name(name: str) -> str:
-    tokens = [_SYNONYMS.get(t, t) for t in re.split(r"[^a-z0-9]+", name.lower().replace("%", " pct ")) if t]
+    text = name.lower().translate(_UMLAUTS).replace("%", " pct ")
+    tokens = [_SYNONYMS.get(t, t) for t in re.split(r"[^a-z0-9]+", text) if t]
     kept = [t for t in tokens if t not in _FILLER]
     if "pct" in kept:
         kept = [t for t in kept if t != "pct"] + ["pct"]
     return "_".join(kept) or name
 
 
-_LISTING = re.compile(r"^\s*(report\b|.*\b(per|for each|by)\s+[\w\s×x-]+:)", re.IGNORECASE)
+# German gendered pairs name one group: "Patientinnen und Patienten" -> "Patienten".
+_GENDER_PAIR = re.compile(r"\b(\w+?)innen und \1(\w*)\b", re.IGNORECASE)
+_BACK_REFERENCE = re.compile(
+    r"(that|this|the|their|dieser|diese|deren|davon)\b.*\b(share|percentage|proportion|anteil|prozentsatz)\b"
+)
+_LISTING = re.compile(
+    r"^\s*(report\b|bericht\b|.*\b(per|for each|by|pro|je|nach)\s+[\w\s×x-]+:)", re.IGNORECASE
+)
 
 
 def report_phrases(definitions: list[str]) -> list[str] | None:
@@ -100,18 +115,16 @@ def report_phrases(definitions: list[str]) -> list[str] | None:
     if report is None:
         return None
     listed = _PRECISION.sub("", report.split(":", 1)[1]).strip().rstrip(".")
-    phrases = [p.strip() for p in re.split(r",(?!\d)\s*(?:and\s+)?|\s+and\s+", listed) if p.strip()]
+    listed = _GENDER_PAIR.sub(r"\1\2", listed)
+    phrases = [p.strip() for p in re.split(r",(?!\d)\s*(?:(?:and|und)\s+)?|\s+(?:and|und)\s+", listed) if p.strip()]
     return phrases or None
 
 
 def _names_from_report(phrases: list[str], plan: QueryPlan) -> list[str]:
     names: list[str] = []
     for phrase, metric in zip(phrases, plan.metrics, strict=True):
-        lowered = phrase.lower()
-        if names and re.match(r"(that|this|the|their)\b.*\b(share|percentage|proportion)\b", lowered):
-            name = f"{names[-1]}_pct"
-        else:
-            name = canonical_metric_name(phrase)
+        refers_back = names and _BACK_REFERENCE.match(phrase.lower())
+        name = f"{names[-1]}_pct" if refers_back else canonical_metric_name(phrase)
         if metric.kind == "percent" and not name.endswith("pct"):
             name += "_pct"
         names.append(name)

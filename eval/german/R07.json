@@ -1,0 +1,18 @@
+{
+  "id": "R07",
+  "submitted": "2026-10-29T19:50:00+01:00",
+  "applicant": {
+    "name": "Dr. Lukas Fischer",
+    "organisation": "Nationales Statistikamt, Fachbereich Gesundheitsstatistik",
+    "country": "AT"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Amtliche Statistik zur Spitalsnutzung für den jährlichen Gesundheitsbericht.",
+  "question": "Wie viele stationäre Aufenthalte haben 2025 begonnen, nach dem Bundesland der Patientinnen und Patienten?",
+  "definitions": [
+    "Stationärer Aufenthalt = Encounter vom Typ 'inpatient'.",
+    "Gezählt werden Aufenthalte (nicht Patientinnen und Patienten), deren start_date im Jahr 2025 liegt.",
+    "Bericht pro Bundesland: stationäre Aufenthalte."
+  ]
+}

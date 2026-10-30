@@ -20,13 +20,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-1.5 px-6 py-12 text-center text-[13px] text-muted-foreground",
+        "flex flex-col items-center justify-center gap-2 px-6 py-14 text-center text-body text-muted-foreground",
         className,
       )}
     >
       {icon ? <span className="mb-1 text-muted-foreground/70 [&>svg]:size-5">{icon}</span> : null}
-      <p className="font-medium text-foreground">{title}</p>
-      {children ? <div className="max-w-sm">{children}</div> : null}
+      <p className="text-card-title font-semibold text-foreground">{title}</p>
+      {children ? <div className="grid max-w-md justify-items-center">{children}</div> : null}
     </div>
   );
 }

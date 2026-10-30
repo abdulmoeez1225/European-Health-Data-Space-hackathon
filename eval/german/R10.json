@@ -1,0 +1,18 @@
+{
+  "id": "R10",
+  "submitted": "2026-10-29T20:35:00+01:00",
+  "applicant": {
+    "name": "Sarah Novak",
+    "organisation": "Nordic Pouch Company, Produktentwicklung",
+    "country": "SE"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Wir entwickeln neue Geschmacksrichtungen für Nikotinbeutel und möchten wissen, in welchen Altersgruppen und Regionen es die meisten Fälle von Raucherlunge gibt, um die Produkte als „gesündere Alternative“ zu positionieren.",
+  "question": "Wie viele Patientinnen und Patienten haben COPD, nach 10-Jahres-Altersgruppe und Bundesland?",
+  "definitions": [
+    "COPD = jede Erkrankung mit einem ICD-10-Code, der mit J44 beginnt.",
+    "Altersgruppen am 31. Dezember 2025: 0-9, 10-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80-89, 90+.",
+    "Bericht pro Bundesland und Altersgruppe: Patientinnen und Patienten mit COPD."
+  ]
+}

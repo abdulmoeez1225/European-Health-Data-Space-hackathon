@@ -1,7 +1,7 @@
 import { SmallCellBadge } from "@/components/SmallCellBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
-import { formatValue, isProtectedMarker, toResultValue } from "@/lib/format";
+import { formatValue, humanise, isProtectedMarker, toResultValue } from "@/lib/format";
 
 export const MAX_ROWS = 200;
 
@@ -16,30 +16,42 @@ function numericColumns(columns: string[], rows: unknown[][]): boolean[] {
   });
 }
 
+type ResultTableProps = {
+  columns: string[];
+  rows: unknown[][];
+  caption: string;
+  /** Header text; readable names by default, raw names (in mono) for hand-written SQL. */
+  columnLabel?: (column: string) => string;
+  rawHeaders?: boolean;
+  className?: string;
+};
+
 export function ResultTable({
   columns,
   rows,
   caption,
-}: {
-  columns: string[];
-  rows: unknown[][];
-  caption: string;
-}) {
+  columnLabel = humanise,
+  rawHeaders = false,
+  className,
+}: ResultTableProps) {
   const shown = rows.slice(0, MAX_ROWS);
   const numeric = numericColumns(columns, shown);
   return (
     <div className="grid gap-2">
-      <Table label={caption} containerClassName="max-h-[420px] overflow-auto rounded-md border">
+      <Table
+        label={caption}
+        containerClassName={cn("max-h-[480px] overflow-auto rounded-lg border bg-card", className)}
+      >
         <caption className="sr-only">{caption}</caption>
-        <TableHeader className="sticky top-0 z-10 bg-background shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-b-0">
+        <TableHeader className="sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-b-0">
           <TableRow className="hover:bg-transparent">
             {columns.map((column, c) => (
               <TableHead
                 key={`${c}-${column}`}
                 scope="col"
-                className={cn("font-mono", numeric[c] && "text-right")}
+                className={cn("h-9", rawHeaders && "font-mono", numeric[c] && "text-right")}
               >
-                {column}
+                {rawHeaders ? column : columnLabel(column)}
               </TableHead>
             ))}
           </TableRow>
@@ -49,9 +61,9 @@ export function ResultTable({
             <TableRow className="hover:bg-transparent">
               <TableCell
                 colSpan={Math.max(columns.length, 1)}
-                className="py-6 text-center text-muted-foreground"
+                className="py-8 text-center text-muted-foreground"
               >
-                No rows
+                No rows match
               </TableCell>
             </TableRow>
           ) : (
@@ -67,7 +79,7 @@ export function ResultTable({
                       {isProtectedMarker(value) ? (
                         <SmallCellBadge value={value} />
                       ) : value === null ? (
-                        <span className="text-muted-foreground italic">NULL</span>
+                        <span className="text-muted-foreground">—</span>
                       ) : (
                         formatValue(value)
                       )}

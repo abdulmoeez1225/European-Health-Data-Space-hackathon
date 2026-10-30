@@ -1,0 +1,20 @@
+{
+  "id": "R02",
+  "submitted": "2026-10-29T18:40:00+01:00",
+  "applicant": {
+    "name": "Markus Gruber",
+    "organisation": "Alpenland Versicherung AG, Abteilung Tarifierung",
+    "country": "AT"
+  },
+  "requested_as": "Gesundheitsdatenanfrage",
+  "requested_format": "anonymisierte Statistik",
+  "purpose": "Wir möchten die Prämien der privaten Krankenversicherung für Kundinnen und Kunden mit Diabetes an ihr tatsächliches Risiko anpassen.",
+  "question": "Wie hoch ist der durchschnittliche HbA1c-Wert von Erwachsenen mit Typ-2-Diabetes, nach 10-Jahres-Altersgruppe?",
+  "definitions": [
+    "Erwachsene = Personen im Alter von 18 Jahren oder älter am 31. Dezember 2025.",
+    "Typ-2-Diabetes = jede Erkrankung mit einem ICD-10-Code, der mit E11 beginnt.",
+    "Altersgruppen am 31. Dezember 2025: 18-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80+.",
+    "Es wird der jeweils letzte HbA1c-Wert (LOINC 4548-4) pro Patientin bzw. Patient verwendet.",
+    "Bericht pro Altersgruppe: Erwachsene mit Typ-2-Diabetes, die einen HbA1c-Wert haben, und ihr mittlerer HbA1c-Wert, eine Nachkommastelle."
+  ]
+}

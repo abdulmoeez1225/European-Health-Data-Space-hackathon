@@ -33,7 +33,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const SIDEBAR_WIDTH = "15rem";
 const SIDEBAR_WIDTH_MOBILE = "16rem";
-const SIDEBAR_WIDTH_ICON = "3rem";
+const SIDEBAR_WIDTH_ICON = "3.25rem";
 
 type SidebarContextValue = {
   state: SidebarState;
@@ -239,7 +239,7 @@ export function SidebarGroupLabel({ className, ...props }: ComponentProps<"div">
     <div
       data-slot="sidebar-group-label"
       className={cn(
-        "flex h-7 shrink-0 items-center px-2 text-xs font-medium text-muted-foreground transition-[margin,opacity] duration-150 ease-out collapsed:-mt-7 collapsed:opacity-0",
+        "flex h-8 shrink-0 items-center px-2.5 text-caption font-medium text-subtle-foreground transition-[margin,opacity] duration-150 ease-out collapsed:-mt-8 collapsed:opacity-0",
         className,
       )}
       {...props}
@@ -251,7 +251,7 @@ export function SidebarMenu({ className, ...props }: ComponentProps<"ul">) {
   return (
     <ul
       data-slot="sidebar-menu"
-      className={cn("flex w-full min-w-0 flex-col gap-px", className)}
+      className={cn("flex w-full min-w-0 flex-col gap-0.5", className)}
       {...props}
     />
   );
@@ -262,10 +262,10 @@ export function SidebarMenuItem({ className, ...props }: ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-md px-2 text-left text-[13px] text-sidebar-foreground/85 transition-colors duration-100 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground collapsed:size-8! collapsed:justify-center collapsed:p-0! collapsed:[&>span:not([data-icon])]:sr-only [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-muted-foreground data-[active=true]:[&>svg]:text-sidebar-accent-foreground",
+  "flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-md px-2.5 text-left text-ui text-sidebar-foreground/90 transition-colors duration-100 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground collapsed:size-9! collapsed:justify-center collapsed:p-0! collapsed:[&>span:not([data-icon])]:sr-only [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-muted-foreground data-[active=true]:[&>svg]:text-sidebar-accent-foreground",
   {
     variants: {
-      size: { default: "h-7", lg: "h-10" },
+      size: { default: "h-9", lg: "h-11" },
     },
     defaultVariants: { size: "default" },
   },

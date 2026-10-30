@@ -97,6 +97,16 @@ def _existing_path(permit_id: str) -> Path:
     return path
 
 
+def delete_spe(permit_id: str) -> None:
+    """Close a withdrawn permit: its database is removed and further queries return not found."""
+    try:
+        path = _existing_path(permit_id)
+    except SpeNotFound:
+        return
+    path.unlink()
+    audit.record("spe_deleted", "staff", permit_id)
+
+
 def _merge_selections(selections: list[RecordSelection]) -> dict[str, list[str] | None]:
     """Table -> code prefixes to keep (None = all rows); repeated tables are unioned."""
     merged: dict[str, list[str] | None] = {}

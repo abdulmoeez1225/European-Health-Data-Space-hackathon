@@ -37,10 +37,11 @@ from backend.models import (
     ReviewFlag,
     StatisticsOutput,
     Timings,
+    Withdrawal,
 )
 from backend.plan import DataHolder, QueryPlan, Region
 from backend.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
-from backend.spe import create_spe
+from backend.spe import create_spe, delete_spe
 from backend.stats import LESS_THAN, MIN_CELL, SUPPRESSED, StatResult, run_plan
 from backend.terminology import map_codes
 
@@ -328,6 +329,32 @@ def results() -> list[RequestResult]:
     with _results_lock:
         _load_results()
         return sorted(_results.values(), key=lambda r: r.processed_at, reverse=True)
+
+
+def withdraw_decision(rid: str, reason: str) -> RequestResult | None:
+    """Withdraw an issued decision: released statistics and the secure workspace are pulled."""
+    with _results_lock:
+        _load_results()
+        current = _results.get(rid)
+        if current is None:
+            return None
+        released = current.statistics is not None or current.spe is not None
+        withdrawn = current.model_copy(update={
+            "status": "withdrawn",
+            "withdrawal": Withdrawal(
+                reason=reason.strip(), withdrawn_at=datetime.now(UTC), released_data_withdrawn=released,
+            ),
+            "statistics": None,
+            "spe": None,
+        })
+        _results[rid] = withdrawn
+        (_results_dir() / f"{rid}.json").write_text(withdrawn.model_dump_json())
+    if current.spe is not None:
+        delete_spe(current.spe.permit_id)
+    audit.record("decision_withdrawn", "staff", rid, {
+        "decision": current.decision, "reason": reason.strip(), "released_data_withdrawn": released,
+    })
+    return withdrawn
 
 
 def get_result(rid: str) -> RequestResult | None:

@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircle2, Flag, Undo2 } from "lucide-react";
+import { CircleSlash, TriangleAlert } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
 import { readRequest } from "@/api/request";
 import type { RequestResult } from "@/api/types";
-import type { Signature } from "@/app/providers";
 import { DecisionBadge } from "@/components/DecisionBadge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { formatShortTime, formatTime } from "@/lib/format";
 
@@ -16,12 +16,19 @@ type ListProps = {
   onSelect: (requestId: string) => void;
   /** Arrow keys also select when the detail sits beside the list; otherwise they only move focus. */
   selectOnArrow: boolean;
-  /** Staff only: review flags and local sign-off. Applicants never see review flags. */
-  signatures?: Record<string, Signature>;
+  /** Staff see which decisions need attention; applicants never see review flags. */
+  staff?: boolean;
   label: string;
 };
 
-export function RequestList({ results, selectedId, onSelect, selectOnArrow, signatures, label }: ListProps) {
+export function RequestList({
+  results,
+  selectedId,
+  onSelect,
+  selectOnArrow,
+  staff = false,
+  label,
+}: ListProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button[data-request]")];
@@ -38,11 +45,10 @@ export function RequestList({ results, selectedId, onSelect, selectOnArrow, sign
     <ul aria-label={label} onKeyDown={onKeyDown}>
       {results.map((result) => {
         const request = readRequest(result.request);
-        const flags = signatures ? (result.review_flags?.length ?? 0) : 0;
-        const signature = signatures?.[result.request_id];
+        const withdrawn = result.status === "withdrawn";
         const selected = result.request_id === selectedId;
         return (
-          <li key={result.request_id} className="border-b">
+          <li key={result.request_id} className="border-b border-divider">
             <button
               type="button"
               data-request={result.request_id}
@@ -51,45 +57,23 @@ export function RequestList({ results, selectedId, onSelect, selectOnArrow, sign
                 onSelect(result.request_id);
               }}
               className={cn(
-                "flex h-10 w-full cursor-pointer items-center gap-3 px-4 text-left text-[13px] transition-colors duration-100 outline-none hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-5",
+                "flex h-11 w-full cursor-pointer items-center gap-3 px-6 text-left text-data transition-colors duration-100 outline-none hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                 selected && "bg-accent hover:bg-accent",
               )}
             >
-              <span className="w-11 shrink-0 font-mono text-xs text-muted-foreground">
-                {result.request_id}
-              </span>
+              {staff ? <QueueStatus attention={result.needs_attention} withdrawn={withdrawn} /> : null}
+              <span className="w-11 shrink-0 font-mono text-subtle-foreground">{result.request_id}</span>
               <span className="min-w-0 flex-1 truncate">
                 {request.applicant.organisation || "Unknown applicant"}
               </span>
-              {flags ? (
-                <span
-                  className="inline-flex shrink-0 items-center gap-1 text-xs text-warning"
-                  title={`${flags} review flag${flags > 1 ? "s" : ""}`}
-                >
-                  <Flag aria-hidden className="size-3" />
-                  {flags}
-                  <span className="sr-only"> review flag{flags > 1 ? "s" : ""}</span>
-                </span>
-              ) : null}
-              {signature ? (
-                <span
-                  title={signature.kind === "sign" ? "Approved by staff" : "Overridden by staff"}
-                  className="shrink-0"
-                >
-                  {signature.kind === "sign" ? (
-                    <CheckCircle2 aria-label="Approved by staff" className="size-3.5 text-success" />
-                  ) : (
-                    <Undo2 aria-label="Overridden by staff" className="size-3.5 text-warning" />
-                  )}
-                </span>
-              ) : null}
+              {!staff && withdrawn ? <Badge variant="warning">Withdrawn</Badge> : null}
               <span className="hidden shrink-0 sm:inline-flex">
                 <DecisionBadge decision={result.decision} short />
               </span>
               <time
                 dateTime={result.processed_at}
                 title={formatTime(result.processed_at)}
-                className="w-12 shrink-0 text-right text-xs text-muted-foreground tabular-nums"
+                className="w-14 shrink-0 text-right text-caption text-subtle-foreground tabular-nums"
               >
                 {formatShortTime(result.processed_at)}
               </time>
@@ -99,4 +83,25 @@ export function RequestList({ results, selectedId, onSelect, selectOnArrow, sign
       })}
     </ul>
   );
+}
+
+/** Staff queue: an alert icon when the AI was unsure, a muted mark once withdrawn, else nothing. */
+function QueueStatus({ attention, withdrawn }: { attention: boolean; withdrawn: boolean }) {
+  if (withdrawn) {
+    return (
+      <span title="Withdrawn" className="shrink-0">
+        <CircleSlash aria-hidden className="size-4 text-subtle-foreground" />
+        <span className="sr-only">Withdrawn: </span>
+      </span>
+    );
+  }
+  if (attention) {
+    return (
+      <span title="Needs attention" className="shrink-0">
+        <TriangleAlert aria-hidden className="size-4 text-warning" />
+        <span className="sr-only">Needs attention: </span>
+      </span>
+    );
+  }
+  return <span aria-hidden className="size-4 shrink-0" />;
 }

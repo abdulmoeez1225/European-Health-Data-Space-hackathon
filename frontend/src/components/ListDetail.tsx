@@ -13,6 +13,8 @@ type ListArgs = { selectedId: string | null; onSelect: (requestId: string) => vo
 
 type ListDetailProps = {
   results: RequestResult[];
+  /** Where a selected id is looked up: a case stays open after it leaves a filtered list. */
+  lookup?: RequestResult[];
   /** Route of the page; ?id=<request id> selects a request. */
   basePath: string;
   list: (args: ListArgs) => ReactNode;
@@ -20,13 +22,13 @@ type ListDetailProps = {
 };
 
 /** List beside the selected item on wide screens; the item opens in a sheet below 1280 px. */
-export function ListDetail({ results, basePath, list, detail }: ListDetailProps) {
+export function ListDetail({ results, lookup = results, basePath, list, detail }: ListDetailProps) {
   const router = useRouter();
   const selectedParam = useSearchParams().get("id");
   const split = useMediaQuery(SPLIT_QUERY);
   const closedId = useRef<string | null>(null);
   const selected =
-    results.find((result) => result.request_id === selectedParam) ?? (split ? (results[0] ?? null) : null);
+    lookup.find((result) => result.request_id === selectedParam) ?? (split ? (results[0] ?? null) : null);
 
   const select = (requestId: string | null) => {
     router.replace(requestId ? `${basePath}?id=${encodeURIComponent(requestId)}` : basePath, {
@@ -35,7 +37,7 @@ export function ListDetail({ results, basePath, list, detail }: ListDetailProps)
   };
 
   return (
-    <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(340px,420px)_minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 xl:grid-cols-[minmax(420px,520px)_minmax(0,1fr)]">
       <div className="relative min-h-0 md:overflow-y-auto xl:border-r">
         {list({ selectedId: selected?.request_id ?? null, onSelect: select, selectOnArrow: split })}
       </div>

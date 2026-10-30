@@ -87,10 +87,10 @@ export function AppSidebar() {
             <ThemeMenu />
           </SidebarMenuItem>
         </SidebarMenu>
-        <p className="flex items-center gap-1.5 px-2 pt-1 pb-1 text-[11px] leading-4 text-muted-foreground collapsed:hidden">
-          <span className="truncate">Synthetic data · EHDS 2025/327</span>
+        <p className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 text-caption text-subtle-foreground collapsed:hidden">
+          <span>Synthetic data · EHDS 2025/327</span>
           {mock ? (
-            <span className="rounded-sm border px-1 text-[10px] font-medium text-foreground">Mock</span>
+            <span className="rounded-sm border px-1 text-caption font-medium text-foreground">Mock</span>
           ) : null}
         </p>
       </SidebarFooter>

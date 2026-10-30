@@ -4,13 +4,13 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 const alertVariants = cva(
-  "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border px-3.5 py-2.5 text-[13px] has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-2.5 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+  "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border px-4 py-3 text-ui has-[>svg]:grid-cols-[1rem_1fr] has-[>svg]:gap-x-2.5 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
   {
     variants: {
       variant: {
-        default: "bg-card text-foreground [&>svg]:text-muted-foreground",
-        destructive: "border-destructive/30 bg-destructive/[0.04] text-destructive",
-        warning: "border-warning/30 bg-warning/[0.05] text-warning",
+        default: "border-transparent bg-muted text-foreground [&>svg]:text-muted-foreground",
+        destructive: "border-transparent bg-destructive/10 text-destructive",
+        warning: "border-transparent bg-warning/10 text-warning",
       },
     },
     defaultVariants: { variant: "default" },
@@ -34,7 +34,7 @@ export function AlertDescription({ className, ...props }: ComponentProps<"div">)
   return (
     <div
       data-slot="alert-description"
-      className={cn("col-start-2 grid justify-items-start gap-1 text-[13px] text-foreground/80", className)}
+      className={cn("col-start-2 grid justify-items-start gap-1 text-ui text-foreground/85", className)}
       {...props}
     />
   );

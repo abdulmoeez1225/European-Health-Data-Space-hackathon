@@ -3,16 +3,23 @@
 The web UI for Gatekeeper, the automated EHDS Health Data Access Body. It has two workspaces, chosen
 with the switcher at the top of the sidebar (a demo stand-in for sign-in):
 
-| Workspace   | Page             | Route              |
-| ----------- | ---------------- | ------------------ |
-| Applicant   | Request data     | `/`                |
-| Applicant   | My requests      | `/requests/`       |
-| Applicant   | Secure workspace | `/spe/`            |
-| Access body | Decision queue   | `/staff/`          |
-| Access body | Privacy & audit  | `/staff/privacy/`  |
+| Workspace   | Page             | Route                                                              |
+| ----------- | ---------------- | ------------------------------------------------------------------ |
+| Applicant   | Request data     | `/` (the form only)                                                |
+| Applicant   | Decision         | `/requests/?id=R05` (opens after submitting)                       |
+| Applicant   | My requests      | `/requests/`                                                       |
+| Applicant   | Secure workspace | `/spe/` (Browse · Summarise · SQL)                                 |
+| Access body | Decision queue   | `/staff/` (Needs attention · All · Withdrawn)                      |
+| Access body | Privacy & audit  | `/staff/privacy/` (red-team check, blocked releases, activity log) |
 
 The applicant workspace never shows or links staff pages. "My requests" and the secure workspace are
-scoped to the request ids this browser submitted (kept in `localStorage`).
+scoped to the request ids this browser submitted (kept in `localStorage`). Decisions are issued at
+once; staff are alerted when the AI was unsure (`needs_attention`) and can withdraw a decision
+(`POST /api/requests/{id}/withdraw` with a reason), which pulls released statistics or the workspace.
+
+The secure workspace builds its Browse and Summarise SQL in the browser (`src/features/spe/sqlBuilder.ts`:
+table and column names whitelisted from `GET /api/spe/{id}`, values quoted, numeric LIMIT/OFFSET) and runs
+it through the existing read-only query and airlock endpoints.
 
 Stack: Next.js 16 (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4,
 shadcn/ui components on `radix-ui`, TanStack Query, lucide icons, Geist fonts from the `geist` package.
@@ -20,16 +27,16 @@ Nothing is loaded from a CDN. Design decisions are in [DESIGN.md](DESIGN.md).
 
 ## Scripts
 
-| Command                                   | What it does                                                                                    |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `npm run dev`                             | Dev server on http://localhost:3000, calling the backend at `http://localhost:8000` (CORS).     |
-| `npm run build`                           | Static export to `out/`, which FastAPI serves at `/`.                                           |
+| Command                                   | What it does                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `npm run dev`                             | Dev server on http://localhost:3000, calling the backend at `http://localhost:8000` (CORS).         |
+| `npm run build`                           | Static export to `out/`, which FastAPI serves at `/`.                                               |
 | `npm run preview`                         | Serves `out/` on :4173 and proxies `/api` to the backend. Override with `PORT=`, `GATEKEEPER_API=`. |
-| `npm run gen:api`                         | Regenerates `src/api/schema.d.ts` from the backend's OpenAPI schema.                            |
-| `npm run lint`                            | ESLint (Next core-web-vitals, TypeScript, Prettier compatibility), no warnings allowed.         |
-| `npm run typecheck`                       | `tsc --noEmit`.                                                                                 |
-| `npm run test`                            | Vitest and Testing Library.                                                                     |
-| `npm run format` / `npm run format:check` | Prettier.                                                                                       |
+| `npm run gen:api`                         | Regenerates `src/api/schema.d.ts` from the backend's OpenAPI schema.                                |
+| `npm run lint`                            | ESLint (Next core-web-vitals, TypeScript, Prettier compatibility), no warnings allowed.             |
+| `npm run typecheck`                       | `tsc --noEmit`.                                                                                     |
+| `npm run test`                            | Vitest and Testing Library.                                                                         |
+| `npm run format` / `npm run format:check` | Prettier.                                                                                           |
 
 ## API types
 
@@ -55,8 +62,8 @@ against a release ledger, and blocks SPE queries and downloads with audit ids.
 
 ## Useful links
 
-- `/?decision=R01` opens the decision letter for a processed request.
-- `/requests/?id=R05`, `/staff/?id=R05` select a request in a list.
+- `/requests/?id=R01` opens the decision page; old `/?decision=R01` links are forwarded to it.
+- `/staff/?id=R05` selects a case in the queue; `/spe/?permit=permit-R05&tab=summarise` opens a tab.
 - `/spe/?permit=permit-R05` opens a specific data permit (if this browser submitted it).
 - `?theme=dark` or `?theme=light` forces a theme for that page load; otherwise the stored choice
   (Light, Dark, System) applies. ⌘B / Ctrl+B toggles the sidebar.

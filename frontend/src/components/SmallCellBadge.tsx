@@ -16,7 +16,7 @@ export function SmallCellBadge({ value }: { value: typeof LESS_THAN_TEN | typeof
       <TooltipTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-5 cursor-help items-center rounded-[4px] bg-muted px-1.5 text-[11px] font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-6 cursor-help items-center rounded-md bg-accent px-2 text-caption font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {value}
         </button>

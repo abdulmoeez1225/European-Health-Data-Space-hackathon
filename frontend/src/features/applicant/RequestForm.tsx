@@ -23,6 +23,12 @@ const DEFINITION_EXAMPLES = [
   "Report per region: adults, adults with type 2 diabetes and the prevalence.",
 ];
 
+const KIND_HELP: Record<RequestKind, string> = {
+  statistics: "Answered with anonymised counts, percentages or means.",
+  records:
+    "Records are only granted inside a secure workspace, and only if the purpose explains why statistics are not enough.",
+};
+
 type FormProps = {
   draft: RequestDraft;
   onChange: (patch: Partial<RequestDraft>) => void;
@@ -40,12 +46,28 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
     shown(field) ? { "aria-invalid": true, "aria-describedby": errorId } : {};
 
   return (
-    <fieldset disabled={disabled} className="grid gap-6">
+    <fieldset disabled={disabled} className="grid disabled:opacity-70">
       <legend className="sr-only">Data request</legend>
 
-      <Section title="Applicant" description="Who is asking. Requests are decided per organisation.">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_5rem]">
-          <Field label="Name" htmlFor={`${id}-name`}>
+      <SettingsSection title="Applicant" description="Who is asking. Decisions are made per organisation.">
+        <Field label="Organisation" htmlFor={`${id}-org`} required error={shown("organisation")}>
+          <Input
+            id={`${id}-org`}
+            value={draft.organisation}
+            placeholder="University research group"
+            autoComplete="organization"
+            aria-required
+            {...errorProps("organisation", `${id}-org-error`)}
+            onBlur={() => {
+              onTouch("organisation");
+            }}
+            onChange={(event) => {
+              onChange({ organisation: event.target.value });
+            }}
+          />
+        </Field>
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_7rem]">
+          <Field label="Contact name" htmlFor={`${id}-name`}>
             <Input
               id={`${id}-name`}
               value={draft.name}
@@ -53,22 +75,6 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
               autoComplete="name"
               onChange={(event) => {
                 onChange({ name: event.target.value });
-              }}
-            />
-          </Field>
-          <Field label="Organisation" htmlFor={`${id}-org`} required error={shown("organisation")}>
-            <Input
-              id={`${id}-org`}
-              value={draft.organisation}
-              placeholder="University research group"
-              autoComplete="organization"
-              aria-required
-              {...errorProps("organisation", `${id}-org-error`)}
-              onBlur={() => {
-                onTouch("organisation");
-              }}
-              onChange={(event) => {
-                onChange({ organisation: event.target.value });
               }}
             />
           </Field>
@@ -85,21 +91,13 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             />
           </Field>
         </div>
-      </Section>
+      </SettingsSection>
 
-      <Section
+      <SettingsSection
         title="Request"
-        description="What you ask for and why. Only this text is sent to the language model."
+        description="What you need and why. Only this text is sent to the language model."
       >
-        <Field
-          label="Type"
-          htmlFor={`${id}-kind`}
-          hint={
-            draft.kind === "records"
-              ? "Records are only granted inside the secure environment, and only if you explain why statistics are not enough."
-              : "Answered with anonymised counts, percentages or means."
-          }
-        >
+        <Field label="Type" htmlFor={`${id}-kind`} hint={KIND_HELP[draft.kind]}>
           <Select
             value={draft.kind}
             onValueChange={(value) => {
@@ -123,8 +121,8 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
           <Textarea
             id={`${id}-purpose`}
             value={draft.purpose}
-            placeholder="We study regional differences in type 2 diabetes to plan a prevention programme with the regional health authorities."
-            className="min-h-[72px]"
+            placeholder="What the data will be used for, and the public benefit."
+            className="min-h-24"
             aria-required
             {...errorProps("purpose", `${id}-purpose-error`)}
             onBlur={() => {
@@ -139,26 +137,32 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
           <Textarea
             id={`${id}-question`}
             value={draft.question}
-            placeholder="How many adults have type 2 diabetes in each region, and what is the prevalence?"
-            className="min-h-[52px]"
+            placeholder="How many adults have type 2 diabetes in each region?"
+            className="min-h-16"
             onChange={(event) => {
               onChange({ question: event.target.value });
             }}
           />
         </Field>
-      </Section>
+      </SettingsSection>
 
-      <Definitions
-        definitions={draft.definitions}
-        onChange={(definitions) => {
-          onChange({ definitions });
-        }}
-        onTouch={() => {
-          onTouch("definitions");
-        }}
-        error={shown("definitions")}
-        errorId={`${id}-definitions-error`}
-      />
+      <SettingsSection
+        title="Definitions"
+        required
+        description="Every condition, drug, measurement and group, in plain English. Codes are looked up for you."
+      >
+        <Definitions
+          definitions={draft.definitions}
+          onChange={(definitions) => {
+            onChange({ definitions });
+          }}
+          onTouch={() => {
+            onTouch("definitions");
+          }}
+          error={shown("definitions")}
+          errorId={`${id}-definitions-error`}
+        />
+      </SettingsSection>
     </fieldset>
   );
 }
@@ -200,18 +204,14 @@ function Definitions({
   };
 
   return (
-    <Section
-      title="Definitions"
-      required
-      description="Define every condition, drug, measurement and group in plain English. The codes are looked up for you."
-    >
+    <div className="grid gap-3">
       {definitions.length ? (
-        <ol className="grid max-h-72 gap-1.5 overflow-y-auto p-0.5" aria-label="Definitions">
+        <ol className="grid max-h-80 gap-2 overflow-y-auto p-0.5" aria-label="Definitions">
           {definitions.map((definition, index) => (
-            <li key={index} className="group flex items-center gap-2">
+            <li key={index} className="flex items-center gap-2">
               <span
                 aria-hidden
-                className="w-4 shrink-0 text-right text-xs text-muted-foreground tabular-nums"
+                className="w-5 shrink-0 text-right text-data text-subtle-foreground tabular-nums"
               >
                 {index + 1}
               </span>
@@ -240,7 +240,7 @@ function Definitions({
               />
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 aria-label={`Remove definition ${index + 1}`}
                 onClick={() => {
                   remove(index);
@@ -252,16 +252,14 @@ function Definitions({
           ))}
         </ol>
       ) : (
-        <div className="rounded-md border border-dashed px-4 py-5 text-center text-[13px] text-muted-foreground">
-          No definitions yet. For example:{" "}
-          <span className="text-foreground/80">{DEFINITION_EXAMPLES[0]}</span>
-        </div>
+        <p className="rounded-lg bg-muted px-4 py-5 text-body text-muted-foreground">
+          No definitions yet. For example: <span className="text-foreground">{DEFINITION_EXAMPLES[0]}</span>
+        </p>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button
           ref={addButton}
           variant="outline"
-          size="sm"
           onClick={() => {
             insert(definitions.length);
           }}
@@ -269,42 +267,39 @@ function Definitions({
           <Plus aria-hidden />
           Add definition
         </Button>
-        {definitions.length ? (
-          <span className="text-xs text-muted-foreground">
-            <kbd className="font-sans">Enter</kbd> adds a row below
-          </span>
-        ) : null}
+        <span className="text-data text-muted-foreground">Press Enter in a row to add the next one.</span>
       </div>
       {error ? (
-        <p id={errorId} className="text-xs text-destructive">
+        <p id={errorId} className="text-data text-destructive">
           {error}
         </p>
       ) : null}
-    </Section>
+    </div>
   );
 }
 
-function Section({
+/** Settings-style section: title and one line on the left, fields on the right. */
+function SettingsSection({
   title,
   description,
   required,
   children,
 }: {
   title: string;
-  description?: string;
+  description: string;
   required?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-3">
-      <div>
-        <h2 className="text-[13px] font-medium">
+    <section className="grid gap-6 border-t border-divider py-10 first-of-type:border-t-0 first-of-type:pt-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid content-start gap-1.5">
+        <h2 className="text-card-title font-semibold">
           {title}
           {required ? <RequiredMark /> : null}
         </h2>
-        {description ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
+        <p className="text-body text-muted-foreground">{description}</p>
       </div>
-      {children}
+      <div className="grid max-w-[640px] content-start gap-6">{children}</div>
     </section>
   );
 }
@@ -325,18 +320,18 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="grid content-start gap-1.5">
+    <div className="grid content-start gap-2">
       <Label htmlFor={htmlFor}>
         {label}
         {required ? <RequiredMark /> : null}
       </Label>
       {children}
       {error ? (
-        <p id={`${htmlFor}-error`} className="text-xs text-destructive">
+        <p id={`${htmlFor}-error`} className="text-data text-destructive">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${htmlFor}-hint`} className="text-xs text-muted-foreground">
+        <p id={`${htmlFor}-hint`} className="text-data text-muted-foreground">
           {hint}
         </p>
       ) : null}
@@ -346,7 +341,7 @@ function Field({
 
 function RequiredMark() {
   return (
-    <span aria-hidden className="ml-0.5 font-normal text-muted-foreground/70">
+    <span aria-hidden className="ml-1 font-normal text-subtle-foreground">
       *
     </span>
   );

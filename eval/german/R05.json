@@ -1,0 +1,19 @@
+{
+  "id": "R05",
+  "submitted": "2026-10-29T19:20:00+01:00",
+  "applicant": {
+    "name": "Dr. Amir Hadžić",
+    "organisation": "GlucoSense, universitäres Spin-off zur Entwicklung klinischer Prognosesoftware",
+    "country": "AT"
+  },
+  "requested_as": "Antrag auf Zugang zu Gesundheitsdaten",
+  "requested_format": "pseudonymisierte Datensätze",
+  "purpose": "Wir trainieren und validieren ein Modell, das vorhersagt, bei welchen Patientinnen und Patienten mit Typ-2-Diabetes der HbA1c-Wert in den nächsten 12 Monaten über 8 % liegen wird, damit Hausärztinnen und Hausärzte früher eingreifen können. Für das Training sind Verlaufsdaten auf Individualebene erforderlich; Aggregatdaten reichen nicht aus.",
+  "question": "Bitte stellen Sie pseudonymisierte Erkrankungen, Medikamente und HbA1c-Werte für Erwachsene mit Typ-2-Diabetes bereit, die mindestens einen HbA1c-Wert haben. Wir werden ausschließlich Modellgewichte und Leistungskennzahlen exportieren.",
+  "definitions": [
+    "Erwachsene = Personen im Alter von 18 Jahren oder älter am 31. Dezember 2025.",
+    "Typ-2-Diabetes = jede Erkrankung mit einem ICD-10-Code, der mit E11 beginnt.",
+    "Kohorte = Erwachsene mit Typ-2-Diabetes, die mindestens einen HbA1c-Wert (LOINC 4548-4) haben.",
+    "Geben Sie die Größe der Kohorte an, die Sie bereitstellen würden."
+  ]
+}

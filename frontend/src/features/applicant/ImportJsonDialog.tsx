@@ -50,7 +50,7 @@ export function ImportJsonDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" disabled={disabled}>
+        <Button variant="outline" disabled={disabled}>
           <Braces aria-hidden />
           Import JSON
         </Button>
@@ -74,7 +74,7 @@ export function ImportJsonDialog({
             placeholder={PLACEHOLDER}
             aria-invalid={showError || undefined}
             aria-describedby={`${id}-status`}
-            className="h-64 resize-none font-mono text-xs leading-relaxed field-sizing-fixed"
+            className="h-64 resize-none font-mono text-data leading-relaxed field-sizing-fixed"
             onChange={(event) => {
               setText(event.target.value);
             }}

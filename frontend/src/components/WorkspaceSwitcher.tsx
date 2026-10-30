@@ -34,15 +34,13 @@ export function WorkspaceSwitcher({ workspace }: { workspace: WorkspaceId }) {
           <span
             data-icon
             aria-hidden
-            className="grid size-6 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground [&>svg]:size-3.5"
+            className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground [&>svg]:size-4"
           >
             <Landmark />
           </span>
           <span className="grid min-w-0 flex-1 leading-tight">
-            <span className="truncate text-[13px] font-semibold text-sidebar-accent-foreground">
-              Gatekeeper
-            </span>
-            <span className="truncate text-[11px] text-muted-foreground">{current.name}</span>
+            <span className="truncate text-ui font-semibold text-sidebar-accent-foreground">Gatekeeper</span>
+            <span className="truncate text-caption text-muted-foreground">{current.name}</span>
           </span>
           <ChevronsUpDown aria-hidden className="ml-auto size-3.5! text-muted-foreground collapsed:hidden" />
         </SidebarMenuButton>
@@ -61,14 +59,16 @@ export function WorkspaceSwitcher({ workspace }: { workspace: WorkspaceId }) {
           {(Object.keys(WORKSPACES) as WorkspaceId[]).map((id) => (
             <DropdownMenuRadioItem key={id} value={id} className="items-start">
               <span className="grid leading-tight">
-                <span className="text-[13px] text-foreground">{WORKSPACES[id].name}</span>
-                <span className="text-xs text-muted-foreground">{WORKSPACES[id].audience}</span>
+                <span className="text-ui text-foreground">{WORKSPACES[id].name}</span>
+                <span className="text-caption text-muted-foreground">{WORKSPACES[id].audience}</span>
               </span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <p className="px-2 py-1.5 text-[11px] text-muted-foreground">Demo: role switch instead of sign-in</p>
+        <p className="px-2 py-1.5 text-caption text-subtle-foreground">
+          Demo: role switch instead of sign-in
+        </p>
       </DropdownMenuContent>
     </DropdownMenu>
   );

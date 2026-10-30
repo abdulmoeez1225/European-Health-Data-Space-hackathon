@@ -1,0 +1,21 @@
+{
+  "id": "R09",
+  "submitted": "2026-10-29T20:20:00+01:00",
+  "applicant": {
+    "name": "Dr. Nina Hofbauer",
+    "organisation": "Institut für Allgemeinmedizin (Universität)",
+    "country": "AT"
+  },
+  "requested_as": "Antrag auf Zugang zu Gesundheitsdaten",
+  "requested_format": "pseudonymisierte Datensätze",
+  "purpose": "Wir möchten vergleichen, wie häufig ACE-Hemmer und Angiotensin-Rezeptorblocker bei Hypertonie in verschiedenen Altersgruppen eingesetzt werden, um ein Lehrmodul für Hausärztinnen und Hausärzte zu aktualisieren.",
+  "question": "Bitte stellen Sie pseudonymisierte Datensätze aller Erwachsenen mit Hypertonie und ihrer Medikamente bereit.",
+  "definitions": [
+    "Erwachsene = Personen im Alter von 18 Jahren oder älter am 31. Dezember 2025.",
+    "Hypertonie = jede Erkrankung mit einem ICD-10-Code, der mit I10 beginnt.",
+    "ACE-Hemmer = ATC-Code, der mit C09AA beginnt; ARB (Angiotensin-Rezeptorblocker) = ATC-Code, der mit C09CA beginnt.",
+    "Ein Medikament ist am 31. Dezember 2025 aktiv, wenn start_date an diesem Tag oder davor liegt und end_date leer ist oder an diesem Tag oder danach liegt.",
+    "Altersgruppen am 31. Dezember 2025: 18-49, 50-64, 65+.",
+    "Bericht pro Altersgruppe: Erwachsene mit Hypertonie, % mit einem aktiven ACE-Hemmer und % mit einem aktiven ARB, eine Nachkommastelle."
+  ]
+}

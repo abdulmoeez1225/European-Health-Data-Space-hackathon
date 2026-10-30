@@ -45,12 +45,17 @@ export function SqlConsole({ permitId }: { permitId: string }) {
   };
 
   return (
-    <section aria-labelledby={`${inputId}-heading`} className="grid min-w-0 gap-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id={`${inputId}-heading`} className="text-[13px] font-medium text-muted-foreground">
-          SQL console
-        </h2>
-        <span className="text-xs text-muted-foreground max-sm:hidden">Read-only · ⌘/Ctrl + Enter to run</span>
+    <section aria-labelledby={`${inputId}-heading`} className="grid min-w-0 gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h3 id={`${inputId}-heading`} className="text-card-title font-semibold">
+            SQL console
+          </h3>
+          <p className="text-ui text-muted-foreground">
+            Read-only SELECT on this permit&apos;s tables. Results stay inside.
+          </p>
+        </div>
+        <span className="text-xs text-muted-foreground max-sm:hidden">⌘/Ctrl + Enter to run</span>
       </div>
       <Label htmlFor={inputId} className="sr-only">
         SQL query
@@ -58,7 +63,7 @@ export function SqlConsole({ permitId }: { permitId: string }) {
       <Textarea
         id={inputId}
         value={sql}
-        rows={5}
+        rows={6}
         spellCheck={false}
         onChange={(event) => {
           setSql(event.target.value);
@@ -69,10 +74,11 @@ export function SqlConsole({ permitId }: { permitId: string }) {
             execute("query");
           }
         }}
-        className="field-sizing-fixed resize-y font-mono text-xs"
+        className="field-sizing-fixed resize-y font-mono text-data"
       />
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          className="h-9"
           disabled={run.isPending}
           onClick={() => {
             execute("query");
@@ -83,6 +89,7 @@ export function SqlConsole({ permitId }: { permitId: string }) {
         </Button>
         <Button
           variant="outline"
+          className="h-9"
           disabled={run.isPending}
           onClick={() => {
             execute("airlock");
@@ -96,11 +103,12 @@ export function SqlConsole({ permitId }: { permitId: string }) {
           Export via airlock
         </Button>
         <span className="mx-1 h-4 w-px bg-border max-sm:hidden" aria-hidden />
+        <span className="text-data text-muted-foreground">Examples:</span>
         {PRESETS.map((preset) => (
           <Button
             key={preset.label}
             variant="ghost"
-            size="sm"
+            className="h-9"
             disabled={run.isPending}
             onClick={() => {
               setSql(preset.sql);
@@ -122,7 +130,7 @@ export function SqlConsole({ permitId }: { permitId: string }) {
               : ""}
       </p>
       {run.isError || run.isSuccess ? (
-        <div className="mt-2 grid gap-2">
+        <div className="mt-2 grid gap-3">
           {run.isError ? <QueryError error={run.error} /> : null}
           {run.isSuccess ? <OutcomeView outcome={run.data} /> : null}
         </div>
@@ -156,7 +164,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
           {plural(data.rows.length, "row")} · inside the environment only
           {data.truncated ? " · truncated by the server" : ""}
         </p>
-        <ResultTable columns={data.columns} rows={data.rows} caption="Query result" />
+        <ResultTable columns={data.columns} rows={data.rows} caption="Query result" rawHeaders />
       </>
     );
   }
@@ -183,7 +191,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
   const suppressed = rows.filter((row) => row.some(isProtectedMarker)).length;
   return (
     <>
-      <p className="flex flex-wrap items-center gap-1.5 text-[13px]">
+      <p className="flex flex-wrap items-center gap-1.5 text-ui">
         <CheckCircle2 aria-hidden className="size-4 text-success" />
         <span className="font-medium">Released through the airlock</span>
         <span className="text-muted-foreground">
@@ -197,7 +205,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
           ))}
         </ul>
       ) : null}
-      <ResultTable columns={data.columns ?? []} rows={rows} caption="Airlock export" />
+      <ResultTable columns={data.columns ?? []} rows={rows} caption="Airlock export" rawHeaders />
     </>
   );
 }

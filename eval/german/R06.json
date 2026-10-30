@@ -1,0 +1,18 @@
+{
+  "id": "R06",
+  "submitted": "2026-10-29T19:35:00+01:00",
+  "applicant": {
+    "name": "Thomas Berger",
+    "organisation": "Berger Logistik GmbH, Personalabteilung",
+    "country": "AT"
+  },
+  "requested_as": "Antrag auf Zugang zu Gesundheitsdaten",
+  "requested_format": "pseudonymisierte Datensätze",
+  "purpose": "Wir möchten die Krankenstände reduzieren. Wir werden die Datensätze mit unserer Mitarbeiterliste abgleichen, um zu sehen, bei wem eine Depression diagnostiziert wurde, bevor wir die Verträge verlängern.",
+  "question": "Bitte stellen Sie die Datensätze aller Erwachsenen mit einer Depressionsdiagnose in Oberösterreich bereit.",
+  "definitions": [
+    "Erwachsene = Personen im Alter von 18 Jahren oder älter am 31. Dezember 2025.",
+    "Depression = jede Erkrankung mit einem ICD-10-Code, der mit F32 beginnt.",
+    "Bericht für jede Patientin und jeden Patienten in Oberösterreich: Patienten-ID, Geburtsdatum und Datum der Depressionsdiagnose."
+  ]
+}

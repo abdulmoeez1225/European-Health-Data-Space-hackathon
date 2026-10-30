@@ -9,8 +9,8 @@ export const metadata: Metadata = { title: "Request data" };
 
 export default function NewRequestPage() {
   return (
-    <PageBody>
-      <Suspense fallback={<Skeleton className="mx-auto h-[560px] max-w-3xl rounded-lg" />}>
+    <PageBody width="reading">
+      <Suspense fallback={<Skeleton className="h-[560px] rounded-xl" />}>
         <NewRequest />
       </Suspense>
     </PageBody>

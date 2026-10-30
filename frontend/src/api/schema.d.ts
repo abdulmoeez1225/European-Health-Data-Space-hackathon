@@ -73,6 +73,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/requests/{request_id}/withdraw": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Withdraw Request */
+    post: operations["withdraw_request_api_requests__request_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/law": {
     parameters: {
       query?: never;
@@ -285,6 +302,26 @@ export interface components {
       detail?: {
         [key: string]: unknown;
       };
+    };
+    /** AuditPage */
+    AuditPage: {
+      /**
+       * Total
+       * @description Events matching the filter.
+       */
+      total: number;
+      /**
+       * Counts
+       * @description All events per event type.
+       */
+      counts: {
+        [key: string]: number;
+      };
+      /**
+       * Events
+       * @description Newest first, at most `limit`.
+       */
+      events: components["schemas"]["AuditEvent"][];
     };
     /** CodeMapping */
     CodeMapping: {
@@ -890,12 +927,24 @@ export interface components {
        */
       cached: boolean;
       consensus?: components["schemas"]["Consensus"];
+      /**
+       * Status
+       * @default issued
+       * @enum {string}
+       */
+      status: "issued" | "withdrawn";
+      withdrawal?: components["schemas"]["Withdrawal"] | null;
       timings?: components["schemas"]["Timings"];
       /**
        * Processed At
        * Format: date-time
        */
       processed_at: string;
+      /**
+       * Needs Attention
+       * @description Issued with review flags: staff should look at it.
+       */
+      readonly needs_attention: boolean;
     };
     /** ReviewFlag */
     ReviewFlag: {
@@ -1006,6 +1055,26 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /** WithdrawRequest */
+    WithdrawRequest: {
+      /** Reason */
+      reason: string;
+    };
+    /**
+     * Withdrawal
+     * @description Staff withdrew an issued decision; released data was pulled and the case is handled manually.
+     */
+    Withdrawal: {
+      /** Reason */
+      reason: string;
+      /**
+       * Withdrawn At
+       * Format: date-time
+       */
+      withdrawn_at: string;
+      /** Released Data Withdrawn */
+      released_data_withdrawn: boolean;
     };
   };
   responses: never;
@@ -1153,9 +1222,55 @@ export interface operations {
       };
     };
   };
-  law_api_law_get: {
+  withdraw_request_api_requests__request_id__withdraw_post: {
     parameters: {
       query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WithdrawRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestResult"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  law_api_law_get: {
+    parameters: {
+      query?: {
+        lang?: "en" | "de";
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -1169,6 +1284,15 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LawResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
@@ -1354,6 +1478,8 @@ export interface operations {
     parameters: {
       query?: {
         limit?: number;
+        event?: string | null;
+        subject?: string | null;
       };
       header?: never;
       path?: never;
@@ -1367,7 +1493,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["AuditEvent"][];
+          "application/json": components["schemas"]["AuditPage"];
         };
       };
       /** @description Validation Error */

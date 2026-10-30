@@ -7,79 +7,102 @@
 @custom-variant collapsed (&:is([data-sidebar-state="collapsed"] [data-slot="sidebar-desktop"] *));
 
 /*
- * Design tokens (see DESIGN.md). Linear-style neutrals, one indigo accent for primary actions and
- * focus. Status colours appear only as small dots, icons and badge text.
+ * Design tokens (see DESIGN.md). Light is a soft, low-glare palette (warm off-whites, no large pure
+ * white areas, no #000/#fff pairs); dark is near-black with raised surfaces instead of borders.
+ * One indigo accent for primary actions, focus, active nav and links. Status colours are tinted
+ * badges and dots only.
  */
 :root {
   color-scheme: light;
   --radius: 0.5rem;
-  --background: #ffffff;
+  --background: #f6f6f4;
   --foreground: #1f2023;
-  --card: #ffffff;
+  --card: #fbfbfa;
   --card-foreground: #1f2023;
   --popover: #ffffff;
   --popover-foreground: #1f2023;
-  --primary: #5e6ad2;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f3f4;
-  --secondary-foreground: #1f2023;
-  --muted: #f4f4f5;
-  --muted-foreground: #6b6f76;
-  --accent: #f1f1f3;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-foreground: #fbfbfa;
+  --muted: #f1f1ee;
+  --muted-foreground: #55585f;
+  --subtle-foreground: #63666d;
+  --accent: #ecebe7;
   --accent-foreground: #1f2023;
-  --destructive: #c4372f;
-  --success: #217a4b;
-  --warning: #a35f00;
-  --info: #2f6fd8;
-  --border: #e8e8ea;
-  --input: #e2e2e5;
-  --ring: #5e6ad2;
-  --sidebar: #f7f7f8;
+  --destructive: #b42318;
+  --success: #15803d;
+  --warning: #a15c07;
+  --info: #1d4ed8;
+  --border: #e4e3df;
+  --divider: #ebeae6;
+  --input: #dddcd8;
+  --field: #fbfbfa;
+  --ring: #4f46e5;
+  --sidebar: #efefec;
   --sidebar-foreground: #1f2023;
-  --sidebar-primary: #5e6ad2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eaeaec;
+  --sidebar-accent: #e4e3df;
   --sidebar-accent-foreground: #1f2023;
-  --sidebar-border: #e8e8ea;
-  --sidebar-ring: #5e6ad2;
+  --sidebar-ring: #4f46e5;
+  --shadow-float: 0 8px 24px rgb(31 32 35 / 0.08), 0 1px 3px rgb(31 32 35 / 0.06);
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0f1011;
-  --foreground: #f7f8f8;
-  --card: #141516;
-  --card-foreground: #f7f8f8;
-  --popover: #18191b;
-  --popover-foreground: #f7f8f8;
-  --primary: #5e6ad2;
+  --background: #0b0c0e;
+  --foreground: #ececee;
+  --card: #16171a;
+  --card-foreground: #ececee;
+  --popover: #1c1d21;
+  --popover-foreground: #ececee;
+  --primary: #5f63ee;
+  --primary-hover: #6e72f2;
   --primary-foreground: #ffffff;
-  --secondary: #1c1d1f;
-  --secondary-foreground: #f7f8f8;
-  --muted: #1a1b1d;
-  --muted-foreground: #8a8f98;
-  --accent: #1c1d20;
-  --accent-foreground: #f7f8f8;
-  --destructive: #eb5757;
-  --success: #4cb782;
-  --warning: #f2c94c;
-  --info: #4ea7fc;
-  --border: rgb(255 255 255 / 0.08);
-  --input: rgb(255 255 255 / 0.1);
-  --ring: #7c86e2;
+  --muted: #1d1e22;
+  --muted-foreground: #a3a6ad;
+  --subtle-foreground: #7e828a;
+  --accent: #222328;
+  --accent-foreground: #ececee;
+  --destructive: #e58a8a;
+  --success: #7cc49a;
+  --warning: #e2b75a;
+  --info: #84aee8;
+  --border: #232428;
+  --divider: #1d1e22;
+  --input: #2a2b30;
+  --field: #16171a;
+  --ring: #818cf8;
   --sidebar: #08090a;
-  --sidebar-foreground: #e6e7e8;
-  --sidebar-primary: #5e6ad2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgb(255 255 255 / 0.07);
-  --sidebar-accent-foreground: #f7f8f8;
-  --sidebar-border: rgb(255 255 255 / 0.06);
-  --sidebar-ring: #7c86e2;
+  --sidebar-foreground: #d9dadd;
+  --sidebar-accent: #222328;
+  --sidebar-accent-foreground: #ececee;
+  --sidebar-ring: #818cf8;
+  --shadow-float: 0 0 0 1px #232428;
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale: never below 12px. */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
+  --text-data: 0.8125rem;
+  --text-data--line-height: 1.25rem;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.25rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-lead: 1rem;
+  --text-lead--line-height: 1.6;
+  --text-card-title: 1rem;
+  --text-card-title--line-height: 1.5rem;
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.625rem;
+  --text-headline: 1.375rem;
+  --text-headline--line-height: 1.875rem;
+  --text-title: 1.5rem;
+  --text-title--line-height: 2rem;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -87,11 +110,11 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -99,16 +122,16 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-border: var(--border);
+  --color-divider: var(--divider);
   --color-input: var(--input);
+  --color-field: var(--field);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --shadow-float: var(--shadow-float);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -133,7 +156,7 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-sidebar font-sans text-sm text-foreground antialiased;
+    @apply bg-sidebar font-sans text-ui text-foreground antialiased;
     font-feature-settings: "cv11";
   }
   table {

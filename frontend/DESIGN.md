@@ -2,90 +2,113 @@
 
 Gatekeeper is an automated Health Data Access Body (HDAB) under the European Health Data Space,
 Regulation (EU) 2025/327, Chapter IV. The UI must make every decision understandable to the applicant
-who receives it and checkable by the official who answers for it.
+who receives it and checkable by the official who answers for it. Its readers are applicants, case
+officers and a jury watching a 1080p demo, so it favours readable type and room over density.
 
 ## Principles
 
-1. **Outcome first.** The decision, one plain sentence and the cited articles come before any detail.
-2. **Two workspaces, two audiences.** Applicants (researchers and organisations) and HDAB staff get
-   separate navigation. The applicant workspace never lists or links a staff page. Without sign-in, a
-   workspace switcher stands in for roles.
-3. **Linear-style restraint.** Neutral surfaces, hairline borders, almost no shadows, one indigo accent for
-   primary actions and focus. Colour appears only as small status dots, icons and badge text.
-4. **Dense but calm.** 13–14 px UI text, 8 px spacing rhythm, one primary action per page.
-5. **Protection is visible, not alarming.** `<10` and `suppressed` are muted badges with a tooltip and a
-   one-line legend. Blocks (download, ledger, SQL) are specific: what, why, which article, audit id.
-6. **Accessible by default.** Real landmarks, tabs, dialogs and sheets (Radix), visible focus rings,
-   keyboard paths for every action, AA contrast in both themes, `prefers-reduced-motion` respected,
-   no information by colour alone.
+1. **Outcome first, little text.** A decision is a badge, a headline, one plain sentence and one short
+   row per cited article. The full reasoning is one click away ("Full reasoning"), never in the way.
+2. **Two workspaces, two audiences.** Applicants and HDAB staff have separate navigation; the applicant
+   workspace never lists or links a staff page. A workspace switcher stands in for sign-in.
+3. **Issued, not approved.** What the applicant gets is "Statistics granted", "Secure access granted" or
+   "Refused", issued instantly. Staff are alerted when the AI was unsure ("Needs attention") and can
+   withdraw a decision with a reason the applicant sees; nothing else needs a click.
+4. **Room to breathe.** 8 pt grid, generous section gaps, 60ch measure for reading text, hairlines used
+   sparingly, surfaces separated by colour rather than borders.
+5. **Calm colour.** Soft low-glare light theme, near-black dark theme, one indigo accent (primary
+   buttons, focus, active nav, links). Status colours only as tinted badges, dots and icons.
+6. **Accessible by default.** Radix dialogs, sheets, tabs and selects; visible focus rings; keyboard
+   paths everywhere (arrow keys in lists, Enter adds a definition row, ⌘B toggles the sidebar); AA
+   contrast in both themes; `prefers-reduced-motion`; colour never the only signal.
 
-## Tokens
+## Tokens (`src/app/globals.css`)
 
-CSS custom properties in `src/app/globals.css`, exposed to Tailwind 4 with `@theme inline` and named
-like shadcn/ui. Dark mode is the `.dark` class on `<html>`, set before first paint by the boot script
-(`src/lib/preferences.ts`) from the stored choice (Light, Dark or System) or `?theme=`.
+Exposed to Tailwind 4 with `@theme inline`, named like shadcn/ui. `.dark` on `<html>` is set before
+first paint by the boot script (`src/lib/preferences.ts`) from Light / Dark / System or `?theme=`.
 
-| Token                                     | Light         | Dark          | Use                                            |
-| ----------------------------------------- | ------------- | ------------- | ---------------------------------------------- |
-| `sidebar`                                 | `#f7f7f8`     | `#08090a`     | App frame and sidebar                          |
-| `background`                              | `#ffffff`     | `#0f1011`     | Content panel                                  |
-| `card` / `popover`                        | `#ffffff`     | `#141516`     | Letter, form, menus                            |
-| `foreground`                              | `#1f2023`     | `#f7f8f8`     | Text                                           |
-| `muted-foreground`                        | `#6b6f76`     | `#8a8f98`     | Secondary text (≥ 4.9:1)                       |
-| `border` / `input`                        | `#e8e8ea`     | white 8–10 %  | Hairlines, fields                              |
-| `accent`                                  | `#f1f1f3`     | `#1c1d20`     | Hover and selected rows                        |
-| `primary` / `ring`                        | `#5e6ad2`     | `#5e6ad2`     | Primary button, focus ring                     |
-| `success` / `info` / `destructive`        | green / blue / red | lighter tints | Decision dots: statistics / secure env. / rejected |
-| `warning`                                 | `#a35f00`     | `#f2c94c`     | Review flags, override                         |
+| Token                         | Light                                  | Dark                  | Use                                  |
+| ----------------------------- | -------------------------------------- | --------------------- | ------------------------------------ |
+| `sidebar`                     | `#efefec`                              | `#08090a`             | App frame and sidebar                |
+| `background`                  | `#f6f6f4` (warm off-white canvas)      | `#0b0c0e`             | Content panel                        |
+| `card`                        | `#fbfbfa`                              | `#16171a`             | Raised surfaces (letter, form)       |
+| `popover`                     | `#ffffff` (small floating layers only) | `#1c1d21`             | Menus, dialogs, toasts               |
+| `muted` / `accent`            | `#f1f1ee` / `#ecebe7`                  | `#1d1e22` / `#222328` | Fills, table heads, hover, selected  |
+| `foreground`                  | `#1f2023`                              | `#ececee`             | Text (no pure black or white)        |
+| `muted-foreground`            | `#55585f`                              | `#a3a6ad`             | Secondary text                       |
+| `subtle-foreground`           | `#63666d`                              | `#7e828a`             | Metadata only (AA on every surface)  |
+| `border` / `divider`          | `#e4e3df` / `#ebeae6`                  | `#232428` / `#1d1e22` | Hairlines                            |
+| `input` / `field`             | `#dddcd8` / `#fbfbfa`                  | `#2a2b30` / `#16171a` | Form controls; focus ring accent 35% |
+| `primary` (+ `primary-hover`) | `#4f46e5` (`#4338ca`)                  | `#5f63ee` (`#6e72f2`) | Primary buttons, focus, links        |
+| `success` / `info`            | `#15803d` / `#1d4ed8`                  | `#7cc49a` / `#84aee8` | Statistics granted / Secure access   |
+| `destructive` / `warning`     | `#b42318` / `#a15c07`                  | `#e58a8a` / `#e2b75a` | Refused, blocks / flags, overrides   |
 
-Radius: `--radius` 8 px (`rounded-lg`), 6 px controls, 4 px chips. Type: Geist Sans and Geist Mono from
-the `geist` package (bundled, no CDN), tabular figures in tables. Motion: 100–150 ms fades only.
+Badges use these at ~10 % as background with the full colour as text. Shadows: one soft `shadow-float`
+for floating layers in light, none in dark. Radius: 8 px controls, 12 px cards.
+
+**Type scale** (Geist Sans / Geist Mono from the `geist` package, never below 12 px):
+
+| Token             | Size / line height | Use                                                      |
+| ----------------- | ------------------ | -------------------------------------------------------- |
+| `text-caption`    | 12 / 18            | Timestamps, ids, footnotes, eyebrow labels               |
+| `text-data`       | 13 / 20            | Tables, queue rows, code, SQL                            |
+| `text-ui`         | 14 / 20            | Buttons, inputs, selects, nav (36 px rows), tabs, labels |
+| `text-body`       | 15 / 1.6           | Reading text, descriptions, empty states                 |
+| `text-lead`       | 16 / 1.6           | The decision's one plain sentence                        |
+| `text-card-title` | 16, 600            | Card and form-section titles                             |
+| `text-section`    | 18, 600            | Section headings                                         |
+| `text-headline`   | 22, 600            | Decision headline                                        |
+| `text-title`      | 24, 600            | Page titles, large numbers                               |
+
+**Spacing**: 4 px base, 8 pt rhythm. Page padding 40 px (24 px on tablets), card padding 24–32 px,
+section gap 40 px, field gap 24 px, label to input 8 px. Controls 36 px tall, primary CTA 40 px,
+table rows 44 px. Motion: 100–150 ms fades only.
 
 ## Components
 
-`src/components/ui` holds shadcn/ui components built on `radix-ui`, `class-variance-authority` and
-`tailwind-merge`: Sidebar, Button, Badge, Card, Table, Tabs, Tooltip, Collapsible, Select, Input,
+`src/components/ui`: shadcn/ui on `radix-ui` + `class-variance-authority` + `tailwind-merge` — Sidebar,
+Button, Badge, Card, Table, Tabs, Segmented (filter toggles), Tooltip, Collapsible, Select, Input,
 Textarea, Label, Separator, Skeleton, DropdownMenu, Dialog, Sheet, Alert, Breadcrumb.
 
-Domain components in `src/components`:
-
-| Component           | Notes                                                                              |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `AppSidebar`        | Workspace switcher, workspace nav, theme menu, "Synthetic data · EHDS 2025/327"   |
-| `WorkspaceSwitcher` | Gatekeeper mark as a dropdown: Applicant / Access body, remembered locally         |
-| `TopBar`            | Sidebar toggle (⌘B) and breadcrumb (workspace › page)                              |
-| `PageHeader`        | 17 px title, one muted line, actions on the right                                  |
-| `DecisionLetter`    | Badge, headline, reason, article chips, then statistics, permit or advice          |
-| `StatsTable`        | Right-aligned figures, small-cell badges, lock and footnote for ledger cells       |
-| `DecisionBadge`     | Neutral badge with a status dot; short form in lists                               |
-| `ArticleChip`       | "Art. 53" with a tooltip: title, why it applies here, plain summary (`/api/law`)   |
-| `SmallCellBadge`    | `<10` / `suppressed` with the small-cell rule in a tooltip                         |
-| `RequestList`       | Linear issue-list rows: id, organisation, decision, flags, time; arrow keys        |
-| `ListDetail`        | List beside the selected item ≥ 1280 px, a sheet below; `?id=` selects             |
-| `CodeBlock`         | Collapsible code with copy button (query plan, SQL)                                |
+| Component           | Notes                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AppSidebar`        | Workspace switcher, workspace nav, theme menu, "Synthetic data · EHDS 2025/327"                                                                  |
+| `WorkspaceSwitcher` | Gatekeeper mark as a dropdown: Applicant / Access body (demo stand-in for sign-in)                                                               |
+| `TopBar`            | Sidebar toggle and breadcrumb (workspace › page)                                                                                                 |
+| `PageHeader`        | 24 px title, one 15 px line, actions on the right (stacked below 1024 px)                                                                        |
+| `DecisionLetter`    | Badge → headline → one sentence → legal-basis rows → statistics / permit stats / advice → "Full reasoning" → footer                              |
+| `StatsTable`        | Grouped answers as a table (right-aligned figures); an ungrouped answer as one labelled value; `<10`/`suppressed` badges; ledger lock + footnote |
+| `DecisionBadge`     | Tinted badge with a dot; short form in lists                                                                                                     |
+| `ArticleChip`       | "Art. 53" chip; tooltip with the article title, why it applies, plain summary                                                                    |
+| `RequestList`       | Linear issue-list rows (44 px): review icon (staff), id, organisation, flags, decision, time                                                     |
+| `ListDetail`        | List beside the selected item ≥ 1280 px, a sheet below; `?id=` selects                                                                           |
+| `Toast`             | Small confirmation in the top bar's right corner ("Decision ready", "Loaded R05 — …")                                                            |
 
 ## Page anatomy
 
-Every page: top bar (toggle, breadcrumb), then a page header row (title, one line, actions), then
-content in the inset panel (max 1100 px, the form at 768 px).
+**Applicant**
 
-**Applicant workspace**
+- **Request data** (`/`): title and one line, then one form card. Its first row is "Start from": a
+  sample select (R01–R10), Import JSON (dialog) and "or fill in the form below". Settings-style
+  sections follow (title + one line left, fields right): Applicant, Request (Type with help, Purpose,
+  Question), Definitions (rows; Enter adds one; empty state). Replacing an edited form asks first. A
+  sticky action bar holds the status (required fields, elapsed seconds while deciding, errors), Clear
+  and Submit. The page never shows a decision.
+- **Decision page** (`/requests/?id=R05`): back link, "Decision · R05" with the organisation, Edit and
+  resubmit / New request, then the letter ("Issued automatically in X s"). A withdrawn decision shows a
+  warning with the reason at the top of the letter and no data.
+- **My requests** (`/requests/`): this browser's requests as rows (with a "Withdrawn" tag when staff
+  withdrew one).
+- **Secure workspace** (`/spe/`): permit header with Download data (always blocked, Art. 73, audit id);
+  tabs Browse (tables, filters, 50-row pages), Summarise (no-code "count patients in … by … where …",
+  preview, Export via airlock, Show SQL), SQL (advanced) with examples.
 
-- **Request data** (`/`): header actions Import JSON (dialog that fills the form) and Load sample. The
-  form is the single source of what is submitted: Applicant, Request type, Purpose, Question,
-  Definitions (add, remove, Enter adds a row). Sticky action bar with Clear and Submit; while deciding,
-  an inline status line and a 1 px progress bar. The decision letter appears above the form.
-- **My requests** (`/requests/`): requests submitted from this browser, as rows; the selected one shows
-  its decision letter, read-only.
-- **Secure workspace** (`/spe/`): permits from this browser's requests only. Permit strip, Download data
-  (always blocked, Art. 73, with audit id), tables with row counts, SQL console with Run, Export via
-  airlock and two presets (Try COPY to file, Airlock export), results table (max 200 rows).
+**Access body**
 
-**Access body workspace**
-
-- **Decision queue** (`/staff/`): all decisions as rows; detail with Approve / Override, letter preview,
-  review flags, AI assessment, consensus of independent readings, code mappings, privacy checks, query
-  plan and SQL.
-- **Privacy & audit** (`/staff/privacy/`): differencing explainer (33 − 32 = 1 patient), red team (Run
-  attack, Reset ledger) with RT-1 and RT-2 side by side, Ledger and Audit log tabs (the audit log
-  refreshes every 5 s while visible).
+- **Decision queue** (`/staff/`): Needs attention · All · Withdrawn; rows mark decisions the AI was unsure
+  about; detail with "Why this needs attention" (review flags), one action "Withdraw decision…" (reason
+  required; pulls statistics or the workspace), letter preview, AI assessment with consensus, code
+  mappings, privacy checks, query plan and SQL.
+- **Privacy & audit** (`/staff/privacy/`): the red-team check as two numbered questions with their
+  outcomes ("33 — released", "<10 — withheld, would reveal 1 patient"), then Blocked releases and the
+  Activity log (filter by event group, load more, live every 5 s).
