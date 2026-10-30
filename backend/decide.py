@@ -50,8 +50,7 @@ application that does not justify records, receives anonymised statistics per gr
 the words "records", "individual" and "patient-level" must not appear (not even "rather than records"). A justified access application \
 receives pseudonymised records inside the secure processing environment once the data permit is issued. If the \
 purpose is allowed, never invite the applicant to explain more, resubmit or change the request. No legal jargon \
-beyond article numbers. Write it in the language the application is written in (German application, German \
-explanation)."""
+beyond article numbers. Write it in the language named at the end of the application."""
 
 _KEYWORDS: dict[ProhibitedGround, list[str]] = {
     "employment_or_insurance_or_credit": [
@@ -124,6 +123,16 @@ _ACCESS_APPLICATION = re.compile(
 def is_access_application(request: dict) -> bool:
     """A health data access application (records), in English or German wording."""
     return bool(_ACCESS_APPLICATION.search(str(request.get("requested_as", ""))))
+
+
+_GERMAN_WORDS = re.compile(r"\b(und|der|die|das|wir|ist|nicht|mit|für|eine?|wie|viele|pro|sind)\b", re.IGNORECASE)
+_ENGLISH_WORDS = re.compile(r"\b(and|the|we|is|not|with|for|an?|how|many|per|are)\b", re.IGNORECASE)
+
+
+def application_language(request: dict) -> str:
+    """German or English, from the applicant's own purpose and question, so the explanation matches."""
+    text = f"{request.get('purpose') or ''} {request.get('question') or ''}"
+    return "German" if len(_GERMAN_WORDS.findall(text)) > len(_ENGLISH_WORDS.findall(text)) else "English"
 
 
 def request_text(request: dict) -> str:

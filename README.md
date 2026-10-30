@@ -232,7 +232,7 @@ Measured with `make eval-fresh`: live Claude Sonnet calls (low effort) through t
 | Correct numbers | **6 of 6** | 6 of 6 |
 | Privacy leaks | **0** | 0 |
 | Consistency (3 runs) | **10 of 10** | 10 of 10 |
-| Time to answer (slowest) | **15.5 s** | Under 60 s |
+| Time to answer (slowest) | **15.3 s** | Under 60 s |
 
 **The same 10 requests in German** ([eval/german/](eval/german/), scored against the same `requests/expected.json`, `make eval-german`)
 

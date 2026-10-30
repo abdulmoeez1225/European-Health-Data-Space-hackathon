@@ -20,6 +20,7 @@ from backend.consensus import release_signature, vote_assessments, vote_plans
 from backend.db import connection
 from backend.decide import (
     ASSESSMENT_SYSTEM,
+    application_language,
     decide,
     refused_assessment,
     request_text,
@@ -200,7 +201,8 @@ def _read_request(
 
     pool = ThreadPoolExecutor(max_workers=2 * readings)
     try:
-        assessment_jobs = [pool.submit(_ask_assessment, text, use_cache, i) for i in range(readings)]
+        assessment_text = f"{text}\n\nWrite explanation_for_applicant in {application_language(request)}."
+        assessment_jobs = [pool.submit(_ask_assessment, assessment_text, use_cache, i) for i in range(readings)]
         plan_jobs = [pool.submit(_ask_plan, text, definitions, use_cache, i) for i in range(readings)]
 
         assessments, errors, cached_a = _gather(assessment_jobs, _assessment_signature, deadline)

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from backend.decide import application_language
 from backend.plan import QueryPlan
 from backend.planner import canonical_metric_name, metric_labels, with_canonical_names
 from tests.reference_plans import REFERENCE_PLANS
@@ -106,3 +107,14 @@ def test_long_phrases_cut_to_the_same_stem_stay_distinct() -> None:
 
 def test_short_names_are_unchanged() -> None:
     assert _report_names("R08", "Report per region: women with BMI and mean BMI.") == ["women_with_bmi", "mean_bmi"]
+
+
+@pytest.mark.parametrize(("path", "language"), [
+    ("requests/R05.json", "English"),
+    ("requests/R02.json", "English"),
+    ("eval/german/R05.json", "German"),
+    ("backend/samples/R01-DE.json", "German"),
+])
+def test_explanation_language_follows_the_application(path: str, language: str) -> None:
+    request = json.loads((Path(__file__).resolve().parent.parent / path).read_text())
+    assert application_language(request) == language
