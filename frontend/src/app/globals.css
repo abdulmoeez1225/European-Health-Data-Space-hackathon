@@ -162,6 +162,47 @@
   table {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Screen-capture protection (components/ScreenGuard): no selecting or long-press copying of page
+     text; text fields keep normal selection. */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input,
+  textarea,
+  select,
+  [contenteditable=""],
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  [data-slot="screen-shield"] {
+    display: none;
+  }
+  html[data-screen-guard="hidden"] [data-slot="screen-shield"] {
+    display: flex;
+  }
+}
+
+/* Printing and "save as PDF" produce a notice instead of the page. */
+@media print {
+  body > * {
+    display: none !important;
+  }
+  body::after {
+    content: "Printing is disabled: Gatekeeper pages contain protected health data (Regulation (EU) 2025/327, Art. 73).";
+    display: block;
+    padding: 48px;
+    color: #000;
+    font:
+      16px/1.5 system-ui,
+      sans-serif;
+  }
+  html[lang="de"] body::after {
+    content: "Drucken ist deaktiviert: Gatekeeper-Seiten enthalten geschützte Gesundheitsdaten (Verordnung (EU) 2025/327, Art. 73).";
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
