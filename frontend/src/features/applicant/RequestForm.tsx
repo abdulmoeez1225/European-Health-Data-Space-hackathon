@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
+import { countryOptions } from "./countries";
 import {
   REQUEST_KINDS,
   type FieldErrors,
@@ -31,7 +32,9 @@ type FormProps = {
 export function RequestForm({ draft, onChange, errors, touched, onTouch, disabled }: FormProps) {
   const t = useT().applicant;
   const f = t.form;
+  const locale = useLocale();
   const id = useId();
+  const country = draft.country.trim().toUpperCase();
   const shown = (field: RequiredField) => (touched.has(field) ? errors[field] : undefined);
   const errorProps = (field: RequiredField, errorId: string) =>
     shown(field) ? { "aria-invalid": true, "aria-describedby": errorId } : {};
@@ -57,7 +60,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             }}
           />
         </Field>
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_7rem]">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_14rem]">
           <Field label={f.contactName} htmlFor={`${id}-name`}>
             <Input
               id={`${id}-name`}
@@ -70,16 +73,24 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             />
           </Field>
           <Field label={f.country} htmlFor={`${id}-country`}>
-            <Input
-              id={`${id}-country`}
-              value={draft.country}
-              placeholder="AT"
-              maxLength={2}
-              className="uppercase placeholder:normal-case"
-              onChange={(event) => {
-                onChange({ country: event.target.value.toUpperCase() });
+            <Select
+              value={country}
+              onValueChange={(value) => {
+                onChange({ country: value });
               }}
-            />
+              disabled={disabled}
+            >
+              <SelectTrigger id={`${id}-country`} className="w-full min-w-0">
+                <SelectValue placeholder={f.countryPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {countryOptions(locale, country).map((option) => (
+                  <SelectItem key={option.code} value={option.code}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
       </SettingsSection>
