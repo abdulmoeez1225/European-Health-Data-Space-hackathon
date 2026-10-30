@@ -214,6 +214,9 @@ def _read_request(
             if not vote.has_majority:
                 flags.append(ReviewFlag(reason=f"AI readings of the purpose disagree ({vote.agreeing} of "
                                                f"{vote.votes}); the stricter outcome was applied."))
+            elif vote.agreeing < vote.votes:
+                flags.append(ReviewFlag(reason=f"Not every AI reading of the purpose agreed ({vote.agreeing} of "
+                                               f"{vote.votes}); a borderline purpose for an officer to confirm."))
         else:
             assessment, llm_used, cached_a = rule_assessment(request), False, False
             flags.append(ReviewFlag(reason=f"AI assessment unavailable: {errors[-1] if errors else 'no answer'}"))
