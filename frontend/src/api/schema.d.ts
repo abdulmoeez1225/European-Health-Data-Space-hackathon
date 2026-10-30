@@ -325,6 +325,32 @@ export interface components {
       onset_to?: string | null;
     };
     /**
+     * Consensus
+     * @description How many independent AI readings of the request agreed with the released outcome.
+     */
+    Consensus: {
+      /**
+       * Assessment Votes
+       * @default 0
+       */
+      assessment_votes: number;
+      /**
+       * Assessment Agreeing
+       * @default 0
+       */
+      assessment_agreeing: number;
+      /**
+       * Plan Votes
+       * @default 0
+       */
+      plan_votes: number;
+      /**
+       * Plan Agreeing
+       * @default 0
+       */
+      plan_agreeing: number;
+    };
+    /**
      * CountMetric
      * @description Number of units (patients or encounters) in the group that meet `where`.
      */
@@ -378,7 +404,11 @@ export interface components {
     };
     /**
      * EncounterCriterion
-     * @description Patient has at least one encounter matching all given fields.
+     * @description An encounter matching all given fields.
+     *
+     *     With unit "patients": the patient has at least `min_count` such encounters.
+     *     With unit "encounters": the counted stay itself matches (use it in a metric's `where` to count,
+     *     for example, only heart-failure stays among all inpatient stays).
      */
     EncounterCriterion: {
       /**
@@ -493,8 +523,9 @@ export interface components {
      * MeanMetric
      * @description Mean of each patient's latest (or first) value of a LOINC measurement.
      *
-     *     Only units meeting `where` that have a value are averaged. For encounter
-     *     units, `of` = "length_of_stay_days" averages end_date - start_date.
+     *     Only units meeting `where` that have a value are averaged. `date_from`/`date_to` take the
+     *     latest (or first) value within that period. For encounter units, `of` = "length_of_stay_days"
+     *     averages end_date - start_date.
      */
     MeanMetric: {
       /**
@@ -518,6 +549,10 @@ export interface components {
        * @enum {string}
        */
       which: "latest" | "first";
+      /** Date From */
+      date_from?: string | null;
+      /** Date To */
+      date_to?: string | null;
       /** Where */
       where?: (
         | components["schemas"]["AgeCriterion"]
@@ -536,6 +571,8 @@ export interface components {
      *
      *     `active_on` restricts to prescriptions active on that day:
      *     start_date <= day and (end_date empty or end_date >= day).
+     *     `overlaps_from`/`overlaps_to` restrict to prescriptions taken at any time in that period
+     *     ("on metformin at any time in 2024"); `started_from`/`started_to` to prescriptions started in it.
      */
     MedicationCriterion: {
       /**
@@ -557,6 +594,10 @@ export interface components {
       started_from?: string | null;
       /** Started To */
       started_to?: string | null;
+      /** Overlaps From */
+      overlaps_from?: string | null;
+      /** Overlaps To */
+      overlaps_to?: string | null;
     };
     /**
      * ObservationCriterion
@@ -728,6 +769,11 @@ export interface components {
        * @description Assumptions made while reading the definitions.
        */
       notes?: string[];
+      /**
+       * Unsupported
+       * @description Set only if a requested number cannot be expressed by this plan (e.g. a median, a rate per 1,000, grouping by drug or diagnosis code); say what and why. Leave null otherwise.
+       */
+      unsupported?: string | null;
     };
     /** QueryResult */
     QueryResult: {
@@ -843,6 +889,7 @@ export interface components {
        * @default false
        */
       cached: boolean;
+      consensus?: components["schemas"]["Consensus"];
       timings?: components["schemas"]["Timings"];
       /**
        * Processed At

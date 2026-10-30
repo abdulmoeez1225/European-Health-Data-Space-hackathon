@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Decision, ProhibitedGround } from "@/api/types";
 
-import { decisionMeta, prohibitionFor } from "./decisions";
+import { DECISIONS, decisionMeta, prohibitionFor, purposeLabel, TONE_DOT } from "./decisions";
 
 describe("decisionMeta", () => {
   it.each<[Decision, string, string]>([
@@ -16,9 +16,25 @@ describe("decisionMeta", () => {
     expect(meta.headline).not.toBe("");
   });
 
+  it.each<[Decision, string]>([
+    ["REJECT", "Rejected"],
+    ["APPROVE_STATISTICAL", "Statistics"],
+    ["APPROVE_SPE", "Secure env."],
+  ])("%s has the short label %s", (decision, short) => {
+    expect(decisionMeta(decision).short).toBe(short);
+  });
+
   it("separates the approval labels with an en dash", () => {
     expect(decisionMeta("APPROVE_STATISTICAL").label).toContain("–");
     expect(decisionMeta("APPROVE_SPE").label).toContain("–");
+  });
+});
+
+describe("TONE_DOT", () => {
+  it("gives every decision tone its own dot colour", () => {
+    const dots = Object.values(DECISIONS).map((meta) => TONE_DOT[meta.tone]);
+    expect(dots.every(Boolean)).toBe(true);
+    expect(new Set(dots).size).toBe(dots.length);
   });
 });
 
@@ -45,5 +61,13 @@ describe("prohibitionFor", () => {
     const prohibition = prohibitionFor(ground);
     expect(prohibition.title).toBe(title);
     expect(prohibition.instead).not.toBe(prohibitionFor("none").instead);
+  });
+});
+
+describe("purposeLabel", () => {
+  it("names the recognised purpose in plain words", () => {
+    expect(purposeLabel("public_interest_public_health")).toBe("Public interest in public health");
+    expect(purposeLabel("product_and_algorithm_development")).toBe("Developing products and algorithms");
+    expect(purposeLabel("none")).toBe("None");
   });
 });

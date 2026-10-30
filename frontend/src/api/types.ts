@@ -16,6 +16,7 @@ export type CodeMapping = Schemas["CodeMapping"];
 export type ReviewFlag = Schemas["ReviewFlag"];
 export type QueryPlan = Schemas["QueryPlan"];
 export type Timings = Schemas["Timings"];
+export type Consensus = Schemas["Consensus"];
 export type SpeInfo = Schemas["SpeInfo"];
 export type SpeTable = Schemas["SpeTable"];
 export type QueryResult = Schemas["QueryResult"];
@@ -24,7 +25,7 @@ export type AuditEvent = Schemas["AuditEvent"];
 export type LedgerEvent = Schemas["LedgerEvent"];
 export type SqlBody = Schemas["SqlBody"];
 
-/** The backend types request bodies and samples as free-form objects (see app/api.py). */
+/** The backend types request bodies and samples as free-form objects (see backend/api.py). */
 export type JsonObject = Record<string, unknown>;
 
 /** One SQL result cell as returned by DuckDB through FastAPI. */

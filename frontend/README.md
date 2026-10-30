@@ -1,53 +1,63 @@
 # Gatekeeper frontend
 
-The web UI for Gatekeeper, the automated EHDS Health Data Access Body. It has four views:
+The web UI for Gatekeeper, the automated EHDS Health Data Access Body. It has two workspaces, chosen
+with the switcher at the top of the sidebar (a demo stand-in for sign-in):
 
-- `/` is the applicant portal and decision letter.
-- `/staff/` is the staff console.
-- `/spe/` is the secure processing environment.
-- `/privacy/` covers privacy and audit.
+| Workspace   | Page             | Route              |
+| ----------- | ---------------- | ------------------ |
+| Applicant   | Request data     | `/`                |
+| Applicant   | My requests      | `/requests/`       |
+| Applicant   | Secure workspace | `/spe/`            |
+| Access body | Decision queue   | `/staff/`          |
+| Access body | Privacy & audit  | `/staff/privacy/`  |
 
-The app uses Next.js 16 (App Router, static export), React 19, TypeScript in strict mode, Tailwind CSS v4, TanStack Query, Radix primitives and lucide icons. It loads no web fonts or CDN assets, so it works offline. Design decisions are recorded in [DESIGN.md](DESIGN.md).
+The applicant workspace never shows or links staff pages. "My requests" and the secure workspace are
+scoped to the request ids this browser submitted (kept in `localStorage`).
+
+Stack: Next.js 16 (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4,
+shadcn/ui components on `radix-ui`, TanStack Query, lucide icons, Geist fonts from the `geist` package.
+Nothing is loaded from a CDN. Design decisions are in [DESIGN.md](DESIGN.md).
 
 ## Scripts
 
-| Command                                   | What it does                                                                                                                                  |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                             | Dev server on http://localhost:3000. It calls the backend at `http://localhost:8000` directly, and the backend's CORS settings allow `:3000`. |
-| `npm run build`                           | Static export to `out/`, which FastAPI serves at `/`.                                                                                         |
-| `npm run preview`                         | Serves `out/` on :4173 and proxies `/api` to the backend, the same way production does. Override with `PORT=` and `GATEKEEPER_API=`.          |
-| `npm run gen:api`                         | Regenerates `src/api/schema.d.ts` from the backend's OpenAPI schema.                                                                          |
-| `npm run lint`                            | ESLint (`eslint-config-next` core-web-vitals and TypeScript rules, plus Prettier compatibility). No warnings allowed.                         |
-| `npm run typecheck`                       | `tsc --noEmit`.                                                                                                                               |
-| `npm run test`                            | Vitest and Testing Library.                                                                                                                   |
-| `npm run format` / `npm run format:check` | Prettier.                                                                                                                                     |
+| Command                                   | What it does                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `npm run dev`                             | Dev server on http://localhost:3000, calling the backend at `http://localhost:8000` (CORS).     |
+| `npm run build`                           | Static export to `out/`, which FastAPI serves at `/`.                                           |
+| `npm run preview`                         | Serves `out/` on :4173 and proxies `/api` to the backend. Override with `PORT=`, `GATEKEEPER_API=`. |
+| `npm run gen:api`                         | Regenerates `src/api/schema.d.ts` from the backend's OpenAPI schema.                            |
+| `npm run lint`                            | ESLint (Next core-web-vitals, TypeScript, Prettier compatibility), no warnings allowed.         |
+| `npm run typecheck`                       | `tsc --noEmit`.                                                                                 |
+| `npm run test`                            | Vitest and Testing Library.                                                                     |
+| `npm run format` / `npm run format:check` | Prettier.                                                                                       |
 
 ## API types
 
-`src/api/schema.d.ts` is generated by `openapi-typescript` from the FastAPI schema and is committed. `npm run gen:api` reads `http://localhost:8000/openapi.json` by default; set `OPENAPI_URL=` to read another URL. Run it whenever `app/api.py` or the response models change.
+`src/api/schema.d.ts` is generated by `openapi-typescript` and committed. `npm run gen:api` reads
+`http://localhost:8000/openapi.json`; set `OPENAPI_URL=` for another server. Run it whenever
+`backend/api.py` or the response models in `backend/models.py` change. `src/api/types.ts` gives the
+schemas short names, `src/api/client.ts` is the typed fetch client and `src/api/queries.ts` holds the
+TanStack Query hooks.
 
-`src/api/types.ts` gives the generated schemas short names. Every component uses those types. `src/api/client.ts` is the typed fetch client, and `src/api/queries.ts` holds the TanStack Query hooks.
-
-## API base URL
-
-In production the UI and the API share an origin, so `NEXT_PUBLIC_API_BASE` is `""`. Under `next dev` it defaults to `http://localhost:8000`. Set `NEXT_PUBLIC_API_BASE` to point somewhere else.
+In production the UI and the API share an origin (`NEXT_PUBLIC_API_BASE=""`); under `next dev` it
+defaults to `http://localhost:8000`.
 
 ## Mock mode
 
-You can review the UI without a backend:
+Review the UI without a backend:
 
-- **One browser tab:** open any page with `?mock=1`, for example http://localhost:3000/?mock=1. The flag stays on for that tab as you move between pages. `?mock=0` turns it off.
+- **One tab:** add `?mock=1` to any page (it sticks for the tab; `?mock=0` turns it off).
 - **A whole build:** set `NEXT_PUBLIC_MOCK=1`.
 
-The mock API is in `src/mock/`. It is in-memory, uses synthetic data only, and is loaded only in mock mode. It supports the following:
-
-- Sample requests, with decisions for statistics, rejection and the secure environment.
-- The red-team differencing attack and the release ledger.
-- Blocked SPE queries, the airlock, the blocked download with an audit ID, and the audit log.
+The mock API in `src/mock/` is in-memory and synthetic. It serves the ten track requests (R01–R10) as
+samples, decides them (statistics, rejection, secure environment), runs the red-team differencing attack
+against a release ledger, and blocks SPE queries and downloads with audit ids.
 
 ## Useful links
 
-- `/?decision=R01` opens the decision letter for a processed request. The portal switches to this link after each submission.
-- `/spe/?permit=permit-R05` opens a specific data permit.
-- `?theme=dark` or `?theme=light` forces a colour scheme. Otherwise the OS preference applies.
-- Old links such as `/#staff` are forwarded to the matching route.
+- `/?decision=R01` opens the decision letter for a processed request.
+- `/requests/?id=R05`, `/staff/?id=R05` select a request in a list.
+- `/spe/?permit=permit-R05` opens a specific data permit (if this browser submitted it).
+- `?theme=dark` or `?theme=light` forces a theme for that page load; otherwise the stored choice
+  (Light, Dark, System) applies. ⌘B / Ctrl+B toggles the sidebar.
+- Old links (`/#staff`, `/#spe`, `/#privacy`, `/privacy/`) are forwarded to their new routes.

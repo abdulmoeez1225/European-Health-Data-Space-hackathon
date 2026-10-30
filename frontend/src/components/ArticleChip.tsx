@@ -1,36 +1,35 @@
 "use client";
 
 import { useLaw } from "@/api/queries";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ARTICLE_TITLES } from "@/lib/decisions";
 
-import { Tooltip } from "./ui/Tooltip";
-
-/** "Art. 53" chip; hover, focus or tap explains the article in plain language (from /api/law). */
-export function ArticleChip({ article }: { article: string }) {
+/**
+ * "Art. 53" chip. Hover or focus shows the article title, why it applies to this decision
+ * (`detail`, from the legal basis) and a plain-language summary from /api/law.
+ */
+export function ArticleChip({ article, detail }: { article: string; detail?: string }) {
   const { data } = useLaw();
   const entry = data?.articles.find((a) => a.number === article);
   const title = entry?.title ?? ARTICLE_TITLES[article] ?? "Regulation (EU) 2025/327";
   return (
-    <Tooltip
-      content={
-        <span className="block">
-          <span className="block font-semibold">
-            Art. {article} · {title}
-          </span>
-          {entry ? <span className="mt-1 block text-muted">{entry.summary}</span> : null}
-          <span className="mt-1.5 block text-xs text-muted">
-            Regulation (EU) 2025/327, plain-language summary
-          </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Art. ${article}: ${title}`}
+          className="inline-flex h-5 shrink-0 cursor-help items-center rounded-[4px] border px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums transition-colors duration-100 outline-none hover:border-foreground/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Art. {article}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm">
+        <span className="block font-medium">
+          Art. {article} · {title}
         </span>
-      }
-    >
-      <button
-        type="button"
-        aria-label={`Art. ${article}: ${title}`}
-        className="inline-flex h-6 shrink-0 cursor-help items-center rounded-md bg-accent-soft px-2 text-xs font-bold text-accent tabular-nums ring-1 ring-accent/20 ring-inset transition-colors hover:ring-accent/50"
-      >
-        Art. {article}
-      </button>
+        {detail ? <span className="mt-1 block">{detail}</span> : null}
+        {entry ? <span className="mt-1 block text-muted-foreground">{entry.summary}</span> : null}
+      </TooltipContent>
     </Tooltip>
   );
 }

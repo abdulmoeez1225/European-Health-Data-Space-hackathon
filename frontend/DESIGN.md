@@ -1,131 +1,91 @@
-# Gatekeeper UI — design brief
+# Gatekeeper UI — design system
 
 Gatekeeper is an automated Health Data Access Body (HDAB) under the European Health Data Space,
-Regulation (EU) 2025/327, Chapter IV. The UI has one job: make every decision **understandable and
-trustworthy** to the person who receives it and to the official who answers for it.
+Regulation (EU) 2025/327, Chapter IV. The UI must make every decision understandable to the applicant
+who receives it and checkable by the official who answers for it.
 
-## Users and top tasks
+## Principles
 
-| User                                                     | Context                                                       | Top tasks                                                                              | What they must never miss                                                             |
-| -------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Applicant researcher** (university, ministry, company) | Submits once, waits, reads the outcome. Not a lawyer.         | Pick or paste a request · submit · understand the outcome and what to do next          | The decision, the one-sentence reason, which numbers they got and why some are hidden |
-| **HDAB case officer**                                    | Reviews many automated decisions per day; signs or overrides. | Scan the queue · open a case · check AI assessment against the rules · sign / override | Review flags, the cited articles, what the AI judged vs what rules enforced           |
-| **SPE researcher**                                       | Holds a data permit; works inside the secure environment.     | See permit and cohort · query records · export aggregates through the airlock          | That nothing leaves except anonymised aggregates; why a query or download was blocked |
-| **Privacy officer / jury**                               | Audits that protections actually hold.                        | Understand the differencing attack · run the red team · read ledger and audit log      | That the ledger intervened, and that every block is logged with an ID                 |
+1. **Outcome first.** The decision, one plain sentence and the cited articles come before any detail.
+2. **Two workspaces, two audiences.** Applicants (researchers and organisations) and HDAB staff get
+   separate navigation. The applicant workspace never lists or links a staff page. Without sign-in, a
+   workspace switcher stands in for roles.
+3. **Linear-style restraint.** Neutral surfaces, hairline borders, almost no shadows, one indigo accent for
+   primary actions and focus. Colour appears only as small status dots, icons and badge text.
+4. **Dense but calm.** 13–14 px UI text, 8 px spacing rhythm, one primary action per page.
+5. **Protection is visible, not alarming.** `<10` and `suppressed` are muted badges with a tooltip and a
+   one-line legend. Blocks (download, ledger, SQL) are specific: what, why, which article, audit id.
+6. **Accessible by default.** Real landmarks, tabs, dialogs and sheets (Radix), visible focus rings,
+   keyboard paths for every action, AA contrast in both themes, `prefers-reduced-motion` respected,
+   no information by colour alone.
 
-## Key moments for the 2-minute demo
+## Tokens
 
-1. **Approve with statistics (R01)** — pick a card, submit, watch the five-step timeline, the letter
-   reveals: green status, one plain sentence, article chips, a table with `<10` pills.
-2. **Reject (R02 insurer)** — red status, the prohibition in plain words, the applicant's own words
-   quoted, and "What you can do instead".
-3. **Secure environment (R05)** — blue status, exact cohort size, "Open secure environment" →
-   locked workspace, `COPY … TO 'out.csv'` is blocked, "Download data" triggers the Art. 73 block
-   with an audit ID, airlock export releases aggregates with small rows suppressed.
-4. **Red team** — two requests from Curious Analytics GmbH side by side: 33 then a lock on the
-   second answer with the footnote "would reveal 1 patient"; the ledger and audit log update live.
-5. **Staff console** — the same cases as a queue; open one, see flags, mappings, SQL, checks; sign.
+CSS custom properties in `src/app/globals.css`, exposed to Tailwind 4 with `@theme inline` and named
+like shadcn/ui. Dark mode is the `.dark` class on `<html>`, set before first paint by the boot script
+(`src/lib/preferences.ts`) from the stored choice (Light, Dark or System) or `?theme=`.
 
-## Information hierarchy per view
+| Token                                     | Light         | Dark          | Use                                            |
+| ----------------------------------------- | ------------- | ------------- | ---------------------------------------------- |
+| `sidebar`                                 | `#f7f7f8`     | `#08090a`     | App frame and sidebar                          |
+| `background`                              | `#ffffff`     | `#0f1011`     | Content panel                                  |
+| `card` / `popover`                        | `#ffffff`     | `#141516`     | Letter, form, menus                            |
+| `foreground`                              | `#1f2023`     | `#f7f8f8`     | Text                                           |
+| `muted-foreground`                        | `#6b6f76`     | `#8a8f98`     | Secondary text (≥ 4.9:1)                       |
+| `border` / `input`                        | `#e8e8ea`     | white 8–10 %  | Hairlines, fields                              |
+| `accent`                                  | `#f1f1f3`     | `#1c1d20`     | Hover and selected rows                        |
+| `primary` / `ring`                        | `#5e6ad2`     | `#5e6ad2`     | Primary button, focus ring                     |
+| `success` / `info` / `destructive`        | green / blue / red | lighter tints | Decision dots: statistics / secure env. / rejected |
+| `warning`                                 | `#a35f00`     | `#f2c94c`     | Review flags, override                         |
 
-**Applicant portal** (`/`)
+Radius: `--radius` 8 px (`rounded-lg`), 6 px controls, 4 px chips. Type: Geist Sans and Geist Mono from
+the `geist` package (bundled, no CDN), tabular figures in tables. Motion: 100–150 ms fades only.
 
-1. Decision letter (once there is one) — status → why → legal basis → numbers/permit → next steps.
-2. Submission: sample gallery (filter by type) → JSON editor with live validation → Submit.
-3. Progress timeline replaces the submit area while the LLM runs (5–30 s).
+## Components
 
-**Staff console** (`/staff`)
+`src/components/ui` holds shadcn/ui components built on `radix-ui`, `class-variance-authority` and
+`tailwind-merge`: Sidebar, Button, Badge, Card, Table, Tabs, Tooltip, Collapsible, Select, Input,
+Textarea, Label, Separator, Skeleton, DropdownMenu, Dialog, Sheet, Alert, Breadcrumb.
 
-1. Queue (left): decision badge, applicant, time, flag count, signed state. Sticky.
-2. Case (right): header with status, articles, reason, sign/override → review flags (amber, prominent)
-   → AI assessment vs rule outcome → request → code mappings → plan & SQL (collapsible, copyable)
-   → privacy checklist → released numbers → permit → execution timings.
+Domain components in `src/components`:
 
-**Secure environment** (`/spe`)
+| Component           | Notes                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `AppSidebar`        | Workspace switcher, workspace nav, theme menu, "Synthetic data · EHDS 2025/327"   |
+| `WorkspaceSwitcher` | Gatekeeper mark as a dropdown: Applicant / Access body, remembered locally         |
+| `TopBar`            | Sidebar toggle (⌘B) and breadcrumb (workspace › page)                              |
+| `PageHeader`        | 17 px title, one muted line, actions on the right                                  |
+| `DecisionLetter`    | Badge, headline, reason, article chips, then statistics, permit or advice          |
+| `StatsTable`        | Right-aligned figures, small-cell badges, lock and footnote for ledger cells       |
+| `DecisionBadge`     | Neutral badge with a status dot; short form in lists                               |
+| `ArticleChip`       | "Art. 53" with a tooltip: title, why it applies here, plain summary (`/api/law`)   |
+| `SmallCellBadge`    | `<10` / `suppressed` with the small-cell rule in a tooltip                         |
+| `RequestList`       | Linear issue-list rows: id, organisation, decision, flags, time; arrow keys        |
+| `ListDetail`        | List beside the selected item ≥ 1280 px, a sheet below; `?id=` selects             |
+| `CodeBlock`         | Collapsible code with copy button (query plan, SQL)                                |
 
-1. Permit header: lock, permit ID, applicant, exact cohort size, permit selector, Download button.
-2. Blocked-download moment (when triggered).
-3. Tables in the environment (cards with row counts and columns).
-4. SQL console: editor, Run / Export via airlock, presets; result grid or blocked banner.
+## Page anatomy
 
-**Privacy & audit** (`/privacy`)
+Every page: top bar (toggle, breadcrumb), then a page header row (title, one line, actions), then
+content in the inset panel (max 1100 px, the form at 768 px).
 
-1. Explainer: 33 − 32 = 1 patient, as three tiles and a tiny bar visual.
-2. Red team: three actions, two compact letters side by side.
-3. Release ledger table (suppression events).
-4. Live audit log (auto-refresh every 5 s, pausable).
+**Applicant workspace**
 
-## Design principles
+- **Request data** (`/`): header actions Import JSON (dialog that fills the form) and Load sample. The
+  form is the single source of what is submitted: Applicant, Request type, Purpose, Question,
+  Definitions (add, remove, Enter adds a row). Sticky action bar with Clear and Submit; while deciding,
+  an inline status line and a 1 px progress bar. The decision letter appears above the form.
+- **My requests** (`/requests/`): requests submitted from this browser, as rows; the selected one shows
+  its decision letter, read-only.
+- **Secure workspace** (`/spe/`): permits from this browser's requests only. Permit strip, Download data
+  (always blocked, Art. 73, with audit id), tables with row counts, SQL console with Run, Export via
+  airlock and two presets (Try COPY to file, Airlock export), results table (max 200 rows).
 
-1. **Outcome first.** The status and the one-sentence reason are readable in three seconds; details
-   follow in order of importance. Never make anyone hunt for the decision.
-2. **Plain language, cited law.** Every legal claim carries an article chip that explains itself on
-   hover or tap (from `/api/law`). Never show raw enum names to applicants.
-3. **Calm authority.** Neutral surfaces, one deep-blue accent, generous whitespace. Colour is
-   reserved for decision status (red / green / blue) and the amber review signal — nothing else
-   competes with it.
-4. **Protection is visible, not alarming.** `<10` and `suppressed` are calm muted pills with an
-   explanation, not errors. Blocks (download, ledger) are firm and specific: what, why, which article,
-   audit ID.
-5. **Show the machine's work to staff.** AI judgement and rule enforcement are separated; plan, SQL
-   and checks are one click away and copyable.
-6. **Every state designed.** Loading skeletons, empty states with a next action, errors with a cause.
-7. **Accessible by default.** Semantic landmarks, real tabs/links, visible focus, AA contrast in both
-   themes, reduced-motion respected, no information by colour alone (icons + text everywhere).
+**Access body workspace**
 
-## Design tokens
-
-Defined as CSS custom properties in `src/app/globals.css`, exposed to Tailwind v4 via `@theme inline`,
-switched for dark mode by `prefers-color-scheme` (or `?theme=dark|light`).
-
-**Colour** (light / dark)
-
-| Token       | Light         | Dark        | Use                                 |
-| ----------- | ------------- | ----------- | ----------------------------------- |
-| `bg`        | `#f4f6fa`     | `#0c121c`   | Page                                |
-| `surface`   | `#ffffff`     | `#141c29`   | Cards, letter                       |
-| `surface-2` | `#eef1f6`     | `#1b2535`   | Table heads, wells                  |
-| `line`      | `#d8dee8`     | `#2a3649`   | Borders, dividers                   |
-| `fg`        | `#141e30`     | `#e6ebf3`   | Body text (≥ 14:1)                  |
-| `muted`     | `#536077`     | `#9ba7bb`   | Secondary text (≥ 5.5:1 on surface) |
-| `accent`    | `#0f3d8a`     | `#86aef6`   | Brand, links, primary action, focus |
-| `reject`    | `#b1271f`     | `#ff8f86`   | Rejected                            |
-| `stats`     | `#17703a`     | `#74d49c`   | Approved – statistics               |
-| `spe`       | `#1a52b5`     | `#90b6ff`   | Approved – secure environment       |
-| `warn`      | `#7a5200`     | `#f0c560`   | Review flags, override              |
-| `*-soft`    | tinted 8–12 % | tinted dark | Status backgrounds                  |
-
-**Type** — system stack (no web fonts, offline). Scale (rem): 0.75 caption · 0.8125 label · 0.875
-small · 1 body · 1.125 lead · 1.25 h3 · 1.5 h2 · 1.875 display (letter status). Weights 400/500/600/700.
-Tabular figures in every table. Mono: `ui-monospace, SFMono-Regular, Menlo, Consolas`.
-
-**Spacing** — 4 px grid: 4, 8, 12, 16, 20, 24, 32, 40, 48. Card padding 20–28 px; section gap 24–32 px.
-
-**Radii** — 6 px chips/inputs, 10 px buttons, 14 px cards, full for pills.
-
-**Shadows** — `card`: 1 px hairline + soft 16 px blur at 5 % (light only); `raised`: hover/popover.
-
-**Motion** — 150 ms (hover, focus), 250 ms (reveal), `cubic-bezier(.2,.8,.2,1)`. Letter reveal: fade +
-8 px rise. Progress dot spins. All disabled under `prefers-reduced-motion`.
-
-## Component inventory
-
-| Component                              | Notes                                                                                                                                                     |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AppHeader`                            | Brand mark, title "Gatekeeper — Health Data Access Body", subtitle "EHDS · Regulation (EU) 2025/327", mock badge, primary nav (links with `aria-current`) |
-| `Button`                               | primary / secondary / ghost / danger; sm / md; icon slot; loading                                                                                         |
-| `Card`, `Section`                      | Surface container; section heading with optional actions                                                                                                  |
-| `DecisionBadge`                        | Icon + label per decision; sizes sm / lg                                                                                                                  |
-| `ArticleChip`                          | "Art. 53" + Radix tooltip with title + summary from `/api/law`                                                                                            |
-| `ValuePill`                            | `<10` / `suppressed` muted pill with tooltip explaining the small-cell rule                                                                               |
-| `StatsTable`                           | Group labels as row headers, right-aligned tabular numbers, lock + footnote for ledger cells                                                              |
-| `DecisionLetter`                       | Hero: status band, reason, legal basis, prohibition + "instead", statistics, permit, next steps                                                           |
-| `ProgressTimeline`                     | Five staged steps, elapsed timer, `aria-live`                                                                                                             |
-| `SampleGallery`                        | Filterable request cards (radio-group semantics)                                                                                                          |
-| `JsonEditor`                           | Monospace textarea, line count, live validation message                                                                                                   |
-| `CodeBlock`                            | Collapsible, copy button                                                                                                                                  |
-| `CheckList`                            | Pass/fail with icon + text                                                                                                                                |
-| `DataGrid`                             | Generic SQL result grid with NULL / pill rendering                                                                                                        |
-| `Banner`                               | info / error / blocked (with audit ID)                                                                                                                    |
-| `EmptyState`, `Skeleton`, `ErrorState` | Every async region                                                                                                                                        |
-| `SignStamp`                            | "Signed by HDAB staff" double-border stamp, undo                                                                                                          |
+- **Decision queue** (`/staff/`): all decisions as rows; detail with Approve / Override, letter preview,
+  review flags, AI assessment, consensus of independent readings, code mappings, privacy checks, query
+  plan and SQL.
+- **Privacy & audit** (`/staff/privacy/`): differencing explainer (33 − 32 = 1 patient), red team (Run
+  attack, Reset ledger) with RT-1 and RT-2 side by side, Ledger and Audit log tabs (the audit log
+  refreshes every 5 s while visible).

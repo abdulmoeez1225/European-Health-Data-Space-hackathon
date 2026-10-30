@@ -4,7 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import { keys } from "@/api/queries";
 import type { JsonObject } from "@/api/types";
-import { TooltipProvider } from "@/components/ui/Tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOCK_SAMPLES } from "@/mock/data";
 import { MOCK_LAW } from "@/mock/law";
 

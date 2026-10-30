@@ -1,0 +1,125 @@
+import { isObject, readRequest } from "@/api/request";
+import type { JsonObject } from "@/api/types";
+
+/**
+ * The request as the form holds it. The form is the single source of truth: samples and pasted
+ * JSON only fill it, and the submitted request is built from it.
+ */
+export type RequestKind = "statistics" | "records";
+
+export type RequestDraft = {
+  /** Kept from an imported request so the decision carries the applicant's reference. */
+  id: string;
+  name: string;
+  organisation: string;
+  country: string;
+  kind: RequestKind;
+  purpose: string;
+  question: string;
+  definitions: string[];
+};
+
+export const REQUEST_KINDS: Record<
+  RequestKind,
+  { label: string; requestedAs: string; requestedFormat: string }
+> = {
+  statistics: {
+    label: "Health data request — anonymised statistics",
+    requestedAs: "health data request",
+    requestedFormat: "anonymised statistics",
+  },
+  records: {
+    label: "Health data access application — pseudonymised records",
+    requestedAs: "health data access application",
+    requestedFormat: "pseudonymised records",
+  },
+};
+
+export const EMPTY_DRAFT: RequestDraft = {
+  id: "",
+  name: "",
+  organisation: "",
+  country: "",
+  kind: "statistics",
+  purpose: "",
+  question: "",
+  definitions: [],
+};
+
+/** Maps a request in the track format onto the form; unknown keys are ignored. */
+export function draftFrom(raw: unknown): RequestDraft {
+  const request = readRequest(raw);
+  return {
+    id: request.id,
+    name: request.applicant.name,
+    organisation: request.applicant.organisation,
+    country: request.applicant.country,
+    kind: /access application/i.test(request.requestedAs) ? "records" : "statistics",
+    purpose: request.purpose,
+    question: request.question,
+    definitions: request.definitions,
+  };
+}
+
+export type ImportResult = { ok: true; draft: RequestDraft } | { ok: false; message: string };
+
+const REQUEST_KEYS = ["applicant", "purpose", "question", "definitions", "requested_as"];
+
+export function parseRequestJson(text: string): ImportResult {
+  if (!text.trim()) return { ok: false, message: "Paste a request as JSON." };
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch (error) {
+    return {
+      ok: false,
+      message: `Invalid JSON: ${error instanceof Error ? error.message : "cannot be read"}.`,
+    };
+  }
+  if (!isObject(value))
+    return { ok: false, message: "The request must be a JSON object, not a list or a value." };
+  if (!REQUEST_KEYS.some((key) => key in value)) {
+    return { ok: false, message: "No request fields found. Expected applicant, purpose and definitions." };
+  }
+  if ("definitions" in value && !Array.isArray(value.definitions)) {
+    return { ok: false, message: "definitions must be a list of sentences." };
+  }
+  return { ok: true, draft: draftFrom(value) };
+}
+
+export type RequiredField = "organisation" | "purpose" | "definitions";
+export type FieldErrors = Partial<Record<RequiredField, string>>;
+
+export const REQUIRED_LABELS: Record<RequiredField, string> = {
+  organisation: "organisation",
+  purpose: "purpose",
+  definitions: "a definition",
+};
+
+export function draftErrors(draft: RequestDraft): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!draft.organisation.trim()) errors.organisation = "Enter the applicant's organisation.";
+  if (!draft.purpose.trim()) errors.purpose = "Describe what the data will be used for.";
+  if (!draft.definitions.some((definition) => definition.trim())) {
+    errors.definitions = "Add at least one definition.";
+  }
+  return errors;
+}
+
+/** The request that is submitted, in the track format. Empty definition rows are dropped. */
+export function toRequest(draft: RequestDraft): JsonObject {
+  const { requestedAs, requestedFormat } = REQUEST_KINDS[draft.kind];
+  return {
+    ...(draft.id.trim() ? { id: draft.id.trim() } : {}),
+    applicant: {
+      name: draft.name.trim(),
+      organisation: draft.organisation.trim(),
+      country: draft.country.trim(),
+    },
+    requested_as: requestedAs,
+    requested_format: requestedFormat,
+    purpose: draft.purpose.trim(),
+    question: draft.question.trim(),
+    definitions: draft.definitions.map((definition) => definition.trim()).filter(Boolean),
+  };
+}

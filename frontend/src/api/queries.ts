@@ -1,4 +1,4 @@
-import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useMutationState, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "./client";
 import type { JsonObject, RequestResult } from "./types";
@@ -6,7 +6,6 @@ import type { JsonObject, RequestResult } from "./types";
 export const AUTO_REFRESH_MS = 5000;
 
 export const keys = {
-  health: ["health"] as const,
   law: ["law"] as const,
   samples: ["samples"] as const,
   requests: ["requests"] as const,
@@ -21,8 +20,6 @@ export const mutationKeys = {
   redTeam: (step: number) => ["red-team", step] as const,
 };
 
-export const useHealth = () => useQuery({ queryKey: keys.health, queryFn: api.health, staleTime: 60_000 });
-
 export const useLaw = () => useQuery({ queryKey: keys.law, queryFn: api.law, staleTime: Infinity });
 
 export const useSamples = () =>
@@ -36,6 +33,19 @@ export const useRequestResult = (requestId: string | null) =>
     queryFn: () => api.request(requestId ?? ""),
     enabled: requestId !== null,
   });
+
+/** Decisions on the requests this browser submitted, most recent first; unknown ids are skipped. */
+export function useMyRequests(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({ queryKey: keys.request(id), queryFn: () => api.request(id) })),
+    combine: (results) => ({
+      results: results.flatMap((result) => (result.data ? [result.data] : [])),
+      isPending: results.some((result) => result.isPending),
+      isFetching: results.some((result) => result.isFetching),
+      refetch: () => Promise.all(results.map((result) => result.refetch())),
+    }),
+  });
+}
 
 export const useSpeInfo = (permitId: string | null) =>
   useQuery({

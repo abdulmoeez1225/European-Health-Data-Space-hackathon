@@ -1,7 +1,12 @@
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
-import { AppHeader } from "@/components/AppHeader";
+import { AppSidebar } from "@/components/AppSidebar";
+import { TopBar } from "@/components/PageHeader";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { BOOT_SCRIPT } from "@/lib/preferences";
 
 import "./globals.css";
 import { Providers } from "./providers";
@@ -15,14 +20,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#141c29" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#08090a" },
   ],
 };
-
-// Before first paint: ?theme=dark|light forces a colour scheme (demos, screenshots), and the old
-// single-page links (/#staff, /#spe, /#privacy) are forwarded to their routes.
-const BOOT_SCRIPT = `try{var t=new URLSearchParams(location.search).get("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;var h=location.hash.slice(1);if(location.pathname==="/"&&(h==="staff"||h==="spe"||h==="privacy"))location.replace("/"+h+"/"+location.search)}catch(e){}`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -30,20 +31,21 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
       </head>
-      <body className="min-h-dvh">
+      <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        >
+          Skip to content
+        </a>
         <Providers>
-          <div className="flex min-h-dvh flex-col">
-            <AppHeader />
-            <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <TopBar />
               {children}
-            </main>
-            <footer className="border-t border-line">
-              <div className="mx-auto flex max-w-[1240px] flex-wrap justify-between gap-2 px-4 py-5 text-sm text-muted sm:px-6 lg:px-8">
-                <span>Synthetic data only · Decided automatically · reviewed by HDAB staff</span>
-                <span>Regulation (EU) 2025/327, Chapter IV</span>
-              </div>
-            </footer>
-          </div>
+            </SidebarInset>
+          </SidebarProvider>
         </Providers>
       </body>
     </html>

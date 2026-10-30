@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -183,7 +185,12 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
     parser.add_argument("--only", default="", help="comma-separated request ids")
     args = parser.parse_args(argv)
 
+    spe_dir = metrics.SPE_DIR
     if process is None:
+        # Evaluation runs keep their decisions, ledger and workspaces out of the app's own state/,
+        # so the demo's decision queue only shows real submissions.
+        state = Path(os.environ.setdefault("GATEKEEPER_STATE_DIR", tempfile.mkdtemp(prefix="gatekeeper-eval-")))
+        spe_dir = state / "spe"
         try:
             from backend.pipeline import process_request as process
         except ImportError as exc:
@@ -192,7 +199,7 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
 
     only = {part.strip() for part in args.only.split(",") if part.strip()} or None
     names = ["main", "hidden"] if args.request_set == "all" else [args.request_set]
-    evaluations = [evaluate_set(name, process, args.runs, not args.no_cache, only) for name in names]
+    evaluations = [evaluate_set(name, process, args.runs, not args.no_cache, only, spe_dir) for name in names]
     report = render(evaluations, args.runs, not args.no_cache)
     print(report)
     RESULTS_PATH.write_text(report + "\n")

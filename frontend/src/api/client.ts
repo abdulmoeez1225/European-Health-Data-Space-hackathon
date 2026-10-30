@@ -4,7 +4,6 @@ import type {
   AirlockResult,
   AuditEvent,
   DownloadBlocked,
-  Health,
   JsonObject,
   LawResponse,
   LedgerEvent,
@@ -95,7 +94,6 @@ async function call<T>(method: Method, path: string, body?: unknown): Promise<T>
 const spePath = (permitId: string) => `/api/spe/${encodeURIComponent(permitId)}`;
 
 export const api = {
-  health: () => call<Health>("GET", "/api/health"),
   law: () => call<LawResponse>("GET", "/api/law"),
   samples: () => call<JsonObject[]>("GET", "/api/samples"),
   requests: () => call<RequestResult[]>("GET", "/api/requests"),

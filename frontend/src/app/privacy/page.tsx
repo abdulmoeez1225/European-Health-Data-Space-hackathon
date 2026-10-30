@@ -1,9 +1,26 @@
-import type { Metadata } from "next";
+"use client";
 
-import { PrivacyAudit } from "@/features/privacy/PrivacyAudit";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export const metadata: Metadata = { title: "Privacy & audit" };
+import { PageBody } from "@/components/PageHeader";
 
-export default function PrivacyPage() {
-  return <PrivacyAudit />;
+/** Old link: Privacy & audit moved into the access-body workspace. */
+export default function PrivacyRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/staff/privacy/");
+  }, [router]);
+  return (
+    <PageBody>
+      <p className="text-[13px] text-muted-foreground">
+        Privacy & audit moved to{" "}
+        <Link href="/staff/privacy/" className="text-foreground underline underline-offset-4">
+          /staff/privacy/
+        </Link>
+        .
+      </p>
+    </PageBody>
+  );
 }

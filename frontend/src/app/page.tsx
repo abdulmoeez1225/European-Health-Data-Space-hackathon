@@ -1,19 +1,18 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { PageIntro } from "@/components/PageIntro";
-import { SkeletonRows } from "@/components/ui/States";
-import { ApplicantPortal } from "@/features/applicant/ApplicantPortal";
+import { PageBody } from "@/components/PageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NewRequest } from "@/features/applicant/NewRequest";
 
-export default function ApplicantPage() {
+export const metadata: Metadata = { title: "Request data" };
+
+export default function NewRequestPage() {
   return (
-    <>
-      <PageIntro title="Submit a data request">
-        Choose a sample request or paste your own. The decision is made automatically and explained in plain
-        language, with the articles of the regulation it relies on.
-      </PageIntro>
-      <Suspense fallback={<SkeletonRows rows={2} />}>
-        <ApplicantPortal />
+    <PageBody>
+      <Suspense fallback={<Skeleton className="mx-auto h-[560px] max-w-3xl rounded-lg" />}>
+        <NewRequest />
       </Suspense>
-    </>
+    </PageBody>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseLegalLine, uncoveredArticles } from "./legal";
+import { parseLegalLine } from "./legal";
 
 describe("parseLegalLine", () => {
   it("splits an abbreviated article with an en dash", () => {
@@ -45,32 +45,5 @@ describe("parseLegalLine", () => {
 
   it("does not match words that merely start with Art", () => {
     expect(parseLegalLine("Artificial intelligence is covered.").article).toBeNull();
-  });
-});
-
-describe("uncoveredArticles", () => {
-  const legalBasis = [
-    "Art. 53 – Scientific research is an allowed purpose.",
-    "Art. 69 – answered as anonymised statistics.",
-  ];
-
-  it("returns nothing when every cited article has a legal-basis line", () => {
-    expect(uncoveredArticles(["53", "69"], legalBasis)).toEqual([]);
-  });
-
-  it("returns the cited articles that no line explains", () => {
-    expect(uncoveredArticles(["53", "69", "71"], legalBasis)).toEqual(["71"]);
-  });
-
-  it("keeps the order of the cited articles", () => {
-    expect(uncoveredArticles(["73", "53", "66"], legalBasis)).toEqual(["73", "66"]);
-  });
-
-  it("returns every article when no line names one", () => {
-    expect(uncoveredArticles(["53", "54"], ["Plain sentence without an article."])).toEqual(["53", "54"]);
-  });
-
-  it("returns nothing when no article is cited", () => {
-    expect(uncoveredArticles([], legalBasis)).toEqual([]);
   });
 });

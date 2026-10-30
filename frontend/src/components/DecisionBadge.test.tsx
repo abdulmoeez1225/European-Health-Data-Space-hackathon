@@ -15,13 +15,27 @@ describe("DecisionBadge", () => {
     expect(screen.getByText(label)).toHaveAttribute("data-tone", tone);
   });
 
-  it("keeps the label and tone at the large size", () => {
-    render(<DecisionBadge decision="APPROVE_SPE" size="lg" />);
-    expect(screen.getByText("Approved – secure environment")).toHaveAttribute("data-tone", "spe");
+  it("shows the full label without a tooltip title by default", () => {
+    render(<DecisionBadge decision="APPROVE_STATISTICAL" />);
+    expect(screen.getByText("Approved – statistics")).not.toHaveAttribute("title");
   });
 
-  it("hides the decorative icon from assistive technology", () => {
-    const { container } = render(<DecisionBadge decision="REJECT" />);
-    expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  it.each<[Decision, string, string, string]>([
+    ["REJECT", "Rejected", "Rejected", "reject"],
+    ["APPROVE_STATISTICAL", "Statistics", "Approved – statistics", "stats"],
+    ["APPROVE_SPE", "Secure env.", "Approved – secure environment", "spe"],
+  ])("renders %s in short form as %s and keeps the full label as title", (decision, short, label, tone) => {
+    render(<DecisionBadge decision={decision} short />);
+    const badge = screen.getByText(short);
+    expect(badge).toHaveAttribute("data-tone", tone);
+    expect(badge).toHaveAttribute("title", label);
+  });
+
+  it("hides the status dot from assistive technology", () => {
+    render(<DecisionBadge decision="REJECT" />);
+    const badge = screen.getByText("Rejected");
+    const dot = badge.querySelector("span");
+    expect(dot).toHaveAttribute("aria-hidden", "true");
+    expect(dot).toBeEmptyDOMElement();
   });
 });

@@ -17,14 +17,6 @@ export function formatValue(value: CellValue | ResultValue | undefined, kind?: s
   );
 }
 
-export type ValueTone = "small" | "suppressed" | "plain";
-
-export function valueTone(value: unknown): ValueTone {
-  if (value === LESS_THAN_TEN) return "small";
-  if (value === SUPPRESSED) return "suppressed";
-  return "plain";
-}
-
 const ACRONYMS: Record<string, string> = {
   bmi: "BMI",
   hba1c: "HbA1c",
@@ -44,6 +36,15 @@ const ACRONYMS: Record<string, string> = {
   los: "LOS",
 };
 
+export function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Cut to at most `max` characters, ending in an ellipsis when something was removed. */
+export function shorten(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 /** snake_case metric or enum names to a readable label: "prevalence_pct" -> "Prevalence (%)". */
 export function humanise(name: string): string {
   const words = name
@@ -54,8 +55,7 @@ export function humanise(name: string): string {
       if (lower === "pct") return "(%)";
       return ACRONYMS[lower] ?? lower.replace(/([a-z])(\d)/g, "$1 $2");
     });
-  const label = words.join(" ");
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return capitalise(words.join(" "));
 }
 
 export function formatTime(iso: string | undefined): string {
@@ -89,4 +89,14 @@ export function toResultValue(value: unknown): ResultValue {
 
 export function isProtectedMarker(value: unknown): value is typeof LESS_THAN_TEN | typeof SUPPRESSED {
   return value === LESS_THAN_TEN || value === SUPPRESSED;
+}
+
+/** Compact list time: "14:05" for today, "29 Oct" otherwise. */
+export function formatShortTime(iso: string | undefined, now: Date = new Date()): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toDateString() === now.toDateString()
+    ? date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }

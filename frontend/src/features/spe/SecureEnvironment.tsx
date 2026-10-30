@@ -1,32 +1,42 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { Download, KeyRound, Lock, ShieldHalf, Table2 } from "lucide-react";
+import { Download, KeyRound, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useId } from "react";
+import type { ReactNode } from "react";
 
 import { api } from "@/api/client";
-import { ApiError, errorMessage } from "@/api/errors";
-import { useRequests, useSpeInfo } from "@/api/queries";
+import { ApiError } from "@/api/errors";
+import { useMyRequests, useSpeInfo } from "@/api/queries";
 import { readRequest } from "@/api/request";
 import type { SpeOutput } from "@/api/types";
-import { Banner } from "@/components/ui/Banner";
-import { Button } from "@/components/ui/Button";
-import { Card, Section } from "@/components/ui/Card";
-import { EmptyState, ErrorState, Skeleton } from "@/components/ui/States";
-import { formatValue } from "@/lib/format";
+import { CopyButton } from "@/components/CopyButton";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, ErrorState } from "@/components/States";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatValue, shorten } from "@/lib/format";
+import { useMyRequestIds } from "@/lib/my-requests";
 
-import { DownloadBlocked } from "./DownloadBlocked";
 import { SqlConsole } from "./SqlConsole";
+
+export const SPE_DESCRIPTION =
+  "Work with approved pseudonymised records under your data permit. Nothing can be downloaded.";
 
 type Permit = { spe: SpeOutput; organisation: string; requestId: string };
 
+const TITLE = "Secure workspace";
+
 export function SecureEnvironment() {
-  const requests = useRequests();
+  // Only permits issued on requests from this browser: the applicant's own workspaces.
+  const ids = useMyRequestIds();
+  const requests = useMyRequests(ids);
   const params = useSearchParams();
   const router = useRouter();
-  const permits: Permit[] = (requests.data ?? []).flatMap((result) =>
+  const permits: Permit[] = requests.results.flatMap((result) =>
     result.spe
       ? [
           {
@@ -40,33 +50,39 @@ export function SecureEnvironment() {
   const wanted = params.get("permit");
   const permit = permits.find((p) => p.spe.permit_id === wanted) ?? permits[0] ?? null;
 
+  if (permit) {
+    return (
+      <Workspace
+        key={permit.spe.permit_id}
+        permit={permit}
+        permits={permits}
+        onSelect={(id) => {
+          router.replace(`/spe/?permit=${encodeURIComponent(id)}`, { scroll: false });
+        }}
+      />
+    );
+  }
+
   return (
-    <div>
-      {requests.isPending ? (
-        <Skeleton className="h-44 rounded-[14px]" />
-      ) : requests.isError ? (
-        <ErrorState
-          title="Could not load data permits"
-          error={requests.error}
-          onRetry={() => void requests.refetch()}
-        />
-      ) : permit ? (
-        <Workspace
-          key={permit.spe.permit_id}
-          permit={permit}
-          permits={permits}
-          onSelect={(id) => {
-            router.replace(`/spe/?permit=${encodeURIComponent(id)}`, { scroll: false });
-          }}
-        />
+    <div className="grid gap-6">
+      <PageHeader title={TITLE} description={SPE_DESCRIPTION} />
+      {ids.length > 0 && requests.isPending ? (
+        <div className="grid gap-3" role="status" aria-label="Loading data permits">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-64" />
+        </div>
       ) : (
-        <EmptyState icon={<KeyRound />} title="No data permit yet">
-          Permits are issued for access applications that explain why statistics are not enough.{" "}
-          <Link href="/" className="font-semibold text-accent hover:underline">
-            Submit one in the Applicant portal
-          </Link>{" "}
-          (for example R05).
-        </EmptyState>
+        <div className="rounded-md border">
+          <EmptyState icon={<KeyRound />} title="No secure workspace yet">
+            <p>
+              A workspace opens when an access application is approved: one that asks for pseudonymised
+              records and explains why statistics are not enough (for example sample R05).
+            </p>
+            <Button asChild className="mt-3">
+              <Link href="/">Request data</Link>
+            </Button>
+          </EmptyState>
+        </div>
       )}
     </div>
   );
@@ -75,135 +91,148 @@ export function SecureEnvironment() {
 type WorkspaceProps = { permit: Permit; permits: Permit[]; onSelect: (permitId: string) => void };
 
 function Workspace({ permit, permits, onSelect }: WorkspaceProps) {
-  const selectId = useId();
   const permitId = permit.spe.permit_id;
   const info = useSpeInfo(permitId);
-  const download = useMutation({
-    mutationFn: () => api.speDownload(permitId),
-  });
+  const download = useMutation({ mutationFn: () => api.speDownload(permitId) });
   const blocked = download.error instanceof ApiError && download.error.status === 403 ? download.error : null;
 
   return (
     <div className="grid gap-6">
-      <Card className="overflow-hidden">
-        <div className="relative bg-[linear-gradient(135deg,var(--spe-soft),var(--surface)_70%)] px-5 py-6 sm:px-7">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="flex min-w-0 items-start gap-4">
-              <span
-                aria-hidden
-                className="grid size-12 shrink-0 place-items-center rounded-xl bg-spe text-on-status"
-              >
-                <Lock className="size-6" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold tracking-[0.08em] text-muted uppercase">Data permit</p>
-                <p className="font-mono text-lg font-bold">{permitId}</p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {permit.organisation || "Unknown applicant"} · request {permit.requestId}
-                </p>
-              </div>
-            </div>
-            <div className="text-right max-sm:text-left">
-              <p className="text-xs font-semibold tracking-[0.08em] text-muted uppercase">
-                Patients in cohort (exact)
-              </p>
-              <p className="text-4xl font-bold text-spe tabular-nums">
-                {formatValue(permit.spe.cohort_size)}
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-end gap-3 border-t border-line pt-5">
-            <div className="min-w-[240px] flex-1">
-              <label htmlFor={selectId} className="mb-1.5 block text-sm font-semibold">
-                Switch permit
-              </label>
-              <select
-                id={selectId}
-                value={permitId}
-                onChange={(event) => {
-                  onSelect(event.target.value);
-                }}
-                className="h-10 w-full rounded-[10px] border border-line-strong bg-surface px-3 text-sm focus:border-accent focus:outline-none"
-              >
+      <PageHeader
+        title={TITLE}
+        description={SPE_DESCRIPTION}
+        actions={
+          <>
+            <Select value={permitId} onValueChange={onSelect}>
+              <SelectTrigger aria-label="Data permit" className="w-60 max-w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
                 {permits.map((p) => (
-                  <option key={p.spe.permit_id} value={p.spe.permit_id}>
-                    {p.spe.permit_id} · {p.organisation || p.requestId}
-                  </option>
+                  <SelectItem key={p.spe.permit_id} value={p.spe.permit_id}>
+                    <span className="font-mono">{p.spe.permit_id}</span>
+                    <span className="text-muted-foreground">
+                      · {shorten(p.organisation || p.requestId, 18)}
+                    </span>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
             <Button
-              variant="danger"
-              icon={<Download aria-hidden className="size-4" />}
-              loading={download.isPending}
+              variant="outline"
+              disabled={download.isPending}
               onClick={() => {
                 download.mutate();
               }}
             >
+              {download.isPending ? (
+                <Loader2 aria-hidden className="animate-spin" />
+              ) : (
+                <Download aria-hidden />
+              )}
               Download data
             </Button>
-          </div>
-        </div>
-      </Card>
+          </>
+        }
+      />
+
+      <dl className="grid grid-cols-2 rounded-md border text-[13px] sm:grid-cols-4 sm:divide-x">
+        <Property label="Permit">
+          <span className="font-mono">{permitId}</span>
+        </Property>
+        <Property label="Applicant">
+          <span title={permit.organisation}>{permit.organisation || "Unknown applicant"}</span>
+        </Property>
+        <Property label="Patients (exact)">
+          <span className="tabular-nums">{formatValue(permit.spe.cohort_size)}</span>
+        </Property>
+        <Property label="Request">
+          <span className="font-mono">{permit.requestId}</span>
+        </Property>
+      </dl>
 
       {blocked ? (
-        <DownloadBlocked
-          key={download.submittedAt}
-          message={blocked.message}
-          auditId={blocked.auditId}
-          at={new Date(download.submittedAt).toISOString()}
-        />
+        <Alert key={download.submittedAt} variant="destructive" role="alert">
+          <ShieldAlert />
+          <AlertTitle>
+            Download blocked — data cannot leave the secure processing environment (Art. 73)
+          </AlertTitle>
+          <AlertDescription>
+            <p>{blocked.message.replace(/^Download blocked:[^.]*\(Art\. 73\)\.\s*/i, "")}</p>
+            {blocked.auditId ? (
+              <p className="flex items-center gap-1">
+                Logged as audit event <span className="font-mono text-foreground">{blocked.auditId}</span>
+                <CopyButton text={blocked.auditId} label="Copy audit event ID" />
+              </p>
+            ) : null}
+          </AlertDescription>
+        </Alert>
       ) : download.isError ? (
-        <Banner tone="error" title="Download check failed" live>
-          {errorMessage(download.error)}
-        </Banner>
+        <ErrorState title="Download check failed" error={download.error} />
       ) : download.isSuccess ? (
-        <Banner tone="error" title="Unexpected: the server did not block the download" live />
+        <Alert variant="destructive" role="alert">
+          <ShieldAlert />
+          <AlertTitle>Unexpected: the server did not block the download</AlertTitle>
+          <AlertDescription>
+            Report this to the access body; data must not leave the environment.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
-      <Section
-        headingLevel={2}
-        title="Tables in this environment"
-        icon={<Table2 />}
-        description="Only the cohort's patients and the record types named in the permit were copied in."
-        actions={
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
-            <ShieldHalf aria-hidden className="size-3.5" /> Patient IDs are pseudonymised
-          </span>
-        }
-      >
-        {info.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
-            ))}
-          </div>
-        ) : info.isError ? (
-          <ErrorState
-            title="Could not open the environment"
-            error={info.error}
-            onRetry={() => void info.refetch()}
-          />
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {info.data.tables.map((table) => (
-              <li key={table.name} className="rounded-xl border border-line bg-surface-2/50 p-4">
-                <p className="font-mono text-sm font-semibold">{table.name}</p>
-                <p className="mt-1 text-2xl font-bold text-fg tabular-nums">{formatValue(table.rows)}</p>
-                <p className="text-xs text-muted">rows</p>
-                <p
-                  className="mt-2 line-clamp-2 font-mono text-[0.6875rem] text-muted"
-                  title={table.columns.join(", ")}
-                >
-                  {table.columns.join(" · ")}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+      <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <section aria-labelledby="spe-tables" className="grid min-w-0 gap-2">
+          <h2 id="spe-tables" className="text-[13px] font-medium text-muted-foreground">
+            Tables
+          </h2>
+          {info.isPending ? (
+            <div className="grid gap-2" role="status" aria-label="Loading tables">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-11" />
+              ))}
+            </div>
+          ) : info.isError ? (
+            <ErrorState
+              title="Could not open the environment"
+              error={info.error}
+              onRetry={() => void info.refetch()}
+            />
+          ) : (
+            <>
+              <ul className="min-w-0 divide-y rounded-md border">
+                {info.data.tables.map((table) => (
+                  <li key={table.name} className="px-3 py-2">
+                    <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                      <span className="font-mono">{table.name}</span>
+                      <span className="tabular-nums">{formatValue(table.rows)}</span>
+                    </div>
+                    <p
+                      className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground"
+                      title={table.columns.join(", ")}
+                    >
+                      {table.columns.join(", ")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                Only the cohort and the record types named in the permit were copied in. Patient IDs are
+                pseudonymised.
+              </p>
+            </>
+          )}
+        </section>
 
-      <SqlConsole permitId={permitId} />
+        <SqlConsole permitId={permitId} />
+      </div>
+    </div>
+  );
+}
+
+function Property({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 px-3 py-2">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 truncate">{children}</dd>
     </div>
   );
 }

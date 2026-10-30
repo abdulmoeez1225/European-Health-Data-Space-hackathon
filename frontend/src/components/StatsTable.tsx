@@ -2,12 +2,10 @@ import { Lock } from "lucide-react";
 import { useId } from "react";
 
 import type { ReleasedCell, StatisticsOutput } from "@/api/types";
-import { cn } from "@/lib/cn";
-import { formatValue, humanise, isProtectedMarker, LESS_THAN_TEN, SUPPRESSED } from "@/lib/format";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { capitalise, formatValue, humanise, isProtectedMarker } from "@/lib/format";
 
-import { ValuePill } from "./ValuePill";
-
-type LedgerNote = { text: string; id: string };
+import { SmallCellBadge } from "./SmallCellBadge";
 
 function metricOrder(stats: StatisticsOutput): string[] {
   return [...new Set(stats.rows.flatMap((row) => row.cells.map((cell) => cell.metric)))];
@@ -18,155 +16,121 @@ function dimensionsOf(stats: StatisticsOutput): string[] {
   return Object.keys(stats.rows[0]?.labels ?? {});
 }
 
-/** Released statistics: group labels as row headers, right-aligned tabular figures, protected values as pills. */
-export function StatsTable({ stats, caption }: { stats: StatisticsOutput; caption?: string }) {
+export function StatsTable({ stats, caption }: { stats: StatisticsOutput; caption: string }) {
   const baseId = useId();
   const dimensions = dimensionsOf(stats);
   const metrics = metricOrder(stats);
-  const notes: LedgerNote[] = [];
-  // Ledger-withheld cells have their own footnote; the legend explains only small-cell markers.
-  const shownValues = stats.rows.flatMap((row) =>
-    row.cells.filter((cell) => !cell.suppressed_by).map((cell) => cell.shown),
+  const notes: { id: string; text: string }[] = [];
+  const hasSmallCells = stats.rows.some((row) =>
+    row.cells.some((cell) => !cell.suppressed_by && isProtectedMarker(cell.shown)),
   );
-  const hasSmall = shownValues.includes(LESS_THAN_TEN);
-  const hasSuppressed = shownValues.includes(SUPPRESSED);
 
   const renderCell = (cell: ReleasedCell | undefined, key: string) => {
     if (!cell) {
       return (
-        <td key={key} className="px-4 py-2.5 text-right text-muted">
+        <TableCell key={key} className="text-right text-muted-foreground">
           –
-        </td>
+        </TableCell>
       );
     }
     if (cell.suppressed_by) {
-      const note = { text: cell.suppressed_by, id: `${baseId}-note-${notes.length + 1}` };
+      const number = notes.length + 1;
+      const note = { id: `${baseId}-note-${number}`, text: capitalise(cell.suppressed_by) };
       notes.push(note);
       return (
-        <td key={key} className="px-4 py-2.5 text-right" title={cell.suppressed_by}>
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-reject-soft px-2.5 text-xs font-semibold text-reject ring-1 ring-reject/30 ring-inset">
-            <Lock role="img" aria-label="Withheld by the release ledger" className="size-3.5" />
+        <TableCell key={key} className="text-right">
+          <span className="inline-flex items-center gap-1 font-medium text-destructive">
+            <Lock role="img" aria-label="Withheld by the release ledger" className="size-3" />
             {formatValue(cell.shown, cell.kind)}
             <a
               href={`#${note.id}`}
-              aria-label={`Footnote ${notes.length}`}
-              className="font-bold underline-offset-2 hover:underline"
+              aria-label={`Footnote ${number}`}
+              className="rounded-sm text-[10px] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <sup>{notes.length}</sup>
+              <sup>{number}</sup>
             </a>
           </span>
-        </td>
+        </TableCell>
       );
     }
     return (
-      <td key={key} className="px-4 py-2.5 text-right font-medium tabular-nums">
+      <TableCell key={key} className="text-right tabular-nums">
         {isProtectedMarker(cell.shown) ? (
-          <ValuePill value={cell.shown} />
+          <SmallCellBadge value={cell.shown} />
         ) : (
           formatValue(cell.shown, cell.kind)
         )}
-      </td>
+      </TableCell>
     );
   };
 
-  const body = stats.rows.map((row, index) => {
-    const byMetric = new Map(row.cells.map((cell) => [cell.metric, cell]));
-    return (
-      <tr key={index} className="border-t border-line transition-colors hover:bg-surface-2/60">
-        {dimensions.length ? (
-          dimensions.map((dimension) => (
-            <th key={dimension} scope="row" className="px-4 py-2.5 text-left font-semibold">
-              {row.labels[dimension] ?? ""}
-            </th>
-          ))
-        ) : (
-          <th scope="row" className="px-4 py-2.5 text-left font-semibold">
-            All matching patients
-          </th>
-        )}
-        {metrics.map((metric) => renderCell(byMetric.get(metric), metric))}
-      </tr>
-    );
-  });
-
   return (
-    <div>
-      <div
-        tabIndex={0}
-        role="region"
-        aria-label={caption ?? "Statistics"}
-        className="overflow-x-auto rounded-xl border border-line"
-      >
-        <table className="w-full min-w-max border-collapse text-sm">
-          {caption ? <caption className="sr-only">{caption}</caption> : null}
-          <thead className="bg-surface-2 text-xs tracking-wide text-muted uppercase">
-            <tr>
+    <div className="grid gap-2.5">
+      <div className="overflow-hidden rounded-md border">
+        <Table label={caption}>
+          <caption className="sr-only">{caption}</caption>
+          <TableHeader className="bg-muted/40">
+            <TableRow className="hover:bg-transparent">
               {(dimensions.length ? dimensions : ["group"]).map((dimension) => (
-                <th key={dimension} scope="col" className="px-4 py-2.5 text-left font-semibold">
+                <TableHead key={dimension} scope="col">
                   {humanise(dimension)}
-                </th>
+                </TableHead>
               ))}
               {metrics.map((metric) => (
-                <th key={metric} scope="col" className="px-4 py-2.5 text-right font-semibold">
+                <TableHead key={metric} scope="col" className="max-w-48 text-right whitespace-normal">
                   {humanise(metric)}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>{body}</tbody>
-        </table>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stats.rows.map((row, index) => {
+              const byMetric = new Map(row.cells.map((cell) => [cell.metric, cell]));
+              return (
+                <TableRow key={index}>
+                  {dimensions.length ? (
+                    dimensions.map((dimension) => (
+                      <TableHead
+                        key={dimension}
+                        scope="row"
+                        className="h-auto text-[13px] font-normal text-foreground"
+                      >
+                        {row.labels[dimension] ?? ""}
+                      </TableHead>
+                    ))
+                  ) : (
+                    <TableHead scope="row" className="h-auto text-[13px] font-normal text-foreground">
+                      All matching patients
+                    </TableHead>
+                  )}
+                  {metrics.map((metric) => renderCell(byMetric.get(metric), metric))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
-      {hasSmall || hasSuppressed || notes.length ? (
-        <div className="mt-3 grid gap-3 text-sm text-muted">
-          {hasSmall || hasSuppressed ? (
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-semibold text-fg">Small-cell rule.</span>
-              {hasSmall ? (
-                <span>
-                  <PillLegend>{LESS_THAN_TEN}</PillLegend> a group of fewer than 10 patients, including 0.
-                </span>
-              ) : null}
-              {hasSuppressed ? (
-                <span>
-                  <PillLegend>{SUPPRESSED}</PillLegend> a percentage or mean based on fewer than 10 patients.
-                </span>
-              ) : null}
-            </p>
-          ) : null}
-          {notes.length ? (
-            <div className="rounded-lg border-l-[3px] border-reject bg-reject-soft/70 px-4 py-3 text-fg">
-              <p className="flex items-center gap-2 font-semibold">
-                <Lock aria-hidden className="size-4 text-reject" />
-                Withheld by the Release Ledger
-              </p>
-              <p className="mt-0.5 text-muted">
-                Combined with an answer you received earlier,{" "}
-                {notes.length === 1 ? "this value" : "these values"} would let someone work out a group of
-                fewer than 10 patients by subtraction.
-              </p>
-              <ol className="mt-2 list-decimal space-y-1 pl-5">
-                {notes.map((note) => (
-                  <li key={note.id} id={note.id} className="scroll-mt-24">
-                    {note.text.charAt(0).toUpperCase() + note.text.slice(1)}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ) : null}
-        </div>
+      {hasSmallCells ? (
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">&lt;10</span> and{" "}
+          <span className="font-medium text-foreground">suppressed</span> hide groups of fewer than 10
+          patients (small-cell rule).
+        </p>
+      ) : null}
+      {notes.length ? (
+        <ol className="grid gap-1 text-xs text-muted-foreground">
+          {notes.map((note, index) => (
+            <li key={note.id} id={note.id} className="flex scroll-mt-24 gap-1.5">
+              <Lock aria-hidden className="mt-0.5 size-3 shrink-0 text-destructive" />
+              <span>
+                <sup className="mr-0.5">{index + 1}</sup>
+                <span className="font-medium text-foreground">Withheld by the release ledger.</span>{" "}
+                {note.text}.
+              </span>
+            </li>
+          ))}
+        </ol>
       ) : null}
     </div>
-  );
-}
-
-function PillLegend({ children }: { children: string }) {
-  return (
-    <span
-      className={cn(
-        "mr-1 inline-flex h-5 items-center rounded-full bg-surface-2 px-2 text-xs font-semibold text-muted ring-1 ring-line ring-inset",
-      )}
-    >
-      {children}
-    </span>
   );
 }

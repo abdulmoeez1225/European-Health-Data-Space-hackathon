@@ -1,6 +1,6 @@
 import type { LawResponse } from "@/api/types";
 
-// Snapshot of GET /api/law (app/law.py) for offline mock mode.
+// Snapshot of GET /api/law (backend/law.py) for offline mock mode.
 export const MOCK_LAW: LawResponse = {
   source: "https://eur-lex.europa.eu/eli/reg/2025/327/oj/eng",
   articles: [

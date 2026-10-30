@@ -1,22 +1,25 @@
-import type { Decision, ProhibitedGround } from "@/api/types";
+import type { Decision, ProhibitedGround, PurposeAssessment } from "@/api/types";
 
 export type DecisionTone = "reject" | "stats" | "spe";
 
-export type DecisionMeta = { label: string; tone: DecisionTone; headline: string };
+export type DecisionMeta = { label: string; short: string; tone: DecisionTone; headline: string };
 
 export const DECISIONS: Record<Decision, DecisionMeta> = {
   REJECT: {
     label: "Rejected",
+    short: "Rejected",
     tone: "reject",
     headline: "Your request cannot be granted.",
   },
   APPROVE_STATISTICAL: {
     label: "Approved – statistics",
+    short: "Statistics",
     tone: "stats",
     headline: "You receive anonymised statistics.",
   },
   APPROVE_SPE: {
     label: "Approved – secure environment",
+    short: "Secure env.",
     tone: "spe",
     headline: "You may analyse pseudonymised records in a secure environment.",
   },
@@ -25,6 +28,13 @@ export const DECISIONS: Record<Decision, DecisionMeta> = {
 export function decisionMeta(decision: Decision): DecisionMeta {
   return DECISIONS[decision];
 }
+
+/** Status colour of a decision, used for its dot. */
+export const TONE_DOT: Record<DecisionTone, string> = {
+  reject: "bg-destructive",
+  stats: "bg-success",
+  spe: "bg-info",
+};
 
 /** Fallback titles until /api/law has loaded. */
 export const ARTICLE_TITLES: Record<string, string> = {
@@ -77,4 +87,20 @@ const PROHIBITIONS: Record<Exclude<ProhibitedGround, "none">, Prohibition> = {
 
 export function prohibitionFor(ground: ProhibitedGround): Prohibition {
   return ground === "none" ? OTHER : PROHIBITIONS[ground];
+}
+
+const PURPOSES: Record<PurposeAssessment["allowed_purpose"], string> = {
+  public_interest_public_health: "Public interest in public health",
+  policy_making_and_regulation: "Policy-making and regulation",
+  official_statistics: "Official statistics",
+  education_and_teaching: "Education and teaching",
+  scientific_research: "Scientific research",
+  product_and_algorithm_development: "Developing products and algorithms",
+  improving_care: "Improving care",
+  none: "None",
+};
+
+/** The Art. 53 purpose the AI recognised, in plain words. */
+export function purposeLabel(purpose: PurposeAssessment["allowed_purpose"]): string {
+  return PURPOSES[purpose];
 }

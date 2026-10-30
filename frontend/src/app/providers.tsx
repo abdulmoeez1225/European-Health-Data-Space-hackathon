@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/api/errors";
-import { TooltipProvider } from "@/components/ui/Tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -81,7 +81,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <TooltipProvider delayDuration={150}>
+      <TooltipProvider>
         <SignatureContext.Provider value={store}>
           <ViewStateContext.Provider value={viewState}>{children}</ViewStateContext.Provider>
         </SignatureContext.Provider>

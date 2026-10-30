@@ -1,8 +1,12 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { keys } from "@/api/queries";
 import type { RequestResult } from "@/api/types";
+import { decisionMeta, prohibitionFor } from "@/lib/decisions";
 import { burgenlandResult, r08Result, rejectResult, speResult } from "@/mock/data";
+import { MOCK_LAW } from "@/mock/law";
 import { renderWithProviders, sampleRequest } from "@/test/render";
 
 import { DecisionLetter } from "./DecisionLetter";
@@ -15,45 +19,41 @@ describe("DecisionLetter: statistics with a ledger-withheld cell", () => {
   it("announces the approval and gives the reason", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Approved – statistics" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: decisionMeta("APPROVE_STATISTICAL").headline }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Approved – statistics")).toBeInTheDocument();
     expect(screen.getByText(result.reason)).toBeInTheDocument();
     expect(screen.getByText(result.request_id)).toBeInTheDocument();
   });
 
-  it("shows the withheld value with a footnote that explains the ledger", () => {
+  it("names the letter after its headline", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(
+      screen.getByRole("article", { name: decisionMeta("APPROVE_STATISTICAL").headline }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks the withheld value and explains it in a footnote", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
     const table = screen.getByRole("table", { name: `Statistics released for ${result.request_id}` });
     expect(within(table).getByText("<10")).toBeInTheDocument();
-    expect(within(table).getByLabelText("Withheld by the release ledger")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "Footnote 1" })).toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "Withheld by the release ledger" })).toBeInTheDocument();
 
-    expect(screen.getByText("Withheld by the Release Ledger")).toBeInTheDocument();
-    expect(
-      screen.getByText("Differencing: combined with RT-1 (released 19:18) this would reveal 1 patient"),
-    ).toBeInTheDocument();
+    const footnoteLink = within(table).getByRole("link", { name: "Footnote 1" });
+    const footnote = screen.getByText("Withheld by the release ledger.").closest("li");
+    expect(footnote).toHaveAttribute("id", footnoteLink.getAttribute("href")?.slice(1));
+    expect(footnote).toHaveTextContent(
+      "Withheld by the release ledger. Differencing: combined with RT-1 (released 19:18) this would reveal 1 patient.",
+    );
   });
 
-  it("does not explain the small-cell rule for a ledger-withheld value", () => {
+  it("shows the small-cell legend only when a small-cell rule marker is present", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.queryByText("Small-cell rule.")).not.toBeInTheDocument();
-  });
-
-  it("cites Art. 53 and Art. 69 as article chips", () => {
-    renderWithProviders(<DecisionLetter result={result} />);
-
-    expect(screen.getByRole("button", { name: /^Art\. 53/ })).toHaveTextContent("Art. 53");
-    expect(screen.getByRole("button", { name: /^Art\. 69/ })).toHaveTextContent("Art. 69");
-    expect(screen.getByText("Scientific research is an allowed purpose.")).toBeInTheDocument();
-    expect(screen.queryByText("Also cited:")).not.toBeInTheDocument();
-  });
-
-  it("titles the chips from the law the app loaded", () => {
-    renderWithProviders(<DecisionLetter result={result} />);
-
-    expect(screen.getByRole("button", { name: "Art. 53: Purposes of secondary use" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Art. 69: Health data requests" })).toBeInTheDocument();
+    expect(screen.queryByText(/small-cell rule/)).not.toBeInTheDocument();
   });
 
   it("releases the number when the ledger does not withhold it", () => {
@@ -61,21 +61,20 @@ describe("DecisionLetter: statistics with a ledger-withheld cell", () => {
 
     const table = screen.getByRole("table");
     expect(within(table).getByText("32")).toBeInTheDocument();
-    expect(screen.queryByText("Withheld by the Release Ledger")).not.toBeInTheDocument();
+    expect(screen.queryByText("Withheld by the release ledger.")).not.toBeInTheDocument();
+    expect(within(table).queryByRole("img", { name: "Withheld by the release ledger" })).toBeNull();
   });
 });
 
 describe("DecisionLetter: statistics with small cells", () => {
   const result = r08Result(sampleRequest("R08"));
 
-  it("shows protected markers as pills and numbers with one decimal", () => {
+  it("shows the small-cell markers as buttons and means with one decimal", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("button", { name: "<10" })).toHaveLength(5);
     expect(within(table).getAllByRole("button", { name: "suppressed" })).toHaveLength(5);
-    expect(within(table).getAllByText("<10")).toHaveLength(5);
-    expect(within(table).getAllByText("suppressed")).toHaveLength(5);
     expect(within(table).getByText("27.2")).toBeInTheDocument();
     expect(within(table).getByText("26.6")).toBeInTheDocument();
   });
@@ -98,37 +97,44 @@ describe("DecisionLetter: statistics with small cells", () => {
     expect(within(table).getByRole("columnheader", { name: "Mean BMI" })).toBeInTheDocument();
   });
 
-  it("explains the small-cell rule", () => {
+  it("explains the small-cell rule in a legend without ledger footnotes", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.getByText("Small-cell rule.")).toBeInTheDocument();
-    expect(screen.getByText(/a group of fewer than 10 patients, including 0\./)).toBeInTheDocument();
-    expect(screen.getByText(/a percentage or mean based on fewer than 10 patients\./)).toBeInTheDocument();
-    expect(screen.queryByText("Withheld by the Release Ledger")).not.toBeInTheDocument();
+    expect(screen.getByText(/small-cell rule/)).toBeInTheDocument();
+    expect(screen.queryByText("Withheld by the release ledger.")).not.toBeInTheDocument();
   });
 
-  it("names the applicant and quotes the question", () => {
+  it("explains a marker in a tooltip on hover", async () => {
+    const user = userEvent.setup();
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.getByText("Comprehensive Cancer Centre, epidemiology group")).toBeInTheDocument();
-    expect(
-      screen.getByText(/What is the mean BMI of women with breast cancer, by region\?/),
-    ).toBeInTheDocument();
+    await user.hover(
+      within(screen.getByRole("table")).getAllByRole("button", { name: "<10" })[0] as HTMLElement,
+    );
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(/Fewer than 10 patients in this group/);
   });
 });
 
 describe("DecisionLetter: secure environment", () => {
   const result = speResult(sampleRequest("R05"));
 
-  it("shows the permit with the exact cohort and blocked download", () => {
+  it("announces the approval", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Approved – secure environment" }),
+      screen.getByRole("heading", { level: 2, name: decisionMeta("APPROVE_SPE").headline }),
     ).toBeInTheDocument();
-    expect(screen.getByText("1,152")).toBeInTheDocument();
-    expect(screen.getByText("permit-R05")).toBeInTheDocument();
-    expect(screen.getByText("Blocked (Art. 73)")).toBeInTheDocument();
+    expect(screen.getByText("Approved – secure environment")).toBeInTheDocument();
+  });
+
+  it("shows the permit with the exact cohort and the blocked download", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    const permit = screen.getByRole("region", { name: "Your data permit" });
+    expect(within(permit).getByText("permit-R05")).toBeInTheDocument();
+    expect(within(permit).getByText("1,152")).toBeInTheDocument();
+    expect(within(permit).getByText(/Download blocked \(Art\. 73\)/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
@@ -138,82 +144,128 @@ describe("DecisionLetter: secure environment", () => {
     expect(screen.getByText("Conditions 2,477 · Medications 3,065 · Observations 2,807")).toBeInTheDocument();
   });
 
-  it("links to the secure environment for this permit", () => {
+  it("links the applicant to their secure workspace for this permit", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
-    const link = screen.getByRole("link", { name: /Open secure environment/ });
+    const link = screen.getByRole("link", { name: /Open secure workspace/ });
     // next.config adds the trailing slash at build time, so outside a build Link emits "/spe?permit=…".
     expect(link.getAttribute("href")).toMatch(/^\/spe\/?\?permit=permit-R05$/);
   });
 
-  it("leaves out the permit link and request summary in compact mode", () => {
-    renderWithProviders(<DecisionLetter result={result} compact />);
+  it("leaves out the workspace link in a staff preview", () => {
+    renderWithProviders(<DecisionLetter result={result} workspaceLink={false} />);
 
     expect(screen.getByText("permit-R05")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Open secure environment/ })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Request from/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open secure workspace/ })).not.toBeInTheDocument();
   });
 
-  it("allows the download when the permit does not block it", () => {
+  it("says so when the permit allows the download", () => {
     const open: RequestResult = {
       ...result,
       spe: result.spe ? { ...result.spe, download_blocked: false } : null,
     };
     renderWithProviders(<DecisionLetter result={open} />);
 
-    expect(screen.getByText("Allowed")).toBeInTheDocument();
-    expect(screen.queryByText("Blocked (Art. 73)")).not.toBeInTheDocument();
-  });
-
-  it("shows articles that no legal-basis line explains as extra chips", () => {
-    renderWithProviders(<DecisionLetter result={{ ...result, articles: [...result.articles, "71"] }} />);
-
-    expect(screen.getByText("Also cited:")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Art. 71: Right to opt out" })).toBeInTheDocument();
+    expect(screen.getByText("Download allowed.")).toBeInTheDocument();
+    expect(screen.queryByText(/Download blocked/)).not.toBeInTheDocument();
   });
 });
 
 describe("DecisionLetter: rejection", () => {
   const result = rejectResult(sampleRequest("R02"));
 
-  it("explains the prohibition and what the applicant can do instead", () => {
+  it("announces the rejection and gives the reason", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Rejected" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: decisionMeta("REJECT").headline }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Rejected")).toBeInTheDocument();
     expect(screen.getByText(result.reason)).toBeInTheDocument();
-    expect(screen.getByText("Employment, insurance or credit decisions.")).toBeInTheDocument();
-    expect(screen.getByRole("blockquote")).toHaveTextContent(result.assessment.justification);
-    expect(screen.getByText("What you can do instead")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Art\. 54/ })).toBeInTheDocument();
+  });
+
+  it("tells the applicant what to do instead, based on the prohibited ground", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(screen.getByText("What you can do instead.")).toBeInTheDocument();
+    expect(screen.getByText(prohibitionFor("employment_or_insurance_or_credit").instead)).toBeInTheDocument();
   });
 
   it("releases no statistics and no permit", () => {
     renderWithProviders(<DecisionLetter result={result} />);
 
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByText("Your statistics")).not.toBeInTheDocument();
-    expect(screen.queryByText("Your data permit")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your statistics" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your data permit" })).not.toBeInTheDocument();
+    expect(screen.queryByText("permit-R05")).not.toBeInTheDocument();
   });
 
-  it("falls back to the general prohibition when the AI names no ground", () => {
+  it("falls back to the generic advice when the AI names no ground", () => {
     const ungrounded: RequestResult = {
       ...result,
       assessment: { ...result.assessment, prohibited_ground: "none" },
     };
     renderWithProviders(<DecisionLetter result={ungrounded} />);
 
-    expect(screen.getByText("Unlawful or unethical use.")).toBeInTheDocument();
+    const generic = prohibitionFor("none").instead;
+    expect(screen.getByText(generic)).toBeInTheDocument();
+    expect(generic).not.toBe(prohibitionFor("employment_or_insurance_or_credit").instead);
   });
 
-  it("omits the quote when there is no justification", () => {
-    const unquoted: RequestResult = {
-      ...result,
-      assessment: { ...result.assessment, justification: "" },
-    };
-    renderWithProviders(<DecisionLetter result={unquoted} />);
+  it("gives no advice for an approval", () => {
+    renderWithProviders(<DecisionLetter result={r08Result(sampleRequest("R08"))} />);
 
-    expect(screen.queryByRole("blockquote")).not.toBeInTheDocument();
-    expect(screen.getByText("What you can do instead")).toBeInTheDocument();
+    expect(screen.queryByText("What you can do instead.")).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: legal basis chips", () => {
+  const result = burgenlandResult(sampleRequest("R01"), 32, null);
+
+  it("cites every article as a chip titled from the law", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    const legalBasis = screen.getByRole("list", { name: "Legal basis" });
+    expect(within(legalBasis).getAllByRole("listitem")).toHaveLength(result.articles.length);
+    expect(
+      within(legalBasis).getByRole("button", { name: "Art. 53: Purposes of secondary use" }),
+    ).toHaveTextContent("Art. 53");
+    expect(
+      within(legalBasis).getByRole("button", { name: "Art. 69: Health data requests" }),
+    ).toHaveTextContent("Art. 69");
+  });
+
+  it("takes the title from the law the app loaded", async () => {
+    const { client } = renderWithProviders(<DecisionLetter result={result} />);
+
+    act(() => {
+      client.setQueryData(keys.law, {
+        ...MOCK_LAW,
+        articles: MOCK_LAW.articles.map((article) =>
+          article.number === "53" ? { ...article, title: "Reuse of health data" } : article,
+        ),
+      });
+    });
+
+    expect(await screen.findByRole("button", { name: "Art. 53: Reuse of health data" })).toBeInTheDocument();
+  });
+
+  it("explains why the article applies from the legal basis", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    await user.hover(screen.getByRole("button", { name: /^Art\. 53/ }));
+
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip).toHaveTextContent("Art. 53 · Purposes of secondary use");
+    expect(tooltip).toHaveTextContent("Scientific research is an allowed purpose.");
+  });
+
+  it("shows no legal basis list when no article is cited", () => {
+    renderWithProviders(<DecisionLetter result={{ ...result, articles: [] }} />);
+
+    expect(screen.queryByRole("list", { name: "Legal basis" })).not.toBeInTheDocument();
   });
 });
 
@@ -222,25 +274,22 @@ describe("DecisionLetter: footer", () => {
     renderWithProviders(<DecisionLetter result={rejectResult(sampleRequest("R02"))} />);
 
     expect(screen.getByText(/Decided automatically in 3\.2 s/)).toBeInTheDocument();
+    expect(screen.queryByText(/identical request answered before/)).not.toBeInTheDocument();
   });
 
-  it("says when the same request was decided before", () => {
+  it("says when an identical request was answered before", () => {
     const cached: RequestResult = { ...rejectResult(sampleRequest("R02")), cached: true };
     renderWithProviders(<DecisionLetter result={cached} />);
 
-    expect(screen.getByText(/same request decided before/)).toBeInTheDocument();
+    expect(screen.getByText("Decided automatically · identical request answered before")).toBeInTheDocument();
   });
 
-  it("links to the regulation unless the letter is compact", () => {
-    const result = rejectResult(sampleRequest("R02"));
-    const { unmount } = renderWithProviders(<DecisionLetter result={result} />);
-    expect(screen.getByRole("link", { name: /^Regulation \(EU\) 2025\/327/ })).toHaveAttribute(
-      "href",
-      "https://eur-lex.europa.eu/eli/reg/2025/327/oj/eng",
-    );
-    unmount();
+  it("links to the regulation on EUR-Lex in a new tab", () => {
+    renderWithProviders(<DecisionLetter result={rejectResult(sampleRequest("R02"))} />);
 
-    renderWithProviders(<DecisionLetter result={result} compact />);
-    expect(screen.queryByRole("link", { name: /^Regulation \(EU\) 2025\/327/ })).not.toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /^Regulation \(EU\) 2025\/327/ });
+    expect(link).toHaveAttribute("href", "https://eur-lex.europa.eu/eli/reg/2025/327/oj/eng");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAccessibleName(/opens in a new tab/);
   });
 });

@@ -14,87 +14,7 @@ export const REGIONS = [
 ] as const;
 type Region = (typeof REGIONS)[number];
 
-export const MOCK_SAMPLES: JsonObject[] = [
-  {
-    id: "R01",
-    submitted: "2026-10-29T18:30:00+01:00",
-    applicant: {
-      name: "Dr. Sophie Lechner",
-      organisation: "Danube Institute for Diabetes Research (university research group)",
-      country: "AT",
-    },
-    requested_as: "health data request",
-    requested_format: "anonymised statistics",
-    purpose:
-      "We study regional differences in type 2 diabetes to plan a prevention programme with the regional health authorities.",
-    question: "How many adults have type 2 diabetes in each region and what is the prevalence?",
-    definitions: [
-      "Adult = aged 18 or older on 31 December 2025.",
-      "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
-      "Prevalence = adults with type 2 diabetes / all adults in the region × 100, one decimal.",
-      "Report per region: adults, adults with type 2 diabetes and the prevalence.",
-    ],
-  },
-  {
-    id: "R02",
-    submitted: "2026-10-29T18:40:00+01:00",
-    applicant: {
-      name: "Markus Gruber",
-      organisation: "Alpenland Versicherung AG, pricing department",
-      country: "AT",
-    },
-    requested_as: "health data request",
-    requested_format: "anonymised statistics",
-    purpose:
-      "We want to align private health insurance premiums for customers with diabetes with their actual risk.",
-    question: "What is the average HbA1c of adults with type 2 diabetes by 10-year age band?",
-    definitions: [
-      "Adult = aged 18 or older on 31 December 2025.",
-      "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
-      "Use the latest HbA1c (LOINC 4548-4) per patient.",
-    ],
-  },
-  {
-    id: "R05",
-    submitted: "2026-10-29T19:20:00+01:00",
-    applicant: {
-      name: "Dr. Amir Hadžić",
-      organisation: "GlucoSense, university spin-off developing clinical prediction software",
-      country: "AT",
-    },
-    requested_as: "health data access application",
-    requested_format: "pseudonymised records",
-    purpose:
-      "We train and validate a model that predicts which patients with type 2 diabetes will have an HbA1c above 8% in the next 12 months, so that GPs can intervene earlier. Training needs individual-level histories; aggregates are not enough.",
-    question:
-      "Provide pseudonymised conditions, medications and HbA1c values for adults with type 2 diabetes who have at least one HbA1c value. We will only export model weights and performance metrics.",
-    definitions: [
-      "Adult = aged 18 or older on 31 December 2025.",
-      "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
-      "Cohort = adults with type 2 diabetes who have at least one HbA1c value (LOINC 4548-4).",
-      "Report the size of the cohort you would make available.",
-    ],
-  },
-  {
-    id: "R08",
-    submitted: "2026-10-29T20:05:00+01:00",
-    applicant: {
-      name: "Prof. Elena Rossi",
-      organisation: "Comprehensive Cancer Centre, epidemiology group",
-      country: "IT",
-    },
-    requested_as: "health data request",
-    requested_format: "anonymised statistics",
-    purpose: "Research on body weight as a risk factor in breast cancer, to inform prevention advice.",
-    question: "What is the mean BMI of women with breast cancer, by region?",
-    definitions: [
-      "Breast cancer = any condition with an ICD-10 code starting with C50.",
-      "Women = sex 'female'.",
-      "Use the latest BMI (LOINC 39156-5) per patient; patients without a BMI are left out.",
-      "Report per region: number of women with a BMI and mean BMI with one decimal.",
-    ],
-  },
-];
+export { MOCK_SAMPLES } from "./samples";
 
 const R01_DATA: Record<Region, [number, number, number]> = {
   Burgenland: [532, 33, 6.2],
@@ -170,6 +90,7 @@ function base(
     plan: null,
     statistics: null,
     spe: null,
+    consensus: { assessment_votes: 3, assessment_agreeing: 3, plan_votes: 3, plan_agreeing: 3 },
     timings: { llm_s: 4.2, compute_s: 0.3, total_s: 4.6 },
     ...extra,
   };
@@ -321,6 +242,7 @@ export function rejectResult(request: JsonObject): RequestResult {
         "The stated purpose is to price insurance products. The regulation prohibits this use of health data.",
     },
     review_flags: [{ reason: "Commercial insurer; purpose text names premium setting explicitly." }],
+    consensus: { assessment_votes: 3, assessment_agreeing: 3, plan_votes: 0, plan_agreeing: 0 },
     timings: { llm_s: 3.1, compute_s: 0, total_s: 3.2 },
   });
 }
@@ -376,6 +298,7 @@ export function speResult(request: JsonObject): RequestResult {
       tables: { cohort: 1152, conditions: 2477, medications: 3065, observations: 2807 },
       download_blocked: true,
     },
+    consensus: { assessment_votes: 3, assessment_agreeing: 3, plan_votes: 3, plan_agreeing: 2 },
     timings: { llm_s: 6.8, compute_s: 1.1, total_s: 8.0 },
   });
 }

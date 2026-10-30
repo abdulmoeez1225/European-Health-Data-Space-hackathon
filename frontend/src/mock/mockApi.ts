@@ -99,7 +99,10 @@ function decide(request: JsonObject): RequestResult {
     }
     return burgenlandResult(request, isDifferencing(request) ? 32 : 33, null);
   }
-  if (/access application/i.test(parsed.requestedAs)) return speResult(request);
+  const justified = /aggregates are not enough|individual-level/i.test(
+    `${parsed.purpose} ${parsed.question}`,
+  );
+  if (/access application/i.test(parsed.requestedAs) && justified) return speResult(request);
   if (
     /insur|market|advert|nicotine|employee|credit|weapon/i.test(
       `${parsed.purpose} ${parsed.applicant.organisation}`,
