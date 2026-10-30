@@ -2,6 +2,8 @@
 
 Gatekeeper decides requests for European Health Data Space (EHDS) data in seconds. It reads an applicant's request, decides whether the purpose is allowed under Regulation (EU) 2025/327, explains the decision in plain language with the articles it relies on, and then either computes privacy-protected statistics or opens a secure workspace with the selected records, from which nothing can be downloaded. Staff of the access body review every decision in their own workspace.
 
+**Live demo:** https://85.217.173.14.sslip.io (synthetic data only). Use the workspace switcher at the top left for the applicant or access-body view, and the language switch for English or German.
+
 Built for Track 3 of the hackathon. The original track brief is in [docs/TRACK.md](docs/TRACK.md).
 
 ## The problem
@@ -51,9 +53,9 @@ Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw), w
 | Audit log | [backend/audit.py](backend/audit.py) | Append-only log of decisions, workspace queries, blocked downloads and ledger blocks. |
 | Staff oversight | [backend/pipeline.py](backend/pipeline.py), [backend/api.py](backend/api.py) | Each decision is `issued`, `withdrawn` or `reopened`; `needs_attention` marks issued decisions with review flags. `POST /api/requests/{id}/withdraw` takes back a grant: it pulls released statistics and closes the secure workspace. `POST /api/requests/{id}/reopen` sets a refusal aside for manual review. A reason is required. Stored in `state/` and audited. |
 | API | [backend/api.py](backend/api.py) | FastAPI with a fully typed OpenAPI schema, `/api/health` and one JSON log line per request. It also serves the exported frontend. |
-| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). Light and dark themes. Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
+| Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). English and German interface (language switch, German number and date formats, decision letters rendered in German). Light and dark themes. Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
 | Evaluation | [eval/](eval/) | Measures the brief's metrics over N runs on the 10 track requests, 12 jury-style requests (`eval/hidden/`) and 29 adversarial ones (`eval/stress/`), the latter two checked against separate hand-written SQL. |
-| CI | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend: ruff, mypy, pytest. Frontend: lint, typecheck, Vitest, build. Tests never call the LLM. |
+| CI/CD | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend: ruff, mypy, pytest. Frontend: lint, typecheck, Vitest, build. Tests never call the LLM. A push to `main` that passes all checks is deployed to the server automatically. |
 
 ### Reliability
 
@@ -118,7 +120,7 @@ Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 =
 ├── data/                    synthetic patients, conditions, medications, observations, encounters (provided)
 ├── requests/                the 10 track requests and expected.json (provided)
 ├── docs/                    TRACK.md (original brief), architecture diagram
-├── deploy/                  Caddyfile (HTTPS reverse proxy) and deploy.sh for a server
+├── deploy/                  Caddyfile (HTTPS), deploy.sh, eval-live.sh, CI deploy setup
 ├── .github/workflows/ci.yml CI
 ├── .env.example             every configuration variable, documented
 ├── Dockerfile, compose.yaml one-container deployment; compose.prod.yaml adds Caddy HTTPS
@@ -143,6 +145,7 @@ make eval-fresh       # the same, with the LLM cache off
 make eval-hidden      # 12 jury-style requests
 make eval-german      # the 10 requests in German
 make eval-stress      # 29 adversarial requests
+make eval-live        # the 10 requests on the deployed server, with its live model (SSH access needed)
 ```
 
 Frontend development: run `make run` in one terminal and `make dev-frontend` in another, then open http://localhost:3000. Adding `?mock=1` to any page shows the UI with built-in sample data and no backend. See [frontend/README.md](frontend/README.md).
@@ -174,7 +177,7 @@ cd frontend && npm ci && npm run build && cd ..        # writes frontend/out, se
 uvicorn backend.api:app --host 0.0.0.0 --port $PORT
 ```
 
-Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). Lower `GATEKEEPER_LLM_READINGS` to 1 on a provider with tight rate limits. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then run `make eval-fresh` once with the chosen model: the metrics below were measured with Claude, and another model must be re-measured.
+Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). Lower `GATEKEEPER_LLM_READINGS` to 1 on a provider with tight rate limits. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then measure the deployed model with `make eval-live`. It runs the evaluation on the server inside the live image and settings, in a throwaway container that leaves the running site, its state and its cache untouched ([deploy/eval-live.sh](deploy/eval-live.sh)). The metrics below were measured with Claude, and another model must be re-measured.
 
 ## Metric results
 
