@@ -86,6 +86,28 @@ describe("DecisionLetter: statistics with a ledger-withheld cell", () => {
   });
 });
 
+describe("DecisionLetter: statistics granted but not computable", () => {
+  const reason = "The dataset contains only Austrian regions, not Italy.";
+  const granted = r08Result(sampleRequest("R08"));
+  const result: RequestResult = {
+    ...granted,
+    statistics: null,
+    plan: granted.plan ? { ...granted.plan, unsupported: reason } : granted.plan,
+  };
+
+  it("says the numbers are pending and why, instead of announcing ready statistics", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Your purpose is allowed, but these numbers could not be computed",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(`“${reason}”`)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your statistics" })).not.toBeInTheDocument();
+  });
+});
+
 describe("DecisionLetter: statistics with small cells", () => {
   const result = r08Result(sampleRequest("R08"));
 
