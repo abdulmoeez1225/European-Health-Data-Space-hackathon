@@ -36,6 +36,7 @@ API_MODEL = settings().api_model
 CLI_MODEL = settings().cli_model
 EFFORT = settings().llm_effort
 TIMEOUT_S = 90
+OPENROUTER_REFERER = "https://github.com/abdulmoeez1225/European-Health-Data-Space-hackathon"
 
 
 class LlmUnavailable(RuntimeError):
@@ -185,6 +186,19 @@ def _http_client() -> httpx.Client:
     return httpx.Client(timeout=TIMEOUT_S)
 
 
+def _is_openrouter(base_url: str) -> bool:
+    return httpx.URL(base_url).host.endswith("openrouter.ai")
+
+
+def _body_error(payload: dict) -> LlmUnavailable:
+    """A 200 answer with an error object instead of choices (OpenRouter does this when the upstream provider fails)."""
+    error = payload.get("error") or {}
+    message = f"LLM endpoint error {error.get('code', '?')}: {str(error.get('message', ''))[:300]}"
+    if error.get("code") == 429:
+        return LlmRateLimited(message, retry_after=5.0)
+    return LlmUnavailable(message)
+
+
 def _json_content(content: str) -> dict:
     text = content.strip()
     if text.startswith("```"):
@@ -203,15 +217,21 @@ def _call_openai(system: str, prompt: str, schema: type[BaseModel]) -> dict:
     json_mode_system = f"{system}\n\nReply with one JSON object that matches this JSON Schema:\n{json.dumps(strict)}"
     headers = {"Authorization": f"Bearer {config.llm_api_key}"} if config.llm_api_key else {}
     url = config.llm_base_url.rstrip("/") + "/chat/completions"
+    openrouter = _is_openrouter(config.llm_base_url)
+    if openrouter:
+        headers |= {"HTTP-Referer": OPENROUTER_REFERER, "X-Title": "Gatekeeper"}
 
     with _http_client() as client:
         for system_text, response_format in ((system, schema_format), (json_mode_system, {"type": "json_object"})):
-            body = {
+            body: dict[str, Any] = {
                 "model": config.llm_model,
                 "temperature": 0,
                 "messages": [{"role": "system", "content": system_text}, {"role": "user", "content": prompt}],
                 "response_format": response_format,
             }
+            if openrouter:
+                # Route only to providers that honour response_format; others would ignore the schema.
+                body["provider"] = {"require_parameters": True}
             _budget.wait(config.llm_max_rpm)
             try:
                 response = client.post(url, json=body, headers=headers)
@@ -219,11 +239,20 @@ def _call_openai(system: str, prompt: str, schema: type[BaseModel]) -> dict:
                 raise LlmUnavailable(f"LLM endpoint unreachable: {error}") from error
             if response.status_code == 429:
                 raise LlmRateLimited("LLM endpoint rate limit reached (429)", _retry_after(response))
-            if response.status_code == 400 and response_format is schema_format:
+            if response.status_code == 402:
+                raise LlmUnavailable("LLM endpoint needs credits or billing (402): " + response.text[:200])
+            # 400: schemas unsupported; 404 on OpenRouter: no provider for this model takes json_schema.
+            if response.status_code in (400, 404) and response_format is schema_format:
                 continue
             if response.status_code != 200:
                 raise LlmUnavailable(f"LLM endpoint returned {response.status_code}: {response.text[:300]}")
-            choice = response.json()["choices"][0]
+            payload = response.json()
+            if not payload.get("choices"):
+                # A provider that cannot compile the schema answers 200 with an error object (code 400).
+                if (payload.get("error") or {}).get("code") == 400 and response_format is schema_format:
+                    continue
+                raise _body_error(payload)
+            choice = payload["choices"][0]
             if choice.get("finish_reason") == "content_filter":
                 raise LlmRefused("the model declined to process this request")
             try:
