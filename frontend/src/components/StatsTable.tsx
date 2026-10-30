@@ -22,6 +22,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
   const baseId = useId();
   const dimensions = dimensionsOf(stats);
   const metrics = metricOrder(stats);
+  const metricLabel = (metric: string) => stats.metric_labels?.[metric] ?? humanise(metric);
   const notes: { id: string; text: string }[] = [];
   const hasSmallCells = stats.rows.some((row) =>
     row.cells.some((cell) => !cell.suppressed_by && isProtectedMarker(cell.shown)),
@@ -74,7 +75,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
         <dl aria-label={caption} className="grid gap-5 sm:grid-cols-2">
           {single.cells.map((cell) => (
             <div key={cell.metric} className="grid gap-1">
-              <dt className="text-ui text-muted-foreground">{humanise(cell.metric)}</dt>
+              <dt className="text-ui text-muted-foreground">{metricLabel(cell.metric)}</dt>
               <dd className="text-title font-semibold tabular-nums">{renderValue(cell, "size-5")}</dd>
             </div>
           ))}
@@ -92,7 +93,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
                 ))}
                 {metrics.map((metric) => (
                   <TableHead key={metric} scope="col" className="max-w-48 text-right whitespace-normal">
-                    {humanise(metric)}
+                    {metricLabel(metric)}
                   </TableHead>
                 ))}
               </TableRow>

@@ -37,7 +37,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
     shown(field) ? { "aria-invalid": true, "aria-describedby": errorId } : {};
 
   return (
-    <fieldset disabled={disabled} className="grid disabled:opacity-70">
+    <fieldset disabled={disabled} className="grid min-w-0 disabled:opacity-70">
       <legend className="sr-only">{f.legend}</legend>
 
       <SettingsSection title={f.applicant} description={f.applicantDescription}>
@@ -93,7 +93,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             }}
             disabled={disabled}
           >
-            <SelectTrigger id={`${id}-kind`} className="w-full" aria-describedby={`${id}-kind-hint`}>
+            <SelectTrigger id={`${id}-kind`} className="w-full min-w-0" aria-describedby={`${id}-kind-hint`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -276,15 +276,15 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-6 border-t border-divider py-10 first-of-type:border-t-0 first-of-type:pt-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
-      <div className="grid content-start gap-1.5">
+    <section className="grid min-w-0 gap-6 border-t border-divider py-10 first-of-type:border-t-0 first-of-type:pt-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid min-w-0 content-start gap-1.5">
         <h2 className="text-card-title font-semibold">
           {title}
           {required ? <RequiredMark /> : null}
         </h2>
         <p className="text-body text-muted-foreground">{description}</p>
       </div>
-      <div className="grid max-w-[640px] content-start gap-6">{children}</div>
+      <div className="grid max-w-[640px] min-w-0 content-start gap-6">{children}</div>
     </section>
   );
 }
@@ -305,7 +305,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="grid content-start gap-2">
+    <div className="grid min-w-0 content-start gap-2">
       <Label htmlFor={htmlFor}>
         {label}
         {required ? <RequiredMark /> : null}

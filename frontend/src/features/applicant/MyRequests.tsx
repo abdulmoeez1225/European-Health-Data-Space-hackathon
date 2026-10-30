@@ -19,6 +19,7 @@ import { useT } from "@/i18n";
 import { useMyRequestIds } from "@/lib/my-requests";
 
 import { draftFrom, EMPTY_DRAFT, type RequestDraft } from "./draft";
+import { ReviewRequest } from "./ReviewRequest";
 import { DRAFT_KEY, JUST_DECIDED_KEY, SAMPLE_KEY, decisionHref } from "./routes";
 
 /** /requests/ lists this browser's requests; /requests/?id=R05 is the decision page for one. */
@@ -109,20 +110,24 @@ function DecisionPage({ requestId }: { requestId: string }) {
           actions={
             result ? (
               <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDraft(draftFrom(result.request));
-                    setSample(null);
-                    router.push("/");
-                  }}
-                >
-                  <PencilLine aria-hidden />
-                  {t.editAndResubmit}
-                </Button>
+                {/* Only a refusal is worth rewriting; a grant stands as issued. */}
+                {result.decision === "REJECT" ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // A fresh id: the server keeps an actioned or appealed decision and refuses its id (409).
+                      setDraft({ ...draftFrom(result.request), id: "" });
+                      setSample(null);
+                      router.push("/");
+                    }}
+                  >
+                    <PencilLine aria-hidden />
+                    {t.editAndResubmit}
+                  </Button>
+                ) : null}
                 <Button
                   // The letter's "Open secure workspace" is the primary action when there is a permit.
-                  variant={result.spe ? "outline" : "default"}
+                  variant={result.spe && result.status === "issued" ? "outline" : "default"}
                   onClick={() => {
                     setDraft(EMPTY_DRAFT);
                     setSample(null);
@@ -147,7 +152,12 @@ function DecisionPage({ requestId }: { requestId: string }) {
           onRetry={() => void decision.refetch()}
         />
       ) : result ? (
-        <DecisionLetter result={result} />
+        <div className="grid gap-6">
+          <DecisionLetter result={result} />
+          {result.decision === "REJECT" && (result.status === "issued" || result.appeal) ? (
+            <ReviewRequest result={result} />
+          ) : null}
+        </div>
       ) : null}
 
       {justDecided === requestId && result ? (

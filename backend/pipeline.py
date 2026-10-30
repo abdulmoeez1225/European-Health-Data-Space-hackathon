@@ -12,7 +12,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, get_args
+from typing import get_args
 
 from backend import audit
 from backend.config import settings
@@ -28,7 +28,9 @@ from backend.decide import (
 from backend.ledger import applicant_key, apply_ledger
 from backend.llm import LlmRefused, LlmUnavailable, ask, backend_name
 from backend.models import (
+    Appeal,
     Consensus,
+    DecisionStatus,
     PrivacyCheck,
     PurposeAssessment,
     ReleasedCell,
@@ -36,16 +38,19 @@ from backend.models import (
     RequestResult,
     ReviewFlag,
     StaffAction,
+    StaffActionKind,
     StatisticsOutput,
     Timings,
 )
 from backend.plan import DataHolder, QueryPlan, Region
-from backend.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
+from backend.planner import PLAN_SYSTEM, metric_labels, plan_prompt, report_phrases, with_canonical_names
 from backend.spe import create_spe, delete_spe
 from backend.stats import LESS_THAN, MIN_CELL, SUPPRESSED, StatResult, run_plan
 from backend.terminology import map_codes
 
 _PATIENT_ID = re.compile(r"\bp-[0-9a-f]{8}\b|\be\d{6}\b")
+# Ids name files under state/, so they may not contain path separators or dots.
+REQUEST_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 
 _results: dict[str, RequestResult] = {}
 _results_lock = threading.Lock()
@@ -54,7 +59,10 @@ _results_loaded_from: Path | None = None
 
 def request_id(request: dict) -> str:
     if request.get("id"):
-        return str(request["id"])
+        rid = str(request["id"])
+        if not REQUEST_ID.fullmatch(rid):
+            raise ValueError(f"invalid request id {rid!r}")
+        return rid
     digest = hashlib.sha256(json.dumps(request, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return f"Q-{digest[:8]}"
 
@@ -94,16 +102,17 @@ def _privacy_checks(result: StatResult, plan: QueryPlan) -> list[PrivacyCheck]:
         PrivacyCheck(name="Every requested group shown", passed=len(result.rows) == expected_groups,
                      detail=f"{len(result.rows)} of {expected_groups} groups, including empty ones."),
         PrivacyCheck(name="Release ledger (differencing)", passed=True,
-                     detail=f"{ledger_blocked} values withheld because, combined with earlier releases to this "
-                            "applicant, they would reveal fewer than 10 patients." if ledger_blocked
-                     else "No earlier release to this applicant can be combined with these values to reveal a "
-                            "small group."),
+                     detail=f"{ledger_blocked} values withheld because, combined with values already released to "
+                            "any applicant, they would reveal fewer than 10 patients." if ledger_blocked
+                     else "No value already released, to any applicant, can be combined with these values to "
+                            "reveal a small group."),
     ]
 
 
-def _statistics(result: StatResult, checks: list[PrivacyCheck]) -> StatisticsOutput:
+def _statistics(result: StatResult, checks: list[PrivacyCheck], labels: dict[str, str]) -> StatisticsOutput:
     return StatisticsOutput(
         dimensions=result.dimensions,
+        metric_labels=labels,
         rows=[
             ReleasedRow(labels=row.labels, cells=[
                 ReleasedCell(metric=c.metric, kind=c.kind, shown=c.shown, suppressed_by=c.suppressed_by)
@@ -258,7 +267,7 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
             apply_ledger(applicant_key(request), rid, result)
             checks = _privacy_checks(result, plan)
             if all(check.passed for check in checks):
-                statistics = _statistics(result, checks)
+                statistics = _statistics(result, checks, metric_labels(plan, request.get("definitions")))
             else:
                 flags.append(ReviewFlag(reason="Privacy firewall blocked the release: "
                                                + "; ".join(c.name for c in checks if not c.passed)))
@@ -281,6 +290,7 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         code_mappings=mappings,
         statistics=statistics,
         spe=spe,
+        status="awaiting_permit" if decision.code == "APPROVE_SPE" else "issued",
         llm_backend=backend_name() if llm_used else "rules",
         cached=cached,
         consensus=consensus,
@@ -292,14 +302,12 @@ def process_request(request: dict, *, use_cache: bool = True) -> RequestResult:
         processed_at=datetime.now(UTC),
     )
     audit.record("decision", "gatekeeper", rid, {
-        "decision": outcome.decision, "articles": outcome.articles,
+        "decision": outcome.decision, "articles": outcome.articles, "status": outcome.status,
         "applicant": request.get("applicant", {}).get("organisation"), "review_flags": len(flags),
     })
     with _results_lock:
         _load_results()
-        _results[rid] = outcome
-        path = _results_dir() / f"{rid}.json"
-        path.write_text(outcome.model_dump_json())
+        _store(outcome)
     return outcome
 
 
@@ -307,6 +315,12 @@ def _results_dir() -> Path:
     path = audit.state_dir() / "results"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def _store(result: RequestResult) -> None:
+    """Caller holds the lock."""
+    _results[result.request_id] = result
+    (_results_dir() / f"{result.request_id}.json").write_text(result.model_dump_json())
 
 
 def _load_results() -> None:
@@ -335,30 +349,58 @@ class ActionNotAllowed(ValueError):
     pass
 
 
-def _apply_staff_action(rid: str, kind: Literal["withdrawn", "reopened"], reason: str) -> RequestResult | None:
+_NEXT_STATUS: dict[StaffActionKind, DecisionStatus] = {
+    "permit_issued": "issued", "withdrawn": "withdrawn", "reopened": "reopened",
+}
+
+
+def _check_staff_action(current: RequestResult, kind: StaffActionKind) -> None:
+    refused = current.decision == "REJECT"
+    if kind == "permit_issued":
+        if current.status != "awaiting_permit":
+            raise ActionNotAllowed(f"Only a decision awaiting its data permit can be signed off; this one is "
+                                   f"{current.status}.")
+        return
+    allowed = ("issued", "awaiting_permit") if kind == "withdrawn" else ("issued",)
+    if current.status not in allowed:
+        raise ActionNotAllowed(f"This decision was already {current.status}.")
+    if kind == "withdrawn" and refused:
+        raise ActionNotAllowed("A refusal releases nothing to withdraw; reopen it for manual review instead.")
+    if kind == "reopened" and not refused:
+        raise ActionNotAllowed("Only refusals can be reopened; withdraw a grant instead.")
+
+
+def _apply_staff_action(
+    rid: str, kind: StaffActionKind, reason: str,
+) -> RequestResult | None:
     with _results_lock:
         _load_results()
         current = _results.get(rid)
         if current is None:
             return None
-        if current.status != "issued":
-            raise ActionNotAllowed(f"This decision was already {current.status}.")
-        refused = current.decision == "REJECT"
-        if kind == "withdrawn" and refused:
-            raise ActionNotAllowed("A refusal releases nothing to withdraw; reopen it for manual review instead.")
-        if kind == "reopened" and not refused:
-            raise ActionNotAllowed("Only refusals can be reopened; withdraw a grant instead.")
-        released = current.statistics is not None or current.spe is not None
+        _check_staff_action(current, kind)
+        # A workspace awaiting its permit was never opened to the applicant, so nothing released is taken back.
+        released = kind == "withdrawn" and current.status == "issued" and (
+            current.statistics is not None or current.spe is not None
+        )
         action = StaffAction(kind=kind, reason=reason.strip(), at=datetime.now(UTC), released_data_withdrawn=released)
-        updated = current.model_copy(update={"status": kind, "staff_action": action, "statistics": None, "spe": None})
-        _results[rid] = updated
-        (_results_dir() / f"{rid}.json").write_text(updated.model_dump_json())
-    if current.spe is not None:
+        update: dict = {"status": _NEXT_STATUS[kind], "staff_action": action}
+        if kind != "permit_issued":
+            update |= {"statistics": None, "spe": None}
+        updated = current.model_copy(update=update)
+        _store(updated)
+    if kind != "permit_issued" and current.spe is not None:
         delete_spe(current.spe.permit_id)
-    audit.record(f"decision_{kind}", "staff", rid, {
+    event = "permit_issued" if kind == "permit_issued" else f"decision_{kind}"
+    audit.record(event, "staff", rid, {
         "decision": current.decision, "reason": action.reason, "released_data_withdrawn": released,
     })
     return updated
+
+
+def issue_permit(rid: str, reason: str) -> RequestResult | None:
+    """Staff sign off the data permit; the prepared secure workspace opens for the applicant (Art. 68)."""
+    return _apply_staff_action(rid, "permit_issued", reason)
 
 
 def withdraw_decision(rid: str, reason: str) -> RequestResult | None:
@@ -369,6 +411,31 @@ def withdraw_decision(rid: str, reason: str) -> RequestResult | None:
 def reopen_decision(rid: str, reason: str) -> RequestResult | None:
     """Set a refusal aside so staff reconsider the case manually."""
     return _apply_staff_action(rid, "reopened", reason)
+
+
+def appeal_decision(rid: str, reason: str) -> RequestResult | None:
+    """The applicant contests a refusal once; staff then decide whether to reopen it."""
+    with _results_lock:
+        _load_results()
+        current = _results.get(rid)
+        if current is None:
+            return None
+        if current.decision != "REJECT" or current.status != "issued":
+            raise ActionNotAllowed("Only an issued refusal can be appealed.")
+        if current.appeal is not None:
+            raise ActionNotAllowed("This refusal was already appealed.")
+        appeal = Appeal(reason=reason.strip(), at=datetime.now(UTC))
+        updated = current.model_copy(update={"appeal": appeal})
+        _store(updated)
+    audit.record("appeal_lodged", "applicant", rid, {"decision": current.decision, "reason": appeal.reason})
+    return updated
+
+
+def permit_status(permit_id: str) -> DecisionStatus | None:
+    """Status of the decision that prepared this secure workspace, if any."""
+    with _results_lock:
+        _load_results()
+        return next((r.status for r in _results.values() if r.spe and r.spe.permit_id == permit_id), None)
 
 
 def get_result(rid: str) -> RequestResult | None:

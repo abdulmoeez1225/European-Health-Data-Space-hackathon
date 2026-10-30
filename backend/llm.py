@@ -135,7 +135,7 @@ def _strict_schema(node: object) -> object:
 
 def _call_cli(system: str, prompt: str, schema: type[BaseModel]) -> dict:
     command = [
-        "claude", "-p", prompt,
+        "claude", "-p",
         "--system-prompt", system,
         "--output-format", "json",
         "--json-schema", json.dumps(_strict_schema(schema.model_json_schema())),
@@ -145,7 +145,10 @@ def _call_cli(system: str, prompt: str, schema: type[BaseModel]) -> dict:
         "--no-session-persistence",
         "--setting-sources", "",
     ]
-    completed = subprocess.run(command, capture_output=True, text=True, timeout=TIMEOUT_S, cwd=CACHE_DIR)
+    # The prompt goes through stdin: a long request in argv exceeds the OS argument limit.
+    completed = subprocess.run(
+        command, input=prompt, capture_output=True, text=True, timeout=TIMEOUT_S, cwd=CACHE_DIR,
+    )
     try:
         envelope = json.loads(completed.stdout)
     except json.JSONDecodeError as error:

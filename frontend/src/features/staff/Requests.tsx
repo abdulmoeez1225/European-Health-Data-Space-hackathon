@@ -21,12 +21,12 @@ export type QueueFilter = "attention" | "all" | "actioned";
 
 export function filterQueue(results: RequestResult[], filter: QueueFilter): RequestResult[] {
   if (filter === "attention") return results.filter((result) => result.needs_attention);
-  // Withdrawn grants and reopened refusals: decisions staff have acted on.
-  if (filter === "actioned") return results.filter((result) => result.status !== "issued");
+  // Issued permits, withdrawn grants and reopened refusals: decisions staff have acted on.
+  if (filter === "actioned") return results.filter((result) => result.staff_action);
   return results;
 }
 
-/** Every decision, issued instantly; staff look at the ones the AI was unsure about. */
+/** Every decision; staff issue waiting permits, answer review requests and check where the AI was unsure. */
 export function Requests() {
   const t = useT();
   const requests = useRequests();

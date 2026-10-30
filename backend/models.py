@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from backend.plan import QueryPlan
 
 DecisionCode = Literal["REJECT", "APPROVE_STATISTICAL", "APPROVE_SPE"]
+
+_TRAILING_TAGS = re.compile(r"(\s*</?[A-Za-z_][\w:-]*>)+\s*$")
 
 ProhibitedGround = Literal[
     "none",
@@ -42,6 +45,12 @@ class PurposeAssessment(BaseModel):
     justification: str = Field(description="Short quote or paraphrase from the request supporting the judgement.")
     explanation_for_applicant: str = Field(description="Two or three plain-language sentences for the applicant.")
 
+    @field_validator("justification", "explanation_for_applicant")
+    @classmethod
+    def _drop_trailing_markup(cls, text: str) -> str:
+        """The CLI model sometimes ends a field with its tool-call closing tags; applicants must not see them."""
+        return _TRAILING_TAGS.sub("", text).strip()
+
 
 class ReviewFlag(BaseModel):
     reason: str
@@ -68,6 +77,9 @@ class PrivacyCheck(BaseModel):
 class StatisticsOutput(BaseModel):
     dimensions: list[str]
     rows: list[ReleasedRow]
+    metric_labels: dict[str, str] = Field(
+        default_factory=dict, description="Metric name -> heading in the request's own words."
+    )
     answer: dict[str, Any]
     sql: str
     privacy_checks: list[PrivacyCheck]
@@ -86,17 +98,21 @@ class CodeMapping(BaseModel):
     matched: list[str] = Field(description="'CODE label' entries present in the data.")
 
 
-DecisionStatus = Literal["issued", "withdrawn", "reopened"]
+# awaiting_permit: records were approved and the secure workspace is prepared, but it stays locked until
+# staff issue the data permit (Art. 68).
+DecisionStatus = Literal["awaiting_permit", "issued", "withdrawn", "reopened"]
+StaffActionKind = Literal["permit_issued", "withdrawn", "reopened"]
 
 
 class StaffAction(BaseModel):
-    """What access-body staff did with an issued decision.
+    """What access-body staff did with a decision.
 
+    permit_issued: staff signed off the data permit; the secure workspace opens for the applicant.
     withdrawn: a grant was taken back; released statistics and the secure workspace were pulled.
     reopened: a refusal was set aside; staff reconsider the case manually.
     """
 
-    kind: Literal["withdrawn", "reopened"]
+    kind: StaffActionKind
     reason: str
     at: datetime
     released_data_withdrawn: bool = False
@@ -110,6 +126,15 @@ class StaffActionRequest(BaseModel):
         if not self.reason.strip():
             raise ValueError("a reason is required")
         return self
+
+
+class AppealRequest(StaffActionRequest):
+    """The applicant's reason for contesting a refusal."""
+
+
+class Appeal(BaseModel):
+    reason: str
+    at: datetime
 
 
 class Consensus(BaseModel):
@@ -145,11 +170,14 @@ class RequestResult(BaseModel):
     consensus: Consensus = Field(default_factory=Consensus)
     status: DecisionStatus = "issued"
     staff_action: StaffAction | None = None
+    appeal: Appeal | None = None
     timings: Timings = Field(default_factory=Timings)
     processed_at: datetime
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def needs_attention(self) -> bool:
-        """Issued with review flags: staff should look at it."""
-        return self.status == "issued" and bool(self.review_flags)
+        """Staff should look at it: a permit to sign off, an issued decision with review flags, or an open appeal."""
+        if self.status == "awaiting_permit":
+            return True
+        return self.status == "issued" and (bool(self.review_flags) or self.appeal is not None)

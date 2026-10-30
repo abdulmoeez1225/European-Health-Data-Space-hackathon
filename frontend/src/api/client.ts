@@ -12,6 +12,9 @@ import type {
   RequestResult,
   SpeInfo,
 } from "./types";
+import type { components } from "./schema";
+
+export type AirlockRequest = components["schemas"]["AirlockRequest"];
 
 export type Method = "GET" | "POST";
 
@@ -91,6 +94,7 @@ async function call<T>(method: Method, path: string, body?: unknown): Promise<T>
   return (await send(method, path, body)) as T;
 }
 
+const requestPath = (requestId: string) => `/api/requests/${encodeURIComponent(requestId)}`;
 const spePath = (permitId: string) => `/api/spe/${encodeURIComponent(permitId)}`;
 
 export type AuditQuery = { limit: number; event?: string; subject?: string };
@@ -106,20 +110,26 @@ export const api = {
   law: (lang: string) => call<LawResponse>("GET", `/api/law?lang=${encodeURIComponent(lang)}`),
   samples: () => call<JsonObject[]>("GET", "/api/samples"),
   requests: () => call<RequestResult[]>("GET", "/api/requests"),
-  request: (requestId: string) =>
-    call<RequestResult>("GET", `/api/requests/${encodeURIComponent(requestId)}`),
+  request: (requestId: string) => call<RequestResult>("GET", requestPath(requestId)),
   submit: (request: JsonObject) => call<RequestResult>("POST", "/api/requests", request),
-  /** Grants only; the server answers 409 for refusals and for decisions already actioned. */
+  /** Grants only, issued or awaiting a permit; the server answers 409 for refusals and actioned decisions. */
   withdraw: (requestId: string, reason: string) =>
-    call<RequestResult>("POST", `/api/requests/${encodeURIComponent(requestId)}/withdraw`, { reason }),
+    call<RequestResult>("POST", `${requestPath(requestId)}/withdraw`, { reason }),
   /** Refusals only: set aside for manual reconsideration. */
   reopen: (requestId: string, reason: string) =>
-    call<RequestResult>("POST", `/api/requests/${encodeURIComponent(requestId)}/reopen`, { reason }),
+    call<RequestResult>("POST", `${requestPath(requestId)}/reopen`, { reason }),
+  /** Unlocks the secure workspace of a records grant awaiting its permit; the reason holds the conditions. */
+  issuePermit: (requestId: string, reason: string) =>
+    call<RequestResult>("POST", `${requestPath(requestId)}/issue-permit`, { reason }),
+  /** The applicant asks the access body to review an issued refusal, once. */
+  appeal: (requestId: string, reason: string) =>
+    call<RequestResult>("POST", `${requestPath(requestId)}/appeal`, { reason }),
   speInfo: (permitId: string) => call<SpeInfo>("GET", spePath(permitId)),
   speQuery: (permitId: string, sql: string) =>
     call<QueryResult>("POST", `${spePath(permitId)}/query`, { sql }),
-  speAirlock: (permitId: string, sql: string) =>
-    call<AirlockResult>("POST", `${spePath(permitId)}/airlock`, { sql }),
+  /** The airlock takes no SQL: it counts patients per allowlisted group itself and suppresses small cells. */
+  speAirlock: (permitId: string, request: AirlockRequest) =>
+    call<AirlockResult>("POST", `${spePath(permitId)}/airlock`, request),
   /** The server always answers 403 (Art. 73); this resolves only if the block failed. */
   speDownload: (permitId: string) => call<DownloadBlocked>("GET", `${spePath(permitId)}/download`),
   audit: (query: AuditQuery) => call<AuditPage>("GET", `/api/audit?${auditParams(query)}`),

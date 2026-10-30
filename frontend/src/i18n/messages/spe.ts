@@ -75,7 +75,6 @@ const en = {
     released: "Released through the airlock",
     region: "Airlock export",
     suppressed: (rows: string, count: string) => `${rows} · ${count} suppressed`,
-    releasedSuppressed: (rows: string, count: string) => `${rows} released · ${count} suppressed`,
   },
   sql: {
     heading: "SQL console",
@@ -83,10 +82,10 @@ const en = {
     shortcut: "⌘/Ctrl + Enter to run",
     queryLabel: "SQL query",
     run: "Run",
-    export: "Export via airlock",
     examples: "Examples:",
     presetCopy: "Try COPY to file",
-    presetAirlock: "Airlock export",
+    exportHint:
+      "Results leave the workspace only as patient counts: export them from the Summarise tab through the airlock.",
     running: "Running…",
     ready: "Result ready.",
     failedStatus: "The query did not run.",
@@ -96,6 +95,7 @@ const en = {
       `${reason}. Nothing can be written to files or taken out of the environment (Art. 73).`,
     insideOnly: "inside the environment only",
     truncated: "truncated by the server",
+    cellsTruncated: (count: string) => `${count} long values shortened (…)`,
     queryResult: "Query result",
   },
 };
@@ -179,7 +179,6 @@ const de: SpeMessages = {
     released: "Über die Schleuse freigegeben",
     region: "Schleusen-Export",
     suppressed: (rows, count) => `${rows} · ${count} unterdrückt`,
-    releasedSuppressed: (rows, count) => `${rows} freigegeben · ${count} unterdrückt`,
   },
   sql: {
     heading: "SQL-Konsole",
@@ -187,10 +186,10 @@ const de: SpeMessages = {
     shortcut: "⌘/Strg + Eingabe zum Ausführen",
     queryLabel: "SQL-Abfrage",
     run: "Ausführen",
-    export: "Über die Schleuse exportieren",
     examples: "Beispiele:",
     presetCopy: "COPY in Datei ausprobieren",
-    presetAirlock: "Schleusen-Export",
+    exportHint:
+      "Ergebnisse verlassen den Arbeitsbereich nur als Personenzahlen: Exportieren Sie sie im Reiter „Zusammenfassen“ über die Schleuse.",
     running: "Wird ausgeführt…",
     ready: "Ergebnis liegt vor.",
     failedStatus: "Die Abfrage wurde nicht ausgeführt.",
@@ -200,6 +199,7 @@ const de: SpeMessages = {
       `${reason}. Es kann nichts in Dateien geschrieben oder aus der Umgebung herausgenommen werden (Art. 73).`,
     insideOnly: "nur innerhalb der Umgebung",
     truncated: "vom Server gekürzt",
+    cellsTruncated: (count) => `${count} lange Werte gekürzt (…)`,
     queryResult: "Abfrageergebnis",
   },
 };

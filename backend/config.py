@@ -61,6 +61,7 @@ class Settings(BaseModel):
         "http://127.0.0.1:5173",
     ]
     log_level: str = "INFO"
+    allow_ledger_reset: bool = False
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> Settings:
@@ -81,6 +82,7 @@ class Settings(BaseModel):
             ("state_dir", "GATEKEEPER_STATE_DIR"),
             ("cache_dir", "GATEKEEPER_CACHE_DIR"),
             ("log_level", "GATEKEEPER_LOG_LEVEL"),
+            ("allow_ledger_reset", "GATEKEEPER_ALLOW_LEDGER_RESET"),
         ):
             if source.get(name):
                 values[field] = source[name]

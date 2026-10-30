@@ -14,9 +14,12 @@ with the switcher at the top of the sidebar (a demo stand-in for sign-in):
 
 The applicant workspace never shows or links staff pages. "My requests" and the secure workspace are
 scoped to the request ids this browser submitted (kept in `localStorage`). Decisions are issued at
-once; staff are alerted when the AI was unsure (`needs_attention`) and can act once with a reason the
-applicant sees: withdraw a grant (`POST /api/requests/{id}/withdraw`, pulls statistics or the
-workspace) or reopen a refusal for manual review (`POST /api/requests/{id}/reopen`).
+once, except records access, which waits for staff to issue the data permit
+(`POST /api/requests/{id}/issue-permit`). Staff are alerted (`needs_attention`) to waiting permits, review
+requests and decisions the AI was unsure about, and act once with a reason the applicant sees: withdraw a
+grant (`POST /api/requests/{id}/withdraw`, pulls statistics or the workspace) or reopen a refusal for
+manual review (`POST /api/requests/{id}/reopen`). Applicants can ask once for a review of a refusal
+(`POST /api/requests/{id}/appeal`).
 
 The interface is available in English and German (sidebar → Sprache / Language, or `?lang=de`); see
 the Language section of [DESIGN.md](DESIGN.md).

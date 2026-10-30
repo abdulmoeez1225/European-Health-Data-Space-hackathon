@@ -73,6 +73,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/requests/{request_id}/issue-permit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Issue Request Permit
+     * @description Sign off the data permit for approved record access; the secure workspace opens.
+     */
+    post: operations["issue_request_permit_api_requests__request_id__issue_permit_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/requests/{request_id}/withdraw": {
     parameters: {
       query?: never;
@@ -84,7 +104,7 @@ export interface paths {
     put?: never;
     /**
      * Withdraw Request
-     * @description Take back a grant (statistics or secure access).
+     * @description Take back a grant (statistics or secure access), also before its permit is issued.
      */
     post: operations["withdraw_request_api_requests__request_id__withdraw_post"];
     delete?: never;
@@ -104,9 +124,29 @@ export interface paths {
     put?: never;
     /**
      * Reopen Request
-     * @description Set a refusal aside for manual review.
+     * @description Set a refusal aside for manual review, for example after an appeal.
      */
     post: operations["reopen_request_api_requests__request_id__reopen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/requests/{request_id}/appeal": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Appeal Request
+     * @description The applicant contests a refusal, once.
+     */
+    post: operations["appeal_request_api_requests__request_id__appeal_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -283,6 +323,31 @@ export interface components {
       /** Max Age */
       max_age?: number | null;
     };
+    /** AirlockFilter */
+    AirlockFilter: {
+      /** Column */
+      column: string;
+      /**
+       * Op
+       * @enum {string}
+       */
+      op: "starts_with" | "contains" | "equals";
+      /** Value */
+      value: string;
+    };
+    /**
+     * AirlockRequest
+     * @description An aggregate the airlock computes itself: distinct patients per group, optionally a mean.
+     */
+    AirlockRequest: {
+      /** Table */
+      table: string;
+      /** Group By */
+      group_by: string[];
+      /** Mean */
+      mean?: string | null;
+      filter?: components["schemas"]["AirlockFilter"] | null;
+    };
     /** AirlockResult */
     AirlockResult: {
       /**
@@ -296,6 +361,24 @@ export interface components {
       columns?: string[];
       /** Rows */
       rows?: unknown[][];
+    };
+    /** Appeal */
+    Appeal: {
+      /** Reason */
+      reason: string;
+      /**
+       * At
+       * Format: date-time
+       */
+      at: string;
+    };
+    /**
+     * AppealRequest
+     * @description The applicant's reason for contesting a refusal.
+     */
+    AppealRequest: {
+      /** Reason */
+      reason: string;
     };
     /** Article */
     Article: {
@@ -846,6 +929,12 @@ export interface components {
        * @default false
        */
       truncated: boolean;
+      /**
+       * Truncated Cells
+       * @description Values cut to 200 characters, ending in '…'.
+       * @default 0
+       */
+      truncated_cells: number;
     };
     /**
      * RecordSelection
@@ -955,8 +1044,9 @@ export interface components {
        * @default issued
        * @enum {string}
        */
-      status: "issued" | "withdrawn" | "reopened";
+      status: "awaiting_permit" | "issued" | "withdrawn" | "reopened";
       staff_action?: components["schemas"]["StaffAction"] | null;
+      appeal?: components["schemas"]["Appeal"] | null;
       timings?: components["schemas"]["Timings"];
       /**
        * Processed At
@@ -965,7 +1055,7 @@ export interface components {
       processed_at: string;
       /**
        * Needs Attention
-       * @description Issued with review flags: staff should look at it.
+       * @description Staff should look at it: a permit to sign off, an issued decision with review flags, or an open appeal.
        */
       readonly needs_attention: boolean;
     };
@@ -1027,6 +1117,16 @@ export interface components {
       rows: number;
       /** Columns */
       columns: string[];
+      /**
+       * Airlock Group By
+       * @description Group keys the airlock accepts for this table.
+       */
+      airlock_group_by: string[];
+      /**
+       * Airlock Means
+       * @description Numeric columns the airlock can average.
+       */
+      airlock_means: string[];
     };
     /** SqlBody */
     SqlBody: {
@@ -1035,8 +1135,9 @@ export interface components {
     };
     /**
      * StaffAction
-     * @description What access-body staff did with an issued decision.
+     * @description What access-body staff did with a decision.
      *
+     *     permit_issued: staff signed off the data permit; the secure workspace opens for the applicant.
      *     withdrawn: a grant was taken back; released statistics and the secure workspace were pulled.
      *     reopened: a refusal was set aside; staff reconsider the case manually.
      */
@@ -1045,7 +1146,7 @@ export interface components {
        * Kind
        * @enum {string}
        */
-      kind: "withdrawn" | "reopened";
+      kind: "permit_issued" | "withdrawn" | "reopened";
       /** Reason */
       reason: string;
       /**
@@ -1070,6 +1171,13 @@ export interface components {
       dimensions: string[];
       /** Rows */
       rows: components["schemas"]["ReleasedRow"][];
+      /**
+       * Metric Labels
+       * @description Metric name -> heading in the request's own words.
+       */
+      metric_labels?: {
+        [key: string]: string;
+      };
       /** Answer */
       answer: {
         [key: string]: unknown;
@@ -1205,6 +1313,15 @@ export interface operations {
           "application/json": components["schemas"]["RequestResult"];
         };
       };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
       /** @description Unprocessable Entity */
       422: {
         headers: {
@@ -1252,6 +1369,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  issue_request_permit_api_requests__request_id__issue_permit_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StaffActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestResult"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
     };
@@ -1362,6 +1532,59 @@ export interface operations {
       };
     };
   };
+  appeal_request_api_requests__request_id__appeal_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AppealRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestResult"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
   law_api_law_get: {
     parameters: {
       query?: {
@@ -1413,6 +1636,15 @@ export interface operations {
           "application/json": components["schemas"]["SpeInfo"];
         };
       };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
       /** @description Not Found */
       404: {
         headers: {
@@ -1459,6 +1691,15 @@ export interface operations {
       };
       /** @description Bad Request */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -1537,7 +1778,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["SqlBody"];
+        "application/json": components["schemas"]["AirlockRequest"];
       };
     };
     responses: {
@@ -1548,6 +1789,15 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AirlockResult"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
       /** @description Not Found */
@@ -1639,6 +1889,15 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["LedgerResetResult"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
         };
       };
     };

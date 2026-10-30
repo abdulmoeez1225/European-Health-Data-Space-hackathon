@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 from backend import audit, spe
 from backend.api import app
 from backend.db import connection
-from backend.decide import is_access_application
+from backend.decide import decide, is_access_application
+from backend.models import PurposeAssessment
 from tests.reference_plans import REFERENCE_PLANS
 
 PERMIT = "permit-api"
@@ -91,7 +92,8 @@ def test_spe_query_blocks_writes_with_400(client: TestClient, permit: str) -> No
     assert response.json()["detail"].startswith("Blocked")
 
 
-def test_ledger_reset_clears_ledger_and_is_audited(client: TestClient) -> None:
+def test_ledger_reset_clears_ledger_and_is_audited(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setenv("GATEKEEPER_ALLOW_LEDGER_RESET", "true")
     response = client.post("/api/ledger/reset")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -119,6 +121,49 @@ def test_submit_with_rules_backend_needs_no_llm(client: TestClient, monkeypatch,
     assert body["decision"] in {"REJECT", "APPROVE_STATISTICAL", "APPROVE_SPE"}
     assert body["llm_backend"] == "rules"
     assert client.get(f"/api/requests/{body['request_id']}").status_code == 200
+
+
+def _rules_request(monkeypatch, tmp_path, **changes: Any) -> dict[str, Any]:
+    monkeypatch.setenv("GATEKEEPER_LLM", "rules")
+    monkeypatch.setattr("backend.llm.CACHE_DIR", tmp_path / "llm-cache")
+    request: dict[str, Any] = json.loads((REQUESTS_DIR / "R01.json").read_text())
+    return request | changes
+
+
+def test_purpose_without_an_allowed_purpose_is_refused(client: TestClient, monkeypatch, tmp_path) -> None:
+    body = client.post("/api/requests", json=_rules_request(monkeypatch, tmp_path, id="HJ", purpose="hj")).json()
+    assert body["decision"] == "REJECT" and body["articles"] == ["53"]
+    assert "No purpose allowed under Art. 53 was given" in body["reason"]
+    assert body["statistics"] is None and body["spe"] is None
+
+
+def test_ai_reading_without_an_allowed_purpose_is_refused() -> None:
+    assessment = PurposeAssessment(
+        prohibited=False, prohibited_ground="none", allowed_purpose="none", records_justified=False,
+        justification="hj", explanation_for_applicant="No purpose was stated.",
+    )
+    decision = decide({"purpose": "hj", "requested_as": "health data request"}, assessment, llm_used=True)
+    assert decision.code == "REJECT" and decision.articles == ["53"]
+    assert decision.legal_basis[0].startswith("Art. 53")
+
+
+@pytest.mark.parametrize("bad_id", ["../../evil", "a/b", "R01.json", "-R01", "x" * 65, "R 01"])
+def test_request_id_must_be_a_plain_name(client: TestClient, monkeypatch, tmp_path, bad_id: str) -> None:
+    response = client.post("/api/requests", json=_rules_request(monkeypatch, tmp_path, id=bad_id))
+    assert response.status_code == 422
+    assert "id" in response.json()["detail"]
+    assert not list(tmp_path.rglob("*evil*"))
+
+
+@pytest.mark.parametrize("changes", [
+    {"purpose": "x" * 1_200_000},
+    {"question": "x" * 4_001},
+    {"definitions": ["Adult = aged 18 or older." * 100] * 20},
+])
+def test_oversized_requests_are_422(client: TestClient, monkeypatch, tmp_path, changes: dict[str, Any]) -> None:
+    response = client.post("/api/requests", json=_rules_request(monkeypatch, tmp_path, **changes))
+    assert response.status_code == 422
+    assert "at most" in response.json()["detail"]
 
 
 def test_openapi_declares_typed_responses(client: TestClient) -> None:

@@ -7,8 +7,16 @@ import { ApiError } from "@/api/errors";
 import { readRequest } from "@/api/request";
 import type { RequestResult } from "@/api/types";
 import { useViewState } from "@/app/providers";
-import { rejectResult, speResult } from "@/mock/data";
-import { renderWithProviders, sampleRequest, withdrawn } from "@/test/render";
+import { formatTime } from "@/lib/format";
+import { r01Result, rejectResult, speResult } from "@/mock/data";
+import {
+  appealed,
+  awaitingPermit,
+  permitIssued,
+  renderWithProviders,
+  sampleRequest,
+  withdrawn,
+} from "@/test/render";
 
 import { EMPTY_DRAFT, type RequestDraft } from "./draft";
 import { MyRequests } from "./MyRequests";
@@ -116,15 +124,58 @@ describe("MyRequests: decision page", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("shows a withdrawn decision as a warning with the access body's reason", async () => {
+  it("shows a withdrawn grant as withdrawn, with the access body's reason quoted apart", async () => {
     renderDecisionPage(withdrawn(result, { reason: "Purpose needs an ethics vote." }));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Withdrawn by the access body");
-    expect(alert).toHaveTextContent(
-      "Purpose needs an ethics vote. The secure workspace is no longer available. The access body will contact you.",
-    );
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Your secure access was withdrawn" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Withdrawn by the access body")).toBeInTheDocument();
+    expect(
+      screen.getByText("The secure workspace is no longer available. The access body will contact you."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Reason given by the access body")).toBeInTheDocument();
+    expect(screen.getByText("“Purpose needs an ethics vote.”").tagName).toBe("BLOCKQUOTE");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Secure access granted|Statistics granted/)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Open secure workspace/ })).not.toBeInTheDocument();
+  });
+
+  it("names withdrawn statistics instead of announcing them", async () => {
+    renderDecisionPage(withdrawn(r01Result(sampleRequest("R01"))));
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Your statistics were withdrawn" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Statistics granted")).not.toBeInTheDocument();
+  });
+
+  it("shows the AI's explanation under 'Why this decision'", async () => {
+    renderDecisionPage(result);
+
+    expect(await screen.findByRole("heading", { level: 3, name: "Why this decision" })).toBeInTheDocument();
+    expect(screen.getByText(result.assessment.explanation_for_applicant)).toBeInTheDocument();
+  });
+
+  it("keeps the workspace closed while the access body has not issued the permit", async () => {
+    renderDecisionPage(awaitingPermit(result));
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "A case officer is reviewing your data permit" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Records access recommended")).toBeInTheDocument();
+    expect(screen.getByText("The workspace opens once the permit is issued.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open secure workspace/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Conditions set by the access body")).not.toBeInTheDocument();
+  });
+
+  it("opens the workspace and shows the permit's conditions once the permit is issued", async () => {
+    renderDecisionPage(permitIssued(result, "Valid for 12 months."));
+
+    expect(await screen.findByRole("link", { name: /Open secure workspace/ })).toBeInTheDocument();
+    expect(screen.getByText("Conditions set by the access body")).toBeInTheDocument();
+    expect(screen.getByText("“Valid for 12 months.”").tagName).toBe("BLOCKQUOTE");
+    expect(screen.queryByText("The workspace opens once the permit is issued.")).not.toBeInTheDocument();
   });
 
   it("opens the form with an empty draft for a new request", async () => {
@@ -139,34 +190,99 @@ describe("MyRequests: decision page", () => {
     expect(draftInView()).toEqual(EMPTY_DRAFT);
   });
 
-  it("opens the form with the draft filled from this request for edit and resubmit", async () => {
+  it("opens the form with a fresh-id draft filled from the refused request for edit and resubmit", async () => {
     const user = userEvent.setup();
-    renderDecisionPage(result);
+    const refusal = rejectResult(sampleRequest("R02"));
+    renderDecisionPage(refusal);
 
     await user.click(await screen.findByRole("button", { name: "Edit and resubmit" }));
 
-    const request = readRequest(result.request);
+    const request = readRequest(refusal.request);
     expect(navigation.push).toHaveBeenCalledExactlyOnceWith("/");
-    expect(draftInView()).toEqual({
-      id: "R05",
-      name: request.applicant.name,
-      organisation: request.applicant.organisation,
-      country: "AT",
-      kind: "records",
-      purpose: request.purpose,
-      question: request.question,
-      definitions: request.definitions,
-    });
+    // The server answers 409 for an id staff already acted on, so the resubmission gets a new one.
+    expect(draftInView()).toMatchObject({ id: "", kind: "statistics", purpose: request.purpose });
+    expect(draftInView().purpose).toMatch(/health insurance premiums/);
   });
 
-  it("keeps the refused request's text when editing it", async () => {
+  it.each([
+    ["a secure-workspace grant", speResult(sampleRequest("R05"))],
+    ["a statistics grant", r01Result(sampleRequest("R01"))],
+  ])("offers only a new request for %s, not edit and resubmit", async (_name, grant) => {
+    renderDecisionPage(grant);
+
+    expect(await screen.findByRole("button", { name: "New request" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit and resubmit" })).not.toBeInTheDocument();
+  });
+});
+
+describe("MyRequests: review of a refusal", () => {
+  const refusal = rejectResult(sampleRequest("R02"));
+
+  it("offers a review under an issued refusal, with the case reference", async () => {
+    renderDecisionPage(refusal);
+
+    const region = await screen.findByRole("region", { name: "Ask for a review" });
+    expect(within(region).getByText("Case reference")).toBeInTheDocument();
+    expect(within(region).getByText("R02")).toBeInTheDocument();
+    expect(within(region).getByRole("button", { name: "Ask for a review…" })).toBeInTheDocument();
+  });
+
+  it("does not offer a review under a grant", async () => {
+    renderDecisionPage(speResult(sampleRequest("R05")));
+
+    await screen.findByRole("heading", { level: 2, name: /secure workspace/ });
+    expect(screen.queryByRole("region", { name: /review/i })).not.toBeInTheDocument();
+  });
+
+  it("asks for a reason and does not send an empty one", async () => {
     const user = userEvent.setup();
-    renderDecisionPage(rejectResult(sampleRequest("R02")));
+    const appeal = vi.spyOn(api, "appeal");
+    renderDecisionPage(refusal);
 
-    await user.click(await screen.findByRole("button", { name: "Edit and resubmit" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for a review…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Ask for a review of this refusal?" });
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "Why the refusal should be reviewed" }),
+      "   ",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Ask for a review" }));
 
-    expect(draftInView()).toMatchObject({ id: "R02", kind: "statistics" });
-    expect(draftInView().purpose).toMatch(/health insurance premiums/);
+    expect(within(dialog).getByText("Explain why the refusal should be reviewed.")).toBeInTheDocument();
+    expect(appeal).not.toHaveBeenCalled();
+  });
+
+  it("sends the trimmed reason and then shows the review as requested", async () => {
+    const user = userEvent.setup();
+    const reason = "Our purpose is public health research.";
+    const appeal = vi.spyOn(api, "appeal").mockResolvedValue(appealed(refusal, reason));
+    renderDecisionPage(refusal);
+
+    await user.click(await screen.findByRole("button", { name: "Ask for a review…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Ask for a review of this refusal?" });
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "Why the refusal should be reviewed" }),
+      `  ${reason}  `,
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Ask for a review" }));
+
+    expect(appeal).toHaveBeenCalledExactlyOnceWith("R02", reason);
+    const heading = await screen.findByRole("heading", {
+      level: 2,
+      name: `Review requested on ${formatTime(appealed(refusal).appeal?.at)}`,
+    });
+    const region = screen.getByRole("region", { name: heading.textContent });
+    expect(within(region).getByText("Your reason")).toBeInTheDocument();
+    expect(within(region).getByText(`“${reason}”`)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask for a review…" })).not.toBeInTheDocument();
+  });
+
+  it("shows a review already asked for, with the applicant's reason and no way to ask again", async () => {
+    renderDecisionPage(appealed(refusal, "Please look again."));
+
+    const heading = await screen.findByRole("heading", { level: 2, name: /^Review requested on / });
+    const region = screen.getByRole("region", { name: heading.textContent });
+    expect(within(region).getByText("“Please look again.”")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask for a review…" })).not.toBeInTheDocument();
   });
 });
 
@@ -192,12 +308,14 @@ describe("MyRequests: overview", () => {
     });
   });
 
-  it("marks a withdrawn decision in the list and leaves issued ones unmarked", async () => {
-    window.localStorage.setItem("gatekeeper.myRequests", JSON.stringify(["R05", "R02"]));
+  it("marks decisions the access body is still working on or has set aside, and leaves issued ones unmarked", async () => {
     const decisions: Record<string, RequestResult> = {
       R05: speResult(sampleRequest("R05")),
+      R06: awaitingPermit(speResult(sampleRequest("R06"))),
       R02: withdrawn(rejectResult(sampleRequest("R02"))),
+      R03: appealed(rejectResult(sampleRequest("R03"))),
     };
+    window.localStorage.setItem("gatekeeper.myRequests", JSON.stringify(Object.keys(decisions)));
     vi.spyOn(api, "request").mockImplementation((id) => {
       const decision = decisions[id];
       return decision ? Promise.resolve(decision) : Promise.reject(new ApiError(404, "No such request"));
@@ -206,12 +324,15 @@ describe("MyRequests: overview", () => {
 
     const list = await screen.findByRole("list", { name: "My requests" });
     await waitFor(() => {
-      expect(within(list).getAllByRole("button")).toHaveLength(2);
+      expect(within(list).getAllByRole("button")).toHaveLength(4);
     });
-    expect(
-      within(within(list).getByRole("button", { name: /R02/ })).getByText("Withdrawn"),
-    ).toBeInTheDocument();
-    expect(within(within(list).getByRole("button", { name: /R05/ })).queryByText("Withdrawn")).toBeNull();
+    const row = (id: string) => within(list).getByRole("button", { name: new RegExp(id) });
+    expect(within(row("R06")).getByText("Awaiting permit")).toBeInTheDocument();
+    expect(within(row("R02")).getByText("Withdrawn")).toBeInTheDocument();
+    expect(within(row("R03")).getByText("Review requested")).toBeInTheDocument();
+    for (const chip of ["Awaiting permit", "Withdrawn", "Review requested"]) {
+      expect(within(row("R05")).queryByText(chip)).not.toBeInTheDocument();
+    }
   });
 
   it("never shows applicants the staff attention marks, even for flagged decisions", async () => {

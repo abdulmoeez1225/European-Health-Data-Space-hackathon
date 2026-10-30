@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.planner import canonical_metric_name, with_canonical_names
+from backend.planner import canonical_metric_name, metric_labels, with_canonical_names
 from tests.reference_plans import REFERENCE_PLANS
 
 
@@ -53,6 +53,17 @@ def test_german_report_line_gives_clean_names() -> None:
     ]
     names = [m.name for m in with_canonical_names(plan, definitions).metrics]
     assert names == ["erwachsene", "erwachsene_mit_typ_2_diabetes", "praevalenz_pct"]
+
+
+def test_headings_keep_the_applicants_spelling() -> None:
+    plan = REFERENCE_PLANS["R03"]
+    definitions = [
+        "Bericht pro Altersgruppe: Patientinnen und Patienten mit Vorhofflimmern, wie viele davon kein aktives "
+        "orales Antikoagulans haben und dieser Anteil in %, eine Nachkommastelle."
+    ]
+    labels = metric_labels(with_canonical_names(plan, definitions), definitions)
+    assert list(labels.values()) == ["Patienten mit Vorhofflimmern", "Kein aktives orales Antikoagulans",
+                                     "Kein aktives orales Antikoagulans (%)"]
 
 
 def test_german_gendered_pair_and_back_reference() -> None:

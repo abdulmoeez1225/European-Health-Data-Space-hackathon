@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, LoaderCircle, Lock, Play, RotateCcw } from "lucide-react";
+import { Check, LoaderCircle, Lock, Play } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { mutationKeys, useLatestDecision, useRequests } from "@/api/queries";
@@ -24,16 +24,15 @@ type StepState =
 function useStepState(step: RedTeamStep, redTeam: RedTeam): StepState {
   const latest = useLatestDecision(mutationKeys.redTeam(step));
   const requests = useRequests();
-  const { resetAt, running, runStartedAt } = redTeam;
-  const stale = latest !== undefined && resetAt !== null && latest.submittedAt < resetAt;
+  const { running, runStartedAt } = redTeam;
   const fromThisRun = latest !== undefined && runStartedAt !== null && latest.submittedAt >= runStartedAt;
   // Without a run in this tab, show the backend's earlier result for the same request.
-  const earlier = resetAt === null ? requests.data?.find((r) => r.request_id === `RT-${step}`) : undefined;
+  const earlier = requests.data?.find((r) => r.request_id === `RT-${step}`);
 
   if (step === 2 && running && !fromThisRun) return { kind: "waiting" };
   if (latest?.status === "pending") return { kind: "running", startedAt: latest.submittedAt };
-  if (latest?.status === "error" && !stale) return { kind: "error", error: latest.error };
-  if (latest?.status === "success" && latest.result && !stale) {
+  if (latest?.status === "error") return { kind: "error", error: latest.error };
+  if (latest?.status === "success" && latest.result) {
     return { kind: "done", result: latest.result, earlier: false };
   }
   if (earlier) return { kind: "done", result: earlier, earlier: true };
@@ -47,7 +46,6 @@ export function RedTeamResults({ redTeam, onShowBlocked }: { redTeam: RedTeam; o
   const second = useStepState(2, redTeam);
   const firstOutcome = first.kind === "done" ? redTeamOutcome(first.result) : null;
   const secondOutcome = second.kind === "done" ? redTeamOutcome(second.result) : null;
-  const busy = redTeam.running || redTeam.resetting;
 
   return (
     <section aria-labelledby="red-team-title" className="grid gap-7 rounded-xl border bg-card p-6 sm:p-8">
@@ -59,15 +57,7 @@ export function RedTeamResults({ redTeam, onShowBlocked }: { redTeam: RedTeam; o
           <p className="text-body text-muted-foreground">{t.subtitle}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="ghost" disabled={busy} onClick={redTeam.resetLedger}>
-            {redTeam.resetting ? (
-              <LoaderCircle aria-hidden className="animate-spin" />
-            ) : (
-              <RotateCcw aria-hidden />
-            )}
-            {t.reset}
-          </Button>
-          <Button disabled={busy} onClick={() => void redTeam.run()}>
+          <Button disabled={redTeam.running} onClick={() => void redTeam.run()}>
             {redTeam.running ? <LoaderCircle aria-hidden className="animate-spin" /> : <Play aria-hidden />}
             {redTeam.running ? t.asking : t.run}
           </Button>

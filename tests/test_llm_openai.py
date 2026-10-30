@@ -50,6 +50,18 @@ def test_structured_output_with_strict_schema(monkeypatch) -> None:
     assert seen[0]["response_format"]["type"] == "json_schema"
 
 
+def test_trailing_tool_call_tags_never_reach_the_applicant(monkeypatch) -> None:
+    explanation = "Please request statistics instead.</explanation_for_applicant>\n</invoke>\n"
+    leaked = {**ANSWER, "explanation_for_applicant": explanation}
+    _serve(monkeypatch, lambda request: _completion(json.dumps(leaked)))
+
+    answer, _ = llm.ask("system", "prompt", PurposeAssessment)
+    cached, from_cache = llm.ask("system", "prompt", PurposeAssessment)
+
+    assert answer.explanation_for_applicant == "Please request statistics instead."
+    assert from_cache is True and cached.explanation_for_applicant == "Please request statistics instead."
+
+
 def test_falls_back_to_json_mode_when_schemas_are_unsupported(monkeypatch) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)

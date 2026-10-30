@@ -1,10 +1,15 @@
 /**
  * SQL for the no-code Browse and Summarise tabs. Table and column names are taken only from the
  * permit's own schema (GET /api/spe/{id}); values are quoted literals. The server still runs every
- * statement read-only, and the airlock still checks every export.
+ * statement read-only. Exports are structured airlock requests: the server builds that SQL itself.
  */
 
+import type { AirlockRequest } from "@/api/client";
+
 export type TableSchema = { name: string; columns: string[] };
+
+/** A workspace table with the group keys the airlock accepts for it. */
+export type SummaryTable = TableSchema & { airlock_group_by: string[] };
 
 export type FilterOp = "starts_with" | "contains" | "equals";
 
@@ -20,8 +25,13 @@ export class SqlBuildError extends Error {
 export const PAGE_SIZE = 50;
 const MAX_LIMIT = 200;
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-/** The airlock refuses results with these columns, so they are never offered for grouping. */
-const IDENTIFYING = /patient_id|encounter_id|birth_date/i;
+/** Group keys that stand for the year of a date column, named as the airlock names them. */
+const YEAR_OF: Record<string, string> = {
+  onset_year: "onset_date",
+  start_year: "start_date",
+  end_year: "end_date",
+  year: "date",
+};
 const CODE_COLUMNS = new Set(["icd10", "atc", "loinc", "primary_icd10"]);
 const TEXT_COLUMNS = new Set(["name", "description"]);
 
@@ -50,11 +60,13 @@ function count(value: number, label: string, max = Number.MAX_SAFE_INTEGER): num
 }
 
 function condition(table: TableSchema, filter: Filter): string | null {
-  const column = columnOf(table, filter.column);
   const value = filter.value.trim();
-  if (!value) return null;
-  const text = `CAST(${column} AS VARCHAR)`;
-  switch (filter.op) {
+  return value ? match(columnOf(table, filter.column), filter.op, value) : null;
+}
+
+function match(expression: string, op: FilterOp, value: string): string {
+  const text = `CAST(${expression} AS VARCHAR)`;
+  switch (op) {
     case "starts_with":
       return `starts_with(lower(${text}), ${quoteLiteral(value.toLowerCase())})`;
     case "contains":
@@ -87,22 +99,38 @@ export function countSql({ schema, table, filters }: Omit<BrowseArgs, "limit" | 
   return `SELECT count(*) AS n FROM ${source.name}${where(source, filters)}`;
 }
 
-type SummaryArgs = { schema: TableSchema[]; table: string; groupBy: string; filter?: Filter | null };
+type Summary = { table: string; groupBy: string; filter?: Filter | null };
 
-/** Patients per group; the `n` column is what the airlock checks against the small-cell rule. */
-export function summarySql({ schema, table, groupBy, filter }: SummaryArgs): string {
-  const source = tableOf(schema, table);
-  if (!source.columns.includes("patient_id")) {
-    throw new SqlBuildError(`${source.name} has no patient_id to count patients`);
+function groupKeyOf(table: SummaryTable, key: string): string {
+  if (!table.airlock_group_by.includes(key)) {
+    throw new SqlBuildError(`${table.name} cannot be summarised by ${key}`);
   }
-  const group = columnOf(source, groupBy);
-  if (IDENTIFYING.test(group)) throw new SqlBuildError(`${group} identifies patients and cannot be a group`);
-  return `SELECT ${group}, count(DISTINCT patient_id) AS n FROM ${source.name}${where(source, filter ? [filter] : [])} GROUP BY ${group} ORDER BY n DESC, ${group}`;
+  return key;
 }
 
-/** Columns that can be grouped by or filtered on: everything except identifiers. */
-export function groupableColumns(table: TableSchema): string[] {
-  return table.columns.filter((column) => IDENTIFIER.test(column) && !IDENTIFYING.test(column));
+/** What the Export button sends: the airlock counts patients and suppresses small cells itself. */
+export function summaryRequest(tables: SummaryTable[], { table, groupBy, filter }: Summary): AirlockRequest {
+  const source = tables.find((candidate) => candidate.name === table);
+  if (!source) throw new SqlBuildError(`Unknown table: ${table}`);
+  const value = filter?.value.trim();
+  return {
+    table: source.name,
+    group_by: [groupKeyOf(source, groupBy)],
+    filter: filter && value ? { column: groupKeyOf(source, filter.column), op: filter.op, value } : null,
+  };
+}
+
+function keyExpression(key: string): string {
+  const date = YEAR_OF[key];
+  return date ? `year(${date})` : key;
+}
+
+/** The same aggregate as the airlock builds, with exact counts, for the preview inside the workspace. */
+export function summarySql({ table, group_by, filter }: AirlockRequest): string {
+  const select = group_by.map((key) => (YEAR_OF[key] ? `${keyExpression(key)} AS ${key}` : key));
+  const where = filter ? ` WHERE ${match(keyExpression(filter.column), filter.op, filter.value)}` : "";
+  const keys = group_by.join(", ");
+  return `SELECT ${select.join(", ")}, count(DISTINCT patient_id) AS n FROM ${table}${where} GROUP BY ${keys} ORDER BY n DESC, ${keys}`;
 }
 
 /** Browse filters: codes match by prefix ("E11"), names and descriptions by any part. */
@@ -114,16 +142,10 @@ export function filterColumnsFor(table: TableSchema): { column: string; op: Filt
   });
 }
 
-/** A table that summarises well by default: patient-level records with a code column. */
-export function defaultSummary(schema: TableSchema[]): { table: string; groupBy: string } | null {
-  const candidates = schema.filter(
-    (table) => table.columns.includes("patient_id") && groupableColumns(table).length,
-  );
-  const table =
-    candidates.find((t) => t.name !== "cohort" && t.columns.some((c) => CODE_COLUMNS.has(c))) ??
-    candidates[0];
-  if (!table) return null;
-  const columns = groupableColumns(table);
-  const groupBy = columns.find((c) => CODE_COLUMNS.has(c)) ?? columns[0];
-  return groupBy ? { table: table.name, groupBy } : null;
+/** A table that summarises well by default: patient-level records grouped by their code. */
+export function defaultSummary(tables: SummaryTable[]): { table: string; groupBy: string } | null {
+  const candidates = tables.filter((table) => table.airlock_group_by.length);
+  const table = candidates.find((t) => t.airlock_group_by.some((c) => CODE_COLUMNS.has(c))) ?? candidates[0];
+  const groupBy = table?.airlock_group_by.find((c) => CODE_COLUMNS.has(c)) ?? table?.airlock_group_by[0];
+  return table && groupBy ? { table: table.name, groupBy } : null;
 }

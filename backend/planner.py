@@ -131,6 +131,25 @@ def _names_from_report(phrases: list[str], plan: QueryPlan) -> list[str]:
     return names
 
 
+def metric_labels(plan: QueryPlan, definitions: list[str] | None = None) -> dict[str, str]:
+    """Column headings in the applicant's own words ("Erwachsene mit Typ-2-Diabetes", "Prävalenz (%)")."""
+    phrases = report_phrases(definitions or [])
+    if not phrases or len(phrases) != len(plan.metrics):
+        return {}
+    labels: dict[str, str] = {}
+    previous = ""
+    for phrase, metric in zip(phrases, plan.metrics, strict=True):
+        if previous and _BACK_REFERENCE.match(phrase.lower()):
+            label = previous
+        else:
+            words = [w for w in phrase.replace("%", " ").split() if w.lower().translate(_UMLAUTS) not in _FILLER]
+            label = " ".join(words) or phrase
+            label = label[:1].upper() + label[1:]
+        previous = label
+        labels[metric.name] = f"{label} (%)" if metric.kind == "percent" else label
+    return labels
+
+
 def with_canonical_names(plan: QueryPlan, definitions: list[str] | None = None) -> QueryPlan:
     """Same reported number, same key, whatever wording the model chose.
 

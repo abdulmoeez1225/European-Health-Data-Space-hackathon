@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { setLocale } from "@/i18n";
 import { burgenlandResult, r01Result, rejectResult, speResult } from "@/mock/data";
-import { renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
+import { awaitingPermit, renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
 
 import { DecisionLetter } from "./DecisionLetter";
 
@@ -118,15 +118,22 @@ describe("DecisionLetter in German: refusal", () => {
 });
 
 describe("DecisionLetter in German: staff actions", () => {
-  it("tells the applicant a grant was withdrawn, in German", () => {
+  it("leads a withdrawn grant with the withdrawal and quotes the reason, in German", () => {
     renderWithProviders(
       <DecisionLetter result={withdrawn(speResult(sampleRequest("R05")), { reason: "Ethikvotum fehlt." })} />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Von der Zugangsstelle zurückgezogen" +
-        "Ethikvotum fehlt. Der sichere Arbeitsbereich ist nicht mehr verfügbar. Die Zugangsstelle wird sich bei Ihnen melden.",
-    );
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Ihr sicherer Zugang wurde zurückgezogen" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Der sichere Arbeitsbereich ist nicht mehr verfügbar. Die Zugangsstelle wird sich bei Ihnen melden.",
+      ),
+    ).toBeInTheDocument();
+    const note = screen.getByText("Begründung der Zugangsstelle").closest("figure") as HTMLElement;
+    expect(note).toHaveTextContent("„Ethikvotum fehlt.“");
+    expect(screen.queryByText("Sicherer Zugang bewilligt")).not.toBeInTheDocument();
   });
 
   it("tells the applicant a refusal is being reconsidered, in German", () => {
@@ -135,8 +142,18 @@ describe("DecisionLetter in German: staff actions", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Wird von der Zugangsstelle erneut geprüft" + "Neue Prüfung. Sie werden kontaktiert.",
+      "Wird von der Zugangsstelle erneut geprüft" + "Sie werden kontaktiert.",
     );
+    expect(screen.getByText("„Neue Prüfung.“")).toBeInTheDocument();
     expect(screen.getByText("Abgelehnt")).toBeInTheDocument();
+  });
+
+  it("says in German that the permit is being reviewed", () => {
+    renderWithProviders(<DecisionLetter result={awaitingPermit(speResult(sampleRequest("R05")))} />);
+
+    expect(screen.getByText("Zugang zu Datensätzen empfohlen")).toBeInTheDocument();
+    expect(
+      screen.getByText("Der Arbeitsbereich öffnet sich, sobald die Genehmigung erteilt ist."),
+    ).toBeInTheDocument();
   });
 });

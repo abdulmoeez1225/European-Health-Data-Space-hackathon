@@ -87,6 +87,23 @@ const en = {
     loadFailed: (id: string) => `Could not load decision ${id}`,
     decisionReady: (id: string) => `Decision ready · ${id}`,
   },
+  review: {
+    title: "Ask for a review",
+    text: "If you think the refusal is wrong, a case officer of the access body can review it. You can ask once.",
+    caseReference: "Case reference",
+    trigger: "Ask for a review…",
+    dialogTitle: "Ask for a review of this refusal?",
+    dialogDescription:
+      "A case officer looks at your request again and contacts you. Quote the case reference if you write to the access body.",
+    reason: "Why the refusal should be reviewed",
+    placeholder: "What the decision missed about your purpose or your request.",
+    required: "Explain why the refusal should be reviewed.",
+    cancel: "Cancel",
+    submit: "Ask for a review",
+    requestedOn: (date: string) => `Review requested on ${date}`,
+    yourReason: "Your reason",
+    next: "A case officer will review the refusal and contact you.",
+  },
   draft: {
     kinds: {
       statistics: "Health data request — anonymised statistics",
@@ -208,6 +225,23 @@ const de: ApplicantMessages = {
     loadingDecision: "Entscheidung wird geladen",
     loadFailed: (id) => `Entscheidung ${id} konnte nicht geladen werden`,
     decisionReady: (id) => `Entscheidung liegt vor · ${id}`,
+  },
+  review: {
+    title: "Überprüfung beantragen",
+    text: "Wenn Sie die Ablehnung für falsch halten, kann eine Sachbearbeiterin oder ein Sachbearbeiter der Zugangsstelle sie überprüfen. Sie können das einmal beantragen.",
+    caseReference: "Aktenzeichen",
+    trigger: "Überprüfung beantragen…",
+    dialogTitle: "Überprüfung dieser Ablehnung beantragen?",
+    dialogDescription:
+      "Die Zugangsstelle prüft Ihre Anfrage erneut und meldet sich bei Ihnen. Geben Sie das Aktenzeichen an, wenn Sie der Zugangsstelle schreiben.",
+    reason: "Warum die Ablehnung überprüft werden sollte",
+    placeholder: "Was die Entscheidung an Ihrem Zweck oder Ihrer Anfrage übersehen hat.",
+    required: "Begründen Sie, warum die Ablehnung überprüft werden sollte.",
+    cancel: "Abbrechen",
+    submit: "Überprüfung beantragen",
+    requestedOn: (date) => `Überprüfung beantragt am ${date}`,
+    yourReason: "Ihre Begründung",
+    next: "Die Zugangsstelle überprüft die Ablehnung und meldet sich bei Ihnen.",
   },
   draft: {
     kinds: {

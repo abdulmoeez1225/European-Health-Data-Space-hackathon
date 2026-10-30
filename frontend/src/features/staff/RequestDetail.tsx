@@ -5,16 +5,17 @@ import {
   CheckCircle2,
   CircleSlash,
   FileText,
-  Loader2,
+  Hourglass,
+  KeyRound,
+  MessageSquareText,
   XCircle,
   RotateCcw,
 } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { errorMessage } from "@/api/errors";
-import { useStaffAction } from "@/api/queries";
 import { readRequest } from "@/api/request";
 import type {
+  Appeal,
   CodeMapping,
   Consensus,
   PrivacyCheck,
@@ -26,29 +27,19 @@ import { ArticleChip } from "@/components/ArticleChip";
 import { CodeBlock } from "@/components/CodeBlock";
 import { DecisionBadge } from "@/components/DecisionBadge";
 import { DecisionLetter } from "@/components/letter/DecisionLetter";
+import { ReasonDialog } from "@/components/ReasonDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { useT, type Messages } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { purposeLabel } from "@/lib/decisions";
 import { formatTime, formatValue } from "@/lib/format";
 import { parseLegalLine } from "@/lib/legal";
 
-/** An issued decision as a case officer checks it; the one action is to withdraw it. */
+/** A decision as a case officer checks it, with the action it allows: issue a permit, withdraw or reopen. */
 export function RequestDetail({ result }: { result: RequestResult }) {
   const t = useT();
   const request = readRequest(result.request);
@@ -62,6 +53,16 @@ export function RequestDetail({ result }: { result: RequestResult }) {
   return (
     <article aria-labelledby="detail-title" className="grid gap-8 px-5 py-8 sm:px-8">
       {result.staff_action ? <StaffActionStamp action={result.staff_action} /> : null}
+      {result.status === "awaiting_permit" ? (
+        <Alert variant="warning">
+          <KeyRound />
+          <AlertTitle>{t.staff.detail.permitWaitingTitle}</AlertTitle>
+          <AlertDescription>
+            <p>{t.staff.detail.permitWaitingText}</p>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {result.appeal ? <AppealNote appeal={result.appeal} open={result.status === "issued"} /> : null}
       {result.needs_attention && flags.length ? (
         <Alert variant="warning">
           <AlertTriangle />
@@ -85,10 +86,24 @@ export function RequestDetail({ result }: { result: RequestResult }) {
               {request.applicant.organisation || result.request_id}
             </h2>
           </div>
-          {result.status === "issued" ? <WithdrawAction result={result} /> : null}
+          {result.status === "awaiting_permit" ? (
+            <div className="flex flex-wrap gap-2">
+              <WithdrawAction result={result} />
+              <IssuePermitAction result={result} />
+            </div>
+          ) : result.status === "issued" ? (
+            <WithdrawAction result={result} />
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <DecisionBadge decision={result.decision} />
+          {result.status === "awaiting_permit" ? (
+            <Badge variant="info">
+              <Hourglass aria-hidden />
+              {t.letter.awaitingPermit.badge}
+            </Badge>
+          ) : (
+            <DecisionBadge decision={result.decision} />
+          )}
           {result.articles.map((article) => (
             <ArticleChip key={article} article={article} detail={details.get(article)} />
           ))}
@@ -173,18 +188,29 @@ function prohibitedLabel(t: Messages, ground: ProhibitedGround): string {
 const shortTime = (iso: string) => formatTime(iso).split(", ").at(-1) ?? "";
 
 /** After a staff action: who, when and why, as the case file records it. */
+const STAMP_ICONS = { withdrawn: CircleSlash, reopened: RotateCcw, permit_issued: KeyRound } as const;
+
 function StaffActionStamp({ action }: { action: StaffAction }) {
   const t = useT();
-  const withdrawn = action.kind === "withdrawn";
-  const Icon = withdrawn ? CircleSlash : RotateCcw;
+  const Icon = STAMP_ICONS[action.kind];
+  const stamps = {
+    withdrawn: t.staff.withdrawn.stamp,
+    reopened: t.staff.reopened.stamp,
+    permit_issued: t.staff.permitIssued.stamp,
+  };
   return (
     <div role="status" className="grid gap-1.5 rounded-lg bg-muted px-4 py-3">
       <p className="flex items-center gap-2 text-ui font-medium">
         <Icon aria-hidden className="size-4 text-subtle-foreground" />
-        {withdrawn ? t.staff.withdrawn.stamp : t.staff.reopened.stamp}
+        {stamps[action.kind]}
         <span className="font-normal text-muted-foreground">{` · ${shortTime(action.at)}`}</span>
       </p>
-      <p className="max-w-[60ch] text-body text-foreground/85">{action.reason}</p>
+      <p className="max-w-[60ch] text-body text-foreground/85">
+        {action.kind === "permit_issued" ? (
+          <span className="text-muted-foreground">{`${t.staff.permitIssued.conditions}: `}</span>
+        ) : null}
+        {action.reason}
+      </p>
       {action.released_data_withdrawn ? (
         <p className="text-data text-muted-foreground">{t.staff.withdrawn.releasedPulled}</p>
       ) : null}
@@ -193,90 +219,51 @@ function StaffActionStamp({ action }: { action: StaffAction }) {
 }
 
 /**
- * The one staff action on an issued decision, with a reason the applicant will see: a grant can be
+ * The staff action on an issued decision, with a reason the applicant will see: a grant can be
  * withdrawn (its data is pulled), a refusal reopened for manual reconsideration.
  */
 export function WithdrawAction({ result }: { result: RequestResult }) {
   const t = useT();
-  const id = useId();
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
-  const [tried, setTried] = useState(false);
   const reopen = result.decision === "REJECT";
-  const copy = reopen ? { ...t.staff.withdraw, ...t.staff.reopen } : t.staff.withdraw;
-  const withdraw = useStaffAction(result.request_id, reopen ? "reopen" : "withdraw");
-  const missing = !reason.trim();
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) {
-          setTried(false);
-          withdraw.reset();
-        }
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button variant={reopen ? "outline" : "destructive-outline"}>{copy.trigger}</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.description}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setTried(true);
-            if (missing) return;
-            withdraw.mutate(reason.trim(), {
-              onSuccess: () => {
-                setOpen(false);
-              },
-            });
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={id}>{t.staff.withdraw.reason}</Label>
-            <Textarea
-              id={id}
-              value={reason}
-              autoFocus
-              placeholder={copy.placeholder}
-              aria-required
-              aria-invalid={tried && missing ? true : undefined}
-              aria-describedby={tried && missing ? `${id}-error` : undefined}
-              onChange={(event) => {
-                setReason(event.target.value);
-              }}
-            />
-            {tried && missing ? (
-              <p id={`${id}-error`} className="text-data text-destructive">
-                {copy.required}
-              </p>
-            ) : null}
-            {withdraw.isError ? (
-              <p role="alert" className="text-data text-destructive">
-                {errorMessage(withdraw.error)}
-              </p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost">{t.staff.withdraw.cancel}</Button>
-            </DialogClose>
-            <Button type="submit" variant={reopen ? "default" : "destructive"} disabled={withdraw.isPending}>
-              {withdraw.isPending ? <Loader2 aria-hidden className="animate-spin" /> : null}
-              {copy.submit}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ReasonDialog
+      requestId={result.request_id}
+      action={reopen ? "reopen" : "withdraw"}
+      copy={reopen ? { ...t.staff.withdraw, ...t.staff.reopen } : t.staff.withdraw}
+      triggerVariant={reopen ? "outline" : "destructive-outline"}
+      submitVariant={reopen ? "default" : "destructive"}
+    />
+  );
+}
+
+/** Records access waits for a person: issuing the permit unlocks the secure workspace. */
+export function IssuePermitAction({ result }: { result: RequestResult }) {
+  const t = useT();
+  return (
+    <ReasonDialog
+      requestId={result.request_id}
+      action="issuePermit"
+      copy={{ ...t.staff.withdraw, ...t.staff.issuePermit }}
+      triggerVariant="default"
+      submitVariant="default"
+    />
+  );
+}
+
+/** The applicant's request for a review of a refusal: an alert while it is open, a record afterwards. */
+function AppealNote({ appeal, open }: { appeal: Appeal; open: boolean }) {
+  const t = useT();
+  return (
+    <Alert variant={open ? "warning" : "default"}>
+      <MessageSquareText />
+      <AlertTitle>{t.staff.detail.appealTitle(formatTime(appeal.at))}</AlertTitle>
+      <AlertDescription className="grid gap-2">
+        <blockquote className="max-w-[60ch] border-l-2 border-current/30 pl-3 break-words whitespace-pre-line text-foreground">
+          {t.letter.quoted(appeal.reason)}
+        </blockquote>
+        {open ? <p>{t.staff.detail.appealNext}</p> : null}
+      </AlertDescription>
+    </Alert>
   );
 }
 
