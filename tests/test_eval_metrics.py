@@ -25,7 +25,6 @@ HIDDEN_EXPECTED = json.loads((HIDDEN_DIR / "expected.json").read_text())
 
 DATA_HOLDER = {"dimension": "data_holder"}
 SEX = {"dimension": "sex"}
-COUNT_STAYS = {"kind": "count", "name": "stays"}
 
 
 def _stays(prefix: str | None, types: list[str], start: date, end: date) -> dict:

@@ -235,19 +235,6 @@ export function SidebarGroup({ className, ...props }: ComponentProps<"div">) {
   );
 }
 
-export function SidebarGroupLabel({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-group-label"
-      className={cn(
-        "flex h-8 shrink-0 items-center px-2.5 text-caption font-medium text-subtle-foreground transition-[margin,opacity] duration-150 ease-out collapsed:-mt-8 collapsed:opacity-0",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 export function SidebarMenu({ className, ...props }: ComponentProps<"ul">) {
   return (
     <ul

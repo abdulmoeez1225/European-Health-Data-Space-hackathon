@@ -125,16 +125,6 @@ export function useLatestDecision(mutationKey: readonly unknown[]): DecisionAtte
   return states.at(-1);
 }
 
-export function useResetLedger() {
-  const invalidate = useInvalidateAfterDecision();
-  return useMutation({
-    mutationFn: api.resetLedger,
-    onSettled: () => {
-      void invalidate();
-    },
-  });
-}
-
 export type CaseAction = "withdraw" | "reopen" | "issuePermit" | "appeal";
 
 /**

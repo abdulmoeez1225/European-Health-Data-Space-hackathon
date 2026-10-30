@@ -331,11 +331,6 @@ export const mockTransport: Transport = async (method, fullPath, body) => {
   }
   if (path === "/api/audit") return auditPage(new URLSearchParams(query));
   if (path === "/api/ledger") return state.ledger;
-  if (path === "/api/ledger/reset" && method === "POST") {
-    state.ledger = [];
-    audit("ledger_reset", "staff", "ledger");
-    return { status: "ok" };
-  }
   if (spe) {
     const permit = decodeURIComponent(spe[1] ?? "");
     if (permit !== MOCK_PERMIT) throw new ApiError(404, permit);

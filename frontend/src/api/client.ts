@@ -7,7 +7,6 @@ import type {
   JsonObject,
   LawResponse,
   LedgerEvent,
-  LedgerResetResult,
   QueryResult,
   RequestResult,
   SpeInfo,
@@ -134,5 +133,4 @@ export const api = {
   speDownload: (permitId: string) => call<DownloadBlocked>("GET", `${spePath(permitId)}/download`),
   audit: (query: AuditQuery) => call<AuditPage>("GET", `/api/audit?${auditParams(query)}`),
   ledger: () => call<LedgerEvent[]>("GET", "/api/ledger"),
-  resetLedger: () => call<LedgerResetResult>("POST", "/api/ledger/reset"),
 };
