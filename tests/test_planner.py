@@ -26,7 +26,7 @@ def test_names_stay_unique() -> None:
 
 def _definitions(request_id: str) -> list[str]:
     path = Path(__file__).resolve().parent.parent / "requests" / f"{request_id}.json"
-    return list(json.loads(path.read_text())["definitions"])
+    return list(json.loads(path.read_text(encoding="utf-8"))["definitions"])
 
 
 @pytest.mark.parametrize(("request_id", "expected"), [

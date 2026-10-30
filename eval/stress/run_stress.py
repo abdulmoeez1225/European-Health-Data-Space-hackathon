@@ -28,8 +28,12 @@ from eval import metrics  # noqa: E402
 
 
 def load() -> list[tuple[dict, dict]]:
-    expected = json.loads((HERE / "expected.json").read_text())
-    return [(json.loads(p.read_text()), expected[p.stem]) for p in sorted(HERE.glob("S*.json")) if p.stem in expected]
+    expected = json.loads((HERE / "expected.json").read_text(encoding="utf-8"))
+    return [
+        (json.loads(p.read_text(encoding="utf-8")), expected[p.stem])
+        for p in sorted(HERE.glob("S*.json"))
+        if p.stem in expected
+    ]
 
 
 def is_unsupported(expected: dict) -> bool:
@@ -148,8 +152,8 @@ def main() -> None:
 
     out = Path(args.out)
     if only and out.exists():
-        report = {**json.loads(out.read_text()), **report}
-    out.write_text(json.dumps(report, indent=1, ensure_ascii=False, default=str) + "\n")
+        report = {**json.loads(out.read_text(encoding="utf-8")), **report}
+    out.write_text(json.dumps(report, indent=1, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
     for rid, e in report.items():
         print(
             rid,

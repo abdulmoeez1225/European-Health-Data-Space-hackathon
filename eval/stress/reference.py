@@ -655,7 +655,7 @@ def build_expected() -> dict[str, dict]:
 
 def main() -> None:
     expected = build_expected()
-    (HERE / "expected.json").write_text(json.dumps(expected, indent=2, ensure_ascii=False) + "\n")
+    (HERE / "expected.json").write_text(json.dumps(expected, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {HERE / 'expected.json'} ({len(expected)} requests)")
     print(json.dumps(ideal_values(), indent=1, ensure_ascii=False))
 

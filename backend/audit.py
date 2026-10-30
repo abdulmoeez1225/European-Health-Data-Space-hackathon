@@ -50,7 +50,9 @@ def _load() -> None:
     _events.clear()
     if path.exists():
         _events.extend(
-            AuditEvent.model_validate_json(line) for line in path.read_text().splitlines() if line.strip()
+            AuditEvent.model_validate_json(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
         )
     _loaded_from = path
 

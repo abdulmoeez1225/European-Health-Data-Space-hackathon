@@ -57,10 +57,10 @@ class SetEval:
 
 def load_set(name: str, only: set[str] | None = None) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     directory, pattern, expected_path = SETS[name]
-    expected = json.loads(expected_path.read_text()) if expected_path.exists() else {}
+    expected = json.loads(expected_path.read_text(encoding="utf-8")) if expected_path.exists() else {}
     pairs = []
     for path in sorted(directory.glob(pattern)):
-        request = json.loads(path.read_text())
+        request = json.loads(path.read_text(encoding="utf-8"))
         if request["id"] in expected and (only is None or request["id"] in only):
             pairs.append((request, expected[request["id"]]))
     return pairs
@@ -203,7 +203,7 @@ def main(argv: list[str] | None = None, process: ProcessFn | None = None) -> int
     evaluations = [evaluate_set(name, process, args.runs, not args.no_cache, only, spe_dir) for name in names]
     report = render(evaluations, args.runs, not args.no_cache)
     print(report)
-    RESULTS_PATH.write_text(report + "\n")
+    RESULTS_PATH.write_text(report + "\n", encoding="utf-8")
     return 0
 
 

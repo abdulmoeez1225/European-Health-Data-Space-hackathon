@@ -7,7 +7,9 @@ import pytest
 from backend.stats import LESS_THAN, SUPPRESSED, cohort_size, round_half_up, run_plan
 from tests.reference_plans import REFERENCE_PLANS
 
-EXPECTED = json.loads((Path(__file__).resolve().parent.parent / "requests" / "expected.json").read_text())
+EXPECTED = json.loads(
+    (Path(__file__).resolve().parent.parent / "requests" / "expected.json").read_text(encoding="utf-8")
+)
 
 
 @pytest.mark.parametrize("request_id", ["R01", "R03", "R07", "R08", "R09"])

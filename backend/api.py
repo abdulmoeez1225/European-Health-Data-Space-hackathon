@@ -115,7 +115,11 @@ async def log_requests(request: Request, call_next: Callable[[Request], Awaitabl
 
 
 def _load_requests(folder: Path) -> list[dict[str, Any]]:
-    return [json.loads(p.read_text()) for p in sorted(folder.glob("*.json")) if p.name != "expected.json"]
+    return [
+        json.loads(p.read_text(encoding="utf-8"))
+        for p in sorted(folder.glob("*.json"))
+        if p.name != "expected.json"
+    ]
 
 
 @app.get("/api/health", response_model=Health)

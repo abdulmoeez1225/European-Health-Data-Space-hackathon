@@ -256,7 +256,7 @@ def ask[T: BaseModel](
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path = _cache_path(_cache_key(system, prompt, schema, backend, reading))
     if use_cache and path.exists():
-        return schema.model_validate_json(path.read_text()), True
+        return schema.model_validate_json(path.read_text(encoding="utf-8")), True
 
     attempt = 0
     while True:
@@ -274,5 +274,5 @@ def ask[T: BaseModel](
             if attempt >= 2 or backend == "rules":
                 raise LlmUnavailable(str(error)[:300]) from error
 
-    path.write_text(answer.model_dump_json(indent=2))
+    path.write_text(answer.model_dump_json(indent=2), encoding="utf-8")
     return answer, False
