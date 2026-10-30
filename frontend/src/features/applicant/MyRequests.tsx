@@ -15,6 +15,7 @@ import { EmptyState, ErrorState } from "@/components/States";
 import { Toast } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n";
 import { useMyRequestIds } from "@/lib/my-requests";
 
 import { draftFrom, EMPTY_DRAFT, type RequestDraft } from "./draft";
@@ -27,6 +28,7 @@ export function MyRequests() {
 }
 
 function RequestsOverview() {
+  const t = useT().applicant.myRequests;
   const router = useRouter();
   const ids = useMyRequestIds();
   const { results, isPending } = useMyRequests(ids);
@@ -34,36 +36,36 @@ function RequestsOverview() {
   return (
     <div className="grid gap-10">
       <PageHeader
-        title="My requests"
-        description="Decisions on the requests submitted from this browser."
+        title={t.title}
+        description={t.description}
         actions={
           <Button asChild>
             <Link href="/">
               <Plus aria-hidden />
-              New request
+              {t.newRequest}
             </Link>
           </Button>
         }
       />
       {ids.length > 0 && isPending && results.length === 0 ? (
-        <div className="grid gap-1" role="status" aria-label="Loading your requests">
+        <div className="grid gap-1" role="status" aria-label={t.loading}>
           {ids.slice(0, 6).map((id) => (
             <Skeleton key={id} className="h-11" />
           ))}
         </div>
       ) : results.length === 0 ? (
         <div className="rounded-xl bg-card">
-          <EmptyState icon={<ListChecks />} title="No requests yet">
-            <p>Every request you submit is listed here with its decision.</p>
+          <EmptyState icon={<ListChecks />} title={t.emptyTitle}>
+            <p>{t.emptyText}</p>
             <Button asChild className="mt-4">
-              <Link href="/">Request data</Link>
+              <Link href="/">{t.requestData}</Link>
             </Button>
           </EmptyState>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card [&_li:last-child]:border-b-0">
           <RequestList
-            label="My requests"
+            label={t.title}
             results={results}
             selectedId={null}
             selectOnArrow={false}
@@ -78,6 +80,7 @@ function RequestsOverview() {
 }
 
 function DecisionPage({ requestId }: { requestId: string }) {
+  const t = useT().applicant.myRequests;
   const router = useRouter();
   const decision = useRequestResult(requestId);
   const [justDecided, setJustDecided] = useViewState<string | null>(JUST_DECIDED_KEY, null);
@@ -98,10 +101,10 @@ function DecisionPage({ requestId }: { requestId: string }) {
           className="inline-flex w-fit items-center gap-1.5 rounded-sm text-ui text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft aria-hidden className="size-4" />
-          My requests
+          {t.title}
         </Link>
         <PageHeader
-          title={`Decision · ${requestId}`}
+          title={t.decision(requestId)}
           description={organisation || undefined}
           actions={
             result ? (
@@ -115,7 +118,7 @@ function DecisionPage({ requestId }: { requestId: string }) {
                   }}
                 >
                   <PencilLine aria-hidden />
-                  Edit and resubmit
+                  {t.editAndResubmit}
                 </Button>
                 <Button
                   // The letter's "Open secure workspace" is the primary action when there is a permit.
@@ -127,7 +130,7 @@ function DecisionPage({ requestId }: { requestId: string }) {
                   }}
                 >
                   <Plus aria-hidden />
-                  New request
+                  {t.newRequest}
                 </Button>
               </>
             ) : null
@@ -136,10 +139,10 @@ function DecisionPage({ requestId }: { requestId: string }) {
       </div>
 
       {decision.isPending ? (
-        <Skeleton className="h-80 rounded-xl" aria-label="Loading decision" />
+        <Skeleton className="h-80 rounded-xl" aria-label={t.loadingDecision} />
       ) : decision.isError ? (
         <ErrorState
-          title={`Could not load decision ${requestId}`}
+          title={t.loadFailed(requestId)}
           error={decision.error}
           onRetry={() => void decision.refetch()}
         />
@@ -148,7 +151,7 @@ function DecisionPage({ requestId }: { requestId: string }) {
       ) : null}
 
       {justDecided === requestId && result ? (
-        <Toast message={`Decision ready · ${requestId}`} onDone={dismissToast} />
+        <Toast message={t.decisionReady(requestId)} onDone={dismissToast} />
       ) : null}
     </div>
   );

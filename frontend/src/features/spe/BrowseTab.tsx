@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { formatValue, humanise } from "@/lib/format";
 
@@ -16,21 +17,20 @@ import { ResultTable } from "./ResultTable";
 import { browseSql, countSql, filterColumnsFor, PAGE_SIZE, type Filter } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
 
-const FILTER_LABEL = { starts_with: "starts with", contains: "contains", equals: "is" } as const;
-
 function firstRecordTable(tables: SpeTable[]): string {
   return (tables.find((table) => table.name !== "cohort") ?? tables[0])?.name ?? "";
 }
 
 /** Look at the records without writing SQL: pick a table, filter, page. */
 export function BrowseTab({ permitId, tables }: { permitId: string; tables: SpeTable[] }) {
+  const t = useT().spe.browse;
   const [tableName, setTableName] = useState(() => firstRecordTable(tables));
   const table = tables.find((candidate) => candidate.name === tableName) ?? tables[0];
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <nav aria-label="Tables" className="grid gap-2">
-        <h3 className="px-3 text-xs font-medium text-muted-foreground">Tables</h3>
+      <nav aria-label={t.tables} className="grid gap-2">
+        <h3 className="px-3 text-xs font-medium text-muted-foreground">{t.tables}</h3>
         <ul className="grid gap-0.5">
           {tables.map((candidate) => {
             const selected = candidate.name === table?.name;
@@ -71,6 +71,8 @@ function TableBrowser({
   table: SpeTable;
   tables: SpeTable[];
 }) {
+  const spe = useT().spe;
+  const t = spe.browse;
   const id = useId();
   const filterColumns = filterColumnsFor(table);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -102,13 +104,13 @@ function TableBrowser({
   const last = Math.min((page + 1) * PAGE_SIZE, total ?? (page + 1) * PAGE_SIZE);
 
   return (
-    <section aria-label={`${humanise(table.name)} records`} className="grid min-w-0 gap-5">
+    <section aria-label={t.records(humanise(table.name))} className="grid min-w-0 gap-5">
       {filterColumns.length ? (
         <div className="flex flex-wrap items-end gap-4">
           {filterColumns.map(({ column, op }) => (
             <div key={column} className="grid gap-2">
               <Label htmlFor={`${id}-${column}`}>
-                {humanise(column)} {FILTER_LABEL[op]}
+                {humanise(column)} {t.filterOps[op]}
               </Label>
               <div className="relative">
                 <Search
@@ -118,7 +120,7 @@ function TableBrowser({
                 <Input
                   id={`${id}-${column}`}
                   value={values[column] ?? ""}
-                  placeholder={op === "starts_with" ? "e.g. E11" : "e.g. metformin"}
+                  placeholder={op === "starts_with" ? t.placeholderCode : t.placeholderText}
                   className="h-9 w-56 pl-8"
                   onChange={(event) => {
                     setValues({ ...values, [column]: event.target.value });
@@ -132,15 +134,11 @@ function TableBrowser({
       ) : null}
 
       {buildError ? (
-        <ErrorState title="This view cannot be built" error={buildError} />
+        <ErrorState title={t.cannotBuild} error={buildError} />
       ) : rows.isError ? (
-        <ErrorState
-          title="The records could not be loaded"
-          error={rows.error}
-          onRetry={() => void rows.refetch()}
-        />
+        <ErrorState title={t.loadFailed} error={rows.error} onRetry={() => void rows.refetch()} />
       ) : rows.isPending ? (
-        <div className="grid gap-px" role="status" aria-label="Loading records">
+        <div className="grid gap-px" role="status" aria-label={t.loading}>
           {Array.from({ length: 8 }, (_, index) => (
             <Skeleton key={index} className="h-9" />
           ))}
@@ -150,7 +148,7 @@ function TableBrowser({
           <ResultTable
             columns={rows.data.columns}
             rows={rows.data.rows}
-            caption={`${humanise(table.name)} records`}
+            caption={t.records(humanise(table.name))}
           />
         </div>
       )}
@@ -160,8 +158,8 @@ function TableBrowser({
           {total === null
             ? " "
             : total === 0
-              ? "No rows match"
-              : `Rows ${formatValue(first)}–${formatValue(last)} of ${formatValue(total)}`}
+              ? spe.noRows
+              : t.range(formatValue(first), formatValue(last), formatValue(total))}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -173,7 +171,7 @@ function TableBrowser({
             }}
           >
             <ChevronLeft aria-hidden />
-            Previous
+            {t.previous}
           </Button>
           <Button
             variant="outline"
@@ -183,15 +181,13 @@ function TableBrowser({
               setPage(page + 1);
             }}
           >
-            Next
+            {t.next}
             <ChevronRight aria-hidden />
           </Button>
         </div>
       </div>
 
-      <p className="max-w-[60ch] text-xs text-muted-foreground">
-        Patient IDs are pseudonyms: they link records inside this workspace and identify no one outside it.
-      </p>
+      <p className="max-w-[60ch] text-xs text-muted-foreground">{t.pseudonyms}</p>
     </section>
   );
 }

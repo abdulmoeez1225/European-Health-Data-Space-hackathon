@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ErrorState } from "@/components/States";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatValue } from "@/lib/format";
+import { useT } from "@/i18n";
 import { scrollBehavior } from "@/lib/motion";
 
 import { ActivityPanel, COUNTS_QUERY } from "./ActivityPanel";
@@ -25,6 +26,7 @@ function Count({ value }: { value: number | undefined }) {
 }
 
 export function PrivacyAudit() {
+  const t = useT().privacy;
   const redTeam = useRedTeam();
   const [tab, setTab] = useState<Tab>("blocked");
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -34,14 +36,9 @@ export function PrivacyAudit() {
 
   return (
     <div className="grid gap-10">
-      <PageHeader
-        title="Privacy & audit"
-        description="Oversight for the access body: what was withheld to protect patients, and a complete record of what the system did."
-      />
+      <PageHeader title={t.page.title} description={t.page.description} />
 
-      {redTeam.resetError ? (
-        <ErrorState title="Could not reset the ledger" error={redTeam.resetError} />
-      ) : null}
+      {redTeam.resetError ? <ErrorState title={t.page.resetFailed} error={redTeam.resetError} /> : null}
 
       <RedTeamResults
         redTeam={redTeam}
@@ -60,18 +57,18 @@ export function PrivacyAudit() {
         className="gap-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList aria-label="Blocked releases and activity log">
+          <TabsList aria-label={t.tabs.label}>
             <TabsTrigger value="blocked">
-              Blocked releases <Count value={blockedCount} />
+              {t.tabs.blocked} <Count value={blockedCount} />
             </TabsTrigger>
             <TabsTrigger value="activity">
-              Activity log <Count value={activityCount} />
+              {t.tabs.activity} <Count value={activityCount} />
             </TabsTrigger>
           </TabsList>
           {tab === "activity" ? (
             <span className="inline-flex items-center gap-2 text-data text-muted-foreground">
               <span aria-hidden className="size-1.5 rounded-full bg-success" />
-              Live · updates every {AUTO_REFRESH_MS / 1000} s
+              {t.tabs.live(AUTO_REFRESH_MS / 1000)}
             </span>
           ) : null}
         </div>

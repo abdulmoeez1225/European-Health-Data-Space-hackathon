@@ -1,30 +1,10 @@
-import type { ProhibitedGround, PurposeAssessment, RequestResult } from "@/api/types";
+import type { RequestResult } from "@/api/types";
 
-import { ARTICLE_TITLES, prohibitionFor } from "./decisions";
+import { messages } from "@/i18n/runtime";
+
+import { articleTitle, prohibitionFor } from "./decisions";
 import { formatValue } from "./format";
 import { parseLegalLine } from "./legal";
-
-/** Short purpose names for one-line legal-basis rows (Art. 53). */
-const PURPOSE_SHORT: Record<PurposeAssessment["allowed_purpose"], string> = {
-  public_interest_public_health: "public health",
-  policy_making_and_regulation: "policy-making",
-  official_statistics: "official statistics",
-  education_and_teaching: "education",
-  scientific_research: "scientific research",
-  product_and_algorithm_development: "algorithm development",
-  improving_care: "improving care",
-  none: "none recognised",
-};
-
-/** Short names of the prohibited uses (Art. 54). */
-const PROHIBITED_SHORT: Record<ProhibitedGround, string> = {
-  none: "unlawful or unethical use",
-  detrimental_decisions: "decisions against individuals",
-  employment_or_insurance_or_credit: "insurance, jobs or credit",
-  advertising_or_marketing: "advertising",
-  harmful_products: "harmful products",
-  other_unlawful_or_unethical: "unlawful or unethical use",
-};
 
 const MAX_LABEL_WORDS = 6;
 
@@ -46,28 +26,29 @@ export function legalBasisRows(result: RequestResult): LegalBasisRow[] {
     if (article && !details.has(article)) details.set(article, text);
   }
   const { assessment } = result;
+  const m = messages();
   return result.articles.map((article) => {
     const detail = details.get(article);
     const label = (() => {
       switch (article) {
         case "53":
-          return `Allowed purpose: ${PURPOSE_SHORT[assessment.allowed_purpose]}`;
+          return m.basis.allowedPurpose(m.purposeShort[assessment.allowed_purpose]);
         case "54":
-          return `Prohibited use: ${PROHIBITED_SHORT[assessment.prohibited_ground]}`;
+          return m.basis.prohibitedUse(m.prohibitedShort[assessment.prohibited_ground]);
         case "66":
-          return assessment.records_justified ? "Records justified" : "Statistics suffice, no records";
+          return assessment.records_justified ? m.basis.recordsJustified : m.basis.statisticsSuffice;
         case "67":
-          return "Access application assessed";
+          return m.basis.applicationAssessed;
         case "68":
-          return "Data permit required";
+          return m.basis.permitRequired;
         case "69":
-          return "Answered as anonymised statistics";
+          return m.basis.anonymisedStatistics;
         case "71":
-          return "Opted-out patients excluded";
+          return m.basis.optOutExcluded;
         case "73":
-          return "Secure workspace only, no download";
+          return m.basis.secureOnly;
         default:
-          return detail ? firstClause(detail) : (ARTICLE_TITLES[article] ?? "Regulation (EU) 2025/327");
+          return articleTitle(article) ?? (detail ? firstClause(detail) : m.regulation);
       }
     })();
     return { article, label, detail };
@@ -76,14 +57,13 @@ export function legalBasisRows(result: RequestResult): LegalBasisRow[] {
 
 /** One plain sentence (at most ~25 words) under the headline; the full reasoning is a disclosure. */
 export function plainSentence(result: RequestResult): string {
+  const m = messages();
   switch (result.decision) {
     case "REJECT":
       return prohibitionFor(result.assessment.prohibited_ground).text;
     case "APPROVE_SPE":
-      return result.spe
-        ? `Pseudonymised records of ${formatValue(result.spe.cohort_size)} patients were copied for you. You analyse them inside the workspace; nothing can be downloaded.`
-        : "You may analyse pseudonymised records inside a secure workspace; nothing can be downloaded.";
+      return result.spe ? m.sentence.speWithCohort(formatValue(result.spe.cohort_size)) : m.sentence.spe;
     case "APPROVE_STATISTICAL":
-      return "The numbers are anonymised: any group with fewer than 10 patients is hidden to protect privacy.";
+      return m.sentence.statistics;
   }
 }

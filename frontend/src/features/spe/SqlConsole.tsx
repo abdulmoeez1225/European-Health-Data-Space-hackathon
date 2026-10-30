@@ -12,7 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { capitalise, formatValue, isProtectedMarker, plural } from "@/lib/format";
+import { useT } from "@/i18n";
+import { capitalise, formatValue, isProtectedMarker } from "@/lib/format";
 
 import { ResultTable } from "./ResultTable";
 
@@ -22,14 +23,15 @@ export const PRESET_COPY = "COPY cohort TO 'out.csv'";
 export const PRESET_AIRLOCK =
   "SELECT atc, count(DISTINCT patient_id) AS n FROM medications GROUP BY atc ORDER BY n DESC";
 
-const PRESETS: { label: string; sql: string; mode: Mode }[] = [
-  { label: "Try COPY to file", sql: PRESET_COPY, mode: "query" },
-  { label: "Airlock export", sql: PRESET_AIRLOCK, mode: "airlock" },
+const PRESETS: { key: "presetCopy" | "presetAirlock"; sql: string; mode: Mode }[] = [
+  { key: "presetCopy", sql: PRESET_COPY, mode: "query" },
+  { key: "presetAirlock", sql: PRESET_AIRLOCK, mode: "airlock" },
 ];
 
 type Outcome = { mode: "query"; data: QueryResult } | { mode: "airlock"; data: AirlockResult };
 
 export function SqlConsole({ permitId }: { permitId: string }) {
+  const t = useT().spe.sql;
   const inputId = useId();
   const [sql, setSql] = useState("SELECT * FROM conditions LIMIT 20");
   const run = useMutation({
@@ -49,16 +51,14 @@ export function SqlConsole({ permitId }: { permitId: string }) {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h3 id={`${inputId}-heading`} className="text-card-title font-semibold">
-            SQL console
+            {t.heading}
           </h3>
-          <p className="text-ui text-muted-foreground">
-            Read-only SELECT on this permit&apos;s tables. Results stay inside.
-          </p>
+          <p className="text-ui text-muted-foreground">{t.hint}</p>
         </div>
-        <span className="text-xs text-muted-foreground max-sm:hidden">⌘/Ctrl + Enter to run</span>
+        <span className="text-xs text-muted-foreground max-sm:hidden">{t.shortcut}</span>
       </div>
       <Label htmlFor={inputId} className="sr-only">
-        SQL query
+        {t.queryLabel}
       </Label>
       <Textarea
         id={inputId}
@@ -85,7 +85,7 @@ export function SqlConsole({ permitId }: { permitId: string }) {
           }}
         >
           {runningMode === "query" ? <Loader2 aria-hidden className="animate-spin" /> : <Play aria-hidden />}
-          Run
+          {t.run}
         </Button>
         <Button
           variant="outline"
@@ -100,13 +100,13 @@ export function SqlConsole({ permitId }: { permitId: string }) {
           ) : (
             <ArrowUpFromLine aria-hidden />
           )}
-          Export via airlock
+          {t.export}
         </Button>
         <span className="mx-1 h-4 w-px bg-border max-sm:hidden" aria-hidden />
-        <span className="text-data text-muted-foreground">Examples:</span>
+        <span className="text-data text-muted-foreground">{t.examples}</span>
         {PRESETS.map((preset) => (
           <Button
-            key={preset.label}
+            key={preset.key}
             variant="ghost"
             className="h-9"
             disabled={run.isPending}
@@ -115,19 +115,13 @@ export function SqlConsole({ permitId }: { permitId: string }) {
               execute(preset.mode, preset.sql);
             }}
           >
-            {preset.label}
+            {t[preset.key]}
           </Button>
         ))}
       </div>
 
       <p role="status" className="sr-only">
-        {run.isPending
-          ? "Running…"
-          : run.isSuccess
-            ? "Result ready."
-            : run.isError
-              ? "The query did not run."
-              : ""}
+        {run.isPending ? t.running : run.isSuccess ? t.ready : run.isError ? t.failedStatus : ""}
       </p>
       {run.isError || run.isSuccess ? (
         <div className="mt-2 grid gap-3">
@@ -140,31 +134,33 @@ export function SqlConsole({ permitId }: { permitId: string }) {
 }
 
 function QueryError({ error }: { error: Error }) {
+  const t = useT().spe.sql;
   const blocked = error instanceof ApiError && error.status === 400 && /^blocked/i.test(error.message);
-  if (!blocked) return <ErrorState title="The query failed" error={error} />;
+  if (!blocked) return <ErrorState title={t.queryFailed} error={error} />;
   return (
     <Alert variant="destructive" role="alert">
       <Ban />
-      <AlertTitle>Blocked inside the secure environment</AlertTitle>
+      <AlertTitle>{t.blockedTitle}</AlertTitle>
       <AlertDescription>
-        {capitalise(error.message.replace(/^Blocked:\s*/i, ""))}. Nothing can be written to files or taken out
-        of the environment (Art. 73).
+        {t.blockedText(capitalise(error.message.replace(/^Blocked:\s*/i, "")))}
       </AlertDescription>
     </Alert>
   );
 }
 
 function OutcomeView({ outcome }: { outcome: Outcome }) {
+  const spe = useT().spe;
+  const t = spe.sql;
   if (outcome.mode === "query") {
     const { data } = outcome;
     return (
       <>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Lock aria-hidden className="size-3" />
-          {plural(data.rows.length, "row")} · inside the environment only
-          {data.truncated ? " · truncated by the server" : ""}
+          {spe.rows(data.rows.length, formatValue(data.rows.length))} · {t.insideOnly}
+          {data.truncated ? ` · ${t.truncated}` : ""}
         </p>
-        <ResultTable columns={data.columns} rows={data.rows} caption="Query result" rawHeaders />
+        <ResultTable columns={data.columns} rows={data.rows} caption={t.queryResult} rawHeaders />
       </>
     );
   }
@@ -176,7 +172,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
     return (
       <Alert variant="destructive" role="alert">
         <Ban />
-        <AlertTitle>The airlock refused the export</AlertTitle>
+        <AlertTitle>{spe.airlock.refused}</AlertTitle>
         <AlertDescription>
           <ul className="grid list-disc gap-0.5 pl-4">
             {reasons.map((reason) => (
@@ -193,9 +189,13 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
     <>
       <p className="flex flex-wrap items-center gap-1.5 text-ui">
         <CheckCircle2 aria-hidden className="size-4 text-success" />
-        <span className="font-medium">Released through the airlock</span>
+        <span className="font-medium">{spe.airlock.released}</span>
         <span className="text-muted-foreground">
-          · {plural(rows.length - suppressed, "row")} released · {formatValue(suppressed)} suppressed
+          ·{" "}
+          {spe.airlock.releasedSuppressed(
+            spe.rows(rows.length - suppressed, formatValue(rows.length - suppressed)),
+            formatValue(suppressed),
+          )}
         </span>
       </p>
       {reasons.length ? (
@@ -205,7 +205,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
           ))}
         </ul>
       ) : null}
-      <ResultTable columns={data.columns ?? []} rows={rows} caption="Airlock export" rawHeaders />
+      <ResultTable columns={data.columns ?? []} rows={rows} caption={spe.airlock.region} rawHeaders />
     </>
   );
 }

@@ -6,7 +6,9 @@ import { useLedger } from "@/api/queries";
 import { EmptyState, ErrorState } from "@/components/States";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatShortTime, formatTime, humanise, plural } from "@/lib/format";
+import { useT } from "@/i18n";
+import { messages } from "@/i18n/runtime";
+import { formatShortTime, formatTime, humanise } from "@/lib/format";
 
 import { STICKY_HEADER, TABLE_FRAME } from "./tableStyles";
 
@@ -14,45 +16,39 @@ function groupText(labels: Record<string, string>): string {
   const entries = Object.entries(labels);
   return entries.length
     ? entries.map(([key, value]) => `${humanise(key)}: ${value}`).join(", ")
-    : "All patients";
+    : messages().privacy.blocked.allPatients;
 }
 
 export function BlockedReleasesPanel() {
+  const t = useT().privacy;
   const ledger = useLedger(true);
   const events = ledger.data ?? [];
 
   return (
     <div className="grid gap-4">
-      <p className="max-w-[60ch] text-body text-muted-foreground">
-        Answers withheld because, combined with an earlier answer to the same applicant, they would reveal
-        fewer than 10 patients.
-      </p>
+      <p className="max-w-[60ch] text-body text-muted-foreground">{t.blocked.intro}</p>
       {ledger.isPending ? (
         <TableSkeleton />
       ) : ledger.isError && !ledger.data ? (
-        <ErrorState
-          title="Could not load the blocked releases"
-          error={ledger.error}
-          onRetry={() => void ledger.refetch()}
-        />
+        <ErrorState title={t.blocked.loadError} error={ledger.error} onRetry={() => void ledger.refetch()} />
       ) : events.length === 0 ? (
         <div className={TABLE_FRAME}>
-          <EmptyState icon={<ShieldCheck />} title="Nothing blocked yet.">
-            Run the red-team check to see one.
+          <EmptyState icon={<ShieldCheck />} title={t.blocked.emptyTitle}>
+            {t.blocked.emptyText}
           </EmptyState>
         </div>
       ) : (
         <div className={TABLE_FRAME}>
-          <Table label="Blocked releases" containerClassName="max-h-[520px] overflow-auto">
+          <Table label={t.blocked.tableLabel} containerClassName="max-h-[520px] overflow-auto">
             <TableHeader className={STICKY_HEADER}>
               <TableRow className="hover:bg-transparent">
-                <TableHead scope="col">Time</TableHead>
-                <TableHead scope="col">Applicant</TableHead>
-                <TableHead scope="col">Request</TableHead>
-                <TableHead scope="col">Withheld value</TableHead>
-                <TableHead scope="col">Combined with</TableHead>
+                <TableHead scope="col">{t.blocked.columns.time}</TableHead>
+                <TableHead scope="col">{t.blocked.columns.applicant}</TableHead>
+                <TableHead scope="col">{t.blocked.columns.request}</TableHead>
+                <TableHead scope="col">{t.blocked.columns.withheldValue}</TableHead>
+                <TableHead scope="col">{t.blocked.columns.combinedWith}</TableHead>
                 <TableHead scope="col" className="text-right">
-                  Would reveal
+                  {t.blocked.columns.wouldReveal}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -78,7 +74,7 @@ export function BlockedReleasesPanel() {
                   <TableCell className="text-right whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5 font-medium text-destructive tabular-nums">
                       <Lock aria-hidden className="size-3.5" />
-                      {plural(event.revealed_count, "patient")}
+                      {t.blocked.patients(event.revealed_count)}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -92,8 +88,9 @@ export function BlockedReleasesPanel() {
 }
 
 export function TableSkeleton() {
+  const t = useT().privacy;
   return (
-    <div role="status" aria-label="Loading" className="grid gap-2">
+    <div role="status" aria-label={t.loading} className="grid gap-2">
       {Array.from({ length: 4 }, (_, index) => (
         <Skeleton key={index} className="h-11" />
       ))}

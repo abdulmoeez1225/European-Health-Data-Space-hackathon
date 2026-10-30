@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/PageHeader";
+import { SkipLink } from "@/components/ShellText";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BOOT_SCRIPT } from "@/lib/preferences";
 
@@ -32,12 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
-        <a
-          href="#main"
-          className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-        >
-          Skip to content
-        </a>
+        <SkipLink />
         <Providers>
           <SidebarProvider>
             <AppSidebar />

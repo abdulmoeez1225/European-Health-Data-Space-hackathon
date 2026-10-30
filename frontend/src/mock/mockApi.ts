@@ -172,26 +172,32 @@ function auditPage(search: URLSearchParams) {
   return { total: matching.length, counts, events: matching.slice(0, limit) };
 }
 
-/** Staff withdraw an issued decision: released statistics and the secure workspace are pulled. */
-function withdraw(requestId: string, body: unknown): RequestResult {
+/** Staff act once on an issued decision: withdraw a grant or reopen a refusal. */
+function staffAction(requestId: string, kind: "withdrawn" | "reopened", body: unknown): RequestResult {
   const found = state.results.find((r) => r.request_id === requestId);
   if (!found) throw new ApiError(404, `No processed request ${requestId}.`);
+  const refusal = found.decision === "REJECT";
+  if (found.status !== "issued") throw new ApiError(409, "This decision was already actioned.");
+  if (kind === "withdrawn" && refusal) throw new ApiError(409, "A refusal cannot be withdrawn; reopen it.");
+  if (kind === "reopened" && !refusal) throw new ApiError(409, "Only refusals can be reopened.");
   const reason = isObject(body) && typeof body.reason === "string" ? body.reason.trim() : "";
-  if (!reason) throw new ApiError(422, "A withdrawal needs a reason.");
+  if (!reason) throw new ApiError(422, "A reason is required.");
+  const withdrawn = kind === "withdrawn";
   const updated: RequestResult = {
     ...found,
-    statistics: null,
-    spe: null,
-    status: "withdrawn",
+    statistics: withdrawn ? null : found.statistics,
+    spe: withdrawn ? null : found.spe,
+    status: kind,
     needs_attention: false,
-    withdrawal: {
+    staff_action: {
+      kind,
       reason,
-      withdrawn_at: new Date().toISOString(),
-      released_data_withdrawn: Boolean(found.statistics ?? found.spe),
+      at: new Date().toISOString(),
+      released_data_withdrawn: withdrawn && Boolean(found.statistics ?? found.spe),
     },
   };
   state.results = state.results.map((r) => (r.request_id === requestId ? updated : r));
-  audit("decision_withdrawn", "staff", requestId, { reason });
+  audit(withdrawn ? "decision_withdrawn" : "decision_reopened", "staff", requestId, { reason });
   return updated;
 }
 
@@ -224,8 +230,11 @@ export const mockTransport: Transport = async (method, fullPath, body) => {
     if (!found) throw new ApiError(404, `No processed request ${single[1] ?? ""}.`);
     return found;
   }
-  const withdrawPath = /^\/api\/requests\/([^/]+)\/withdraw$/.exec(path);
-  if (withdrawPath && method === "POST") return withdraw(decodeURIComponent(withdrawPath[1] ?? ""), body);
+  const actionPath = /^\/api\/requests\/([^/]+)\/(withdraw|reopen)$/.exec(path);
+  if (actionPath && method === "POST") {
+    const kind = actionPath[2] === "withdraw" ? "withdrawn" : "reopened";
+    return staffAction(decodeURIComponent(actionPath[1] ?? ""), kind, body);
+  }
   if (path === "/api/audit") return auditPage(new URLSearchParams(query));
   if (path === "/api/ledger") return state.ledger;
   if (path === "/api/ledger/reset" && method === "POST") {

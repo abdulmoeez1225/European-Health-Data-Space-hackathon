@@ -3,6 +3,7 @@ import { useId } from "react";
 
 import type { ReleasedCell, StatisticsOutput } from "@/api/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useT } from "@/i18n";
 import { capitalise, formatValue, humanise, isProtectedMarker } from "@/lib/format";
 
 import { SmallCellBadge } from "./SmallCellBadge";
@@ -17,6 +18,7 @@ function dimensionsOf(stats: StatisticsOutput): string[] {
 }
 
 export function StatsTable({ stats, caption }: { stats: StatisticsOutput; caption: string }) {
+  const t = useT();
   const baseId = useId();
   const dimensions = dimensionsOf(stats);
   const metrics = metricOrder(stats);
@@ -33,11 +35,11 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
       notes.push(note);
       return (
         <span className="inline-flex items-center gap-1 font-medium text-destructive">
-          <Lock role="img" aria-label="Withheld by the release ledger" className={iconSize} />
+          <Lock role="img" aria-label={t.smallCells.withheld} className={iconSize} />
           {formatValue(cell.shown, cell.kind)}
           <a
             href={`#${note.id}`}
-            aria-label={`Footnote ${number}`}
+            aria-label={t.smallCells.footnote(number)}
             className="rounded-sm text-caption outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
           >
             <sup>{number}</sup>
@@ -85,7 +87,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
               <TableRow className="hover:bg-transparent">
                 {(dimensions.length ? dimensions : ["group"]).map((dimension) => (
                   <TableHead key={dimension} scope="col">
-                    {humanise(dimension)}
+                    {dimensions.length ? humanise(dimension) : t.smallCells.group}
                   </TableHead>
                 ))}
                 {metrics.map((metric) => (
@@ -112,7 +114,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
                       ))
                     ) : (
                       <TableHead scope="row" className="h-auto text-data font-normal text-foreground">
-                        All matching patients
+                        {t.smallCells.allPatients}
                       </TableHead>
                     )}
                     {metrics.map((metric) => renderCell(byMetric.get(metric), metric))}
@@ -125,9 +127,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
       )}
       {hasSmallCells ? (
         <p className="text-data text-muted-foreground">
-          <span className="font-medium text-foreground">&lt;10</span> and{" "}
-          <span className="font-medium text-foreground">suppressed</span> hide groups of fewer than 10
-          patients (small-cell rule).
+          {t.smallCells.legend("<10", t.smallCells.suppressedMarker)}
         </p>
       ) : null}
       {notes.length ? (
@@ -137,8 +137,7 @@ export function StatsTable({ stats, caption }: { stats: StatisticsOutput; captio
               <Lock aria-hidden className="mt-1 size-3.5 shrink-0 text-destructive" />
               <span>
                 <sup className="mr-0.5">{index + 1}</sup>
-                <span className="font-medium text-foreground">Withheld by the release ledger.</span>{" "}
-                {note.text}.
+                <span className="font-medium text-foreground">{t.smallCells.withheldNote}</span> {note.text}.
               </span>
             </li>
           ))}

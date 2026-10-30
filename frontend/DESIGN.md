@@ -105,10 +105,24 @@ Textarea, Label, Separator, Skeleton, DropdownMenu, Dialog, Sheet, Alert, Breadc
 
 **Access body**
 
-- **Decision queue** (`/staff/`): Needs attention · All · Withdrawn; rows mark decisions the AI was unsure
-  about; detail with "Why this needs attention" (review flags), one action "Withdraw decision…" (reason
-  required; pulls statistics or the workspace), letter preview, AI assessment with consensus, code
+- **Decision queue** (`/staff/`): Needs attention · All · Actioned; rows mark decisions the AI was unsure
+  about; detail with "Why this needs attention" (review flags) and one action with a required reason the
+  applicant sees: "Withdraw decision…" for grants (pulls statistics or the workspace) or "Reopen for
+  manual review…" for refusals; then a stamp. Also letter preview, AI assessment with consensus, code
   mappings, privacy checks, query plan and SQL.
 - **Privacy & audit** (`/staff/privacy/`): the red-team check as two numbered questions with their
   outcomes ("33 — released", "<10 — withheld, would reveal 1 patient"), then Blocked releases and the
   Activity log (filter by event group, load more, live every 5 s).
+
+## Language (EN / DE)
+
+Typed dictionaries in `src/i18n`: `en.ts` is the source of keys, `de.ts` is typed against it (a missing key
+does not compile; `dictionary.test.ts` also checks parity). Strings are grouped per area in
+`src/i18n/messages/` (common, decisions, applicant, staff, spe, privacy). Components use `useT()`; helpers
+outside React use `messages()`. The language is stored per browser (`gatekeeper.locale`), defaults to the
+browser language (de* → German), can be forced with `?lang=de|en`, sets `<html lang>` before paint, and is
+switched in the sidebar footer ("Sprache / Language"). Numbers use `de-DE` grouping (1.152; 8,3), dates
+`de-AT` (30.10.2026, 01:06); `<10` stays, "suppressed" reads "unterdrückt". Decision letters are built
+from structured fields (decision, articles, assessment, staff action), so German letters are German;
+the API's English reasoning appears only under "Begründung (Englisch)". Article summaries come from
+`/api/law?lang=de`. Submitted request values (`requested_as`) stay canonical English.

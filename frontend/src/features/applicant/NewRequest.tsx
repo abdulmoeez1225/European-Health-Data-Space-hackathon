@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useT } from "@/i18n";
 import { shorten } from "@/lib/format";
 import { scrollBehavior } from "@/lib/motion";
 import { rememberRequest } from "@/lib/my-requests";
@@ -49,6 +50,7 @@ const sameDraft = (a: RequestDraft, b: RequestDraft) => JSON.stringify(a) === JS
  * navigation, so Back returns to it.
  */
 export function NewRequest() {
+  const t = useT().applicant.newRequest;
   const router = useRouter();
   const [draft, setDraft] = useViewState<RequestDraft>(DRAFT_KEY, EMPTY_DRAFT);
   const [baseline, setBaseline] = useViewState<RequestDraft>(BASELINE_KEY, EMPTY_DRAFT);
@@ -93,14 +95,11 @@ export function NewRequest() {
 
   return (
     <div className="grid gap-8">
-      <PageHeader
-        title="Request health data"
-        description="Submit a request. You get a decision with the legal basis in seconds."
-      />
+      <PageHeader title={t.title} description={t.description} />
 
       <Card ref={cardRef} className="scroll-mt-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-divider px-6 py-5 sm:px-8">
-          <span className="mr-1 text-ui font-medium">Start from</span>
+          <span className="mr-1 text-ui font-medium">{t.startFrom}</span>
           <Select
             value={sampleId ?? ""}
             onValueChange={(id) => {
@@ -110,13 +109,13 @@ export function NewRequest() {
               replaceWith({
                 draft: draftFrom(sample),
                 sampleId: id,
-                message: `Loaded ${id} — ${shorten(request.applicant.organisation, 28)}`,
+                message: t.loaded(id, shorten(request.applicant.organisation, 28)),
               });
             }}
             disabled={pending || !samples.data?.length}
           >
-            <SelectTrigger aria-label="Start from a sample request" className="w-72 max-w-full">
-              <SelectValue placeholder={samples.isError ? "Samples unavailable" : "A sample request…"} />
+            <SelectTrigger aria-label={t.sampleLabel} className="w-72 max-w-full">
+              <SelectValue placeholder={samples.isError ? t.samplesUnavailable : t.samplePlaceholder} />
             </SelectTrigger>
             <SelectContent align="start" className="w-96">
               {(samples.data ?? []).map((sample) => {
@@ -138,11 +137,11 @@ export function NewRequest() {
               replaceWith({
                 draft: next,
                 sampleId: null,
-                message: next.id ? `Imported ${next.id}` : "Imported the request",
+                message: next.id ? t.imported(next.id) : t.importedRequest,
               });
             }}
           />
-          <span className="text-ui text-muted-foreground max-lg:hidden">or fill in the form below</span>
+          <span className="text-ui text-muted-foreground max-lg:hidden">{t.orFillIn}</span>
         </div>
 
         <form
@@ -207,11 +206,11 @@ export function NewRequest() {
                   submit.reset();
                 }}
               >
-                Clear
+                {t.clear}
               </Button>
               <Button type="submit" size="lg" disabled={pending} aria-describedby="submit-status">
                 {pending ? <Loader2 aria-hidden className="animate-spin" /> : <Send aria-hidden />}
-                {pending ? "Deciding…" : "Submit request"}
+                {pending ? t.deciding : t.submit}
               </Button>
             </div>
           </div>
@@ -226,12 +225,12 @@ export function NewRequest() {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Replace the current form?</DialogTitle>
-            <DialogDescription>Your edits to this request will be lost.</DialogDescription>
+            <DialogTitle>{t.replaceTitle}</DialogTitle>
+            <DialogDescription>{t.replaceDescription}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="ghost">Cancel</Button>
+              <Button variant="ghost">{t.cancel}</Button>
             </DialogClose>
             <Button
               onClick={() => {
@@ -239,7 +238,7 @@ export function NewRequest() {
                 setConfirming(null);
               }}
             >
-              Replace
+              {t.replace}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -261,6 +260,7 @@ function ActionStatus({
   missing: string[];
   error: Error | null;
 }) {
+  const t = useT().applicant.newRequest;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!pending) return;
@@ -276,7 +276,7 @@ function ActionStatus({
     const seconds = startedAt ? Math.max(0, Math.round((now - startedAt) / 1000)) : 0;
     return (
       <p id="submit-status" role="status" className="text-ui text-muted-foreground">
-        Checking the purpose and computing the answer · <span className="tabular-nums">{seconds} s</span>
+        {t.checking} · <span className="tabular-nums">{t.seconds(seconds)}</span>
       </p>
     );
   }
@@ -288,13 +288,13 @@ function ActionStatus({
         className="flex max-w-[60ch] items-start gap-2 text-ui text-destructive"
       >
         <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
-        <span>Could not process the request: {errorMessage(error)}</span>
+        <span>{t.failed(errorMessage(error))}</span>
       </p>
     );
   }
   return (
     <p id="submit-status" className="text-ui text-muted-foreground">
-      {missing.length ? `Required: ${missing.join(", ")}.` : "Usually decided in 5–15 seconds."}
+      {missing.length ? t.required(missing.join(", ")) : t.usuallyDecided}
     </p>
   );
 }

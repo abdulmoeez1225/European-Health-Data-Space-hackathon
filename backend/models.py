@@ -86,24 +86,29 @@ class CodeMapping(BaseModel):
     matched: list[str] = Field(description="'CODE label' entries present in the data.")
 
 
-DecisionStatus = Literal["issued", "withdrawn"]
+DecisionStatus = Literal["issued", "withdrawn", "reopened"]
 
 
-class Withdrawal(BaseModel):
-    """Staff withdrew an issued decision; released data was pulled and the case is handled manually."""
+class StaffAction(BaseModel):
+    """What access-body staff did with an issued decision.
 
+    withdrawn: a grant was taken back; released statistics and the secure workspace were pulled.
+    reopened: a refusal was set aside; staff reconsider the case manually.
+    """
+
+    kind: Literal["withdrawn", "reopened"]
     reason: str
-    withdrawn_at: datetime
-    released_data_withdrawn: bool
+    at: datetime
+    released_data_withdrawn: bool = False
 
 
-class WithdrawRequest(BaseModel):
+class StaffActionRequest(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
 
     @model_validator(mode="after")
-    def _reason_not_blank(self) -> WithdrawRequest:
+    def _reason_not_blank(self) -> StaffActionRequest:
         if not self.reason.strip():
-            raise ValueError("a withdrawal needs a reason")
+            raise ValueError("a reason is required")
         return self
 
 
@@ -139,7 +144,7 @@ class RequestResult(BaseModel):
     cached: bool = False
     consensus: Consensus = Field(default_factory=Consensus)
     status: DecisionStatus = "issued"
-    withdrawal: Withdrawal | None = None
+    staff_action: StaffAction | None = None
     timings: Timings = Field(default_factory=Timings)
     processed_at: datetime
 

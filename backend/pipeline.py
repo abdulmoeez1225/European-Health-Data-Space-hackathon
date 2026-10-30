@@ -12,7 +12,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import get_args
+from typing import Literal, get_args
 
 from backend import audit
 from backend.config import settings
@@ -35,9 +35,9 @@ from backend.models import (
     ReleasedRow,
     RequestResult,
     ReviewFlag,
+    StaffAction,
     StatisticsOutput,
     Timings,
-    Withdrawal,
 )
 from backend.plan import DataHolder, QueryPlan, Region
 from backend.planner import PLAN_SYSTEM, plan_prompt, report_phrases, with_canonical_names
@@ -331,30 +331,44 @@ def results() -> list[RequestResult]:
         return sorted(_results.values(), key=lambda r: r.processed_at, reverse=True)
 
 
-def withdraw_decision(rid: str, reason: str) -> RequestResult | None:
-    """Withdraw an issued decision: released statistics and the secure workspace are pulled."""
+class ActionNotAllowed(ValueError):
+    pass
+
+
+def _apply_staff_action(rid: str, kind: Literal["withdrawn", "reopened"], reason: str) -> RequestResult | None:
     with _results_lock:
         _load_results()
         current = _results.get(rid)
         if current is None:
             return None
+        if current.status != "issued":
+            raise ActionNotAllowed(f"This decision was already {current.status}.")
+        refused = current.decision == "REJECT"
+        if kind == "withdrawn" and refused:
+            raise ActionNotAllowed("A refusal releases nothing to withdraw; reopen it for manual review instead.")
+        if kind == "reopened" and not refused:
+            raise ActionNotAllowed("Only refusals can be reopened; withdraw a grant instead.")
         released = current.statistics is not None or current.spe is not None
-        withdrawn = current.model_copy(update={
-            "status": "withdrawn",
-            "withdrawal": Withdrawal(
-                reason=reason.strip(), withdrawn_at=datetime.now(UTC), released_data_withdrawn=released,
-            ),
-            "statistics": None,
-            "spe": None,
-        })
-        _results[rid] = withdrawn
-        (_results_dir() / f"{rid}.json").write_text(withdrawn.model_dump_json())
+        action = StaffAction(kind=kind, reason=reason.strip(), at=datetime.now(UTC), released_data_withdrawn=released)
+        updated = current.model_copy(update={"status": kind, "staff_action": action, "statistics": None, "spe": None})
+        _results[rid] = updated
+        (_results_dir() / f"{rid}.json").write_text(updated.model_dump_json())
     if current.spe is not None:
         delete_spe(current.spe.permit_id)
-    audit.record("decision_withdrawn", "staff", rid, {
-        "decision": current.decision, "reason": reason.strip(), "released_data_withdrawn": released,
+    audit.record(f"decision_{kind}", "staff", rid, {
+        "decision": current.decision, "reason": action.reason, "released_data_withdrawn": released,
     })
-    return withdrawn
+    return updated
+
+
+def withdraw_decision(rid: str, reason: str) -> RequestResult | None:
+    """Take back a grant: released statistics and the secure workspace are pulled."""
+    return _apply_staff_action(rid, "withdrawn", reason)
+
+
+def reopen_decision(rid: str, reason: str) -> RequestResult | None:
+    """Set a refusal aside so staff reconsider the case manually."""
+    return _apply_staff_action(rid, "reopened", reason)
 
 
 def get_result(rid: str) -> RequestResult | None:

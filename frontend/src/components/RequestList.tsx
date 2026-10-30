@@ -1,12 +1,13 @@
 "use client";
 
-import { CircleSlash, TriangleAlert } from "lucide-react";
+import { CircleSlash, RotateCcw, TriangleAlert } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
 import { readRequest } from "@/api/request";
 import type { RequestResult } from "@/api/types";
 import { DecisionBadge } from "@/components/DecisionBadge";
 import { Badge } from "@/components/ui/badge";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { formatShortTime, formatTime } from "@/lib/format";
 
@@ -29,6 +30,7 @@ export function RequestList({
   staff = false,
   label,
 }: ListProps) {
+  const t = useT();
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
     const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button[data-request]")];
@@ -46,6 +48,7 @@ export function RequestList({
       {results.map((result) => {
         const request = readRequest(result.request);
         const withdrawn = result.status === "withdrawn";
+        const reopened = result.status === "reopened";
         const selected = result.request_id === selectedId;
         return (
           <li key={result.request_id} className="border-b border-divider">
@@ -61,12 +64,15 @@ export function RequestList({
                 selected && "bg-accent hover:bg-accent",
               )}
             >
-              {staff ? <QueueStatus attention={result.needs_attention} withdrawn={withdrawn} /> : null}
+              {staff ? (
+                <QueueStatus attention={result.needs_attention} withdrawn={withdrawn} reopened={reopened} />
+              ) : null}
               <span className="w-11 shrink-0 font-mono text-subtle-foreground">{result.request_id}</span>
               <span className="min-w-0 flex-1 truncate">
-                {request.applicant.organisation || "Unknown applicant"}
+                {request.applicant.organisation || t.common.unknownApplicant}
               </span>
-              {!staff && withdrawn ? <Badge variant="warning">Withdrawn</Badge> : null}
+              {!staff && withdrawn ? <Badge variant="warning">{t.common.withdrawn}</Badge> : null}
+              {!staff && reopened ? <Badge variant="info">{t.common.reconsidering}</Badge> : null}
               <span className="hidden shrink-0 sm:inline-flex">
                 <DecisionBadge decision={result.decision} short />
               </span>
@@ -85,21 +91,38 @@ export function RequestList({
   );
 }
 
-/** Staff queue: an alert icon when the AI was unsure, a muted mark once withdrawn, else nothing. */
-function QueueStatus({ attention, withdrawn }: { attention: boolean; withdrawn: boolean }) {
+/** Staff queue: an alert icon when the AI was unsure, a muted mark once actioned, else nothing. */
+function QueueStatus({
+  attention,
+  withdrawn,
+  reopened,
+}: {
+  attention: boolean;
+  withdrawn: boolean;
+  reopened: boolean;
+}) {
+  const t = useT();
+  if (reopened) {
+    return (
+      <span title={t.common.reopened} className="shrink-0">
+        <RotateCcw aria-hidden className="size-4 text-subtle-foreground" />
+        <span className="sr-only">{t.common.reopened}: </span>
+      </span>
+    );
+  }
   if (withdrawn) {
     return (
-      <span title="Withdrawn" className="shrink-0">
+      <span title={t.common.withdrawn} className="shrink-0">
         <CircleSlash aria-hidden className="size-4 text-subtle-foreground" />
-        <span className="sr-only">Withdrawn: </span>
+        <span className="sr-only">{t.common.withdrawn}: </span>
       </span>
     );
   }
   if (attention) {
     return (
-      <span title="Needs attention" className="shrink-0">
+      <span title={t.common.needsAttention} className="shrink-0">
         <TriangleAlert aria-hidden className="size-4 text-warning" />
-        <span className="sr-only">Needs attention: </span>
+        <span className="sr-only">{t.common.needsAttention}: </span>
       </span>
     );
   }

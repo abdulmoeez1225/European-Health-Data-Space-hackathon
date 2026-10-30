@@ -4,6 +4,7 @@ import { XIcon } from "lucide-react";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import type { ComponentProps } from "react";
 
+import { messages } from "@/i18n/runtime";
 import { cn } from "@/lib/cn";
 
 export function Sheet(props: ComponentProps<typeof SheetPrimitive.Root>) {
@@ -39,7 +40,7 @@ export function SheetContent({
         {showClose ? (
           <SheetPrimitive.Close className="absolute top-3 right-3 grid size-7 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors duration-100 outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
             <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{messages().common.close}</span>
           </SheetPrimitive.Close>
         ) : null}
       </SheetPrimitive.Content>

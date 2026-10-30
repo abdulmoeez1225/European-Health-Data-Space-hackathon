@@ -15,16 +15,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useT } from "@/i18n";
 
 import { parseRequestJson, type RequestDraft } from "./draft";
-
-const PLACEHOLDER = `{
-  "applicant": { "name": "…", "organisation": "…", "country": "AT" },
-  "requested_as": "health data request",
-  "purpose": "…",
-  "question": "…",
-  "definitions": ["Adult = aged 18 or older on 31 December 2025."]
-}`;
 
 /** Pasting JSON only fills the form; the form stays the single source of what is submitted. */
 export function ImportJsonDialog({
@@ -34,6 +27,7 @@ export function ImportJsonDialog({
   onImport: (draft: RequestDraft) => void;
   disabled?: boolean;
 }) {
+  const t = useT().applicant.importJson;
   const id = useId();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -52,26 +46,24 @@ export function ImportJsonDialog({
       <DialogTrigger asChild>
         <Button variant="outline" disabled={disabled}>
           <Braces aria-hidden />
-          Import JSON
+          {t.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Import JSON</DialogTitle>
-          <DialogDescription>
-            Paste a request in the track format. It fills the form; unknown keys are ignored.
-          </DialogDescription>
+          <DialogTitle>{t.title}</DialogTitle>
+          <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-1.5">
           <label htmlFor={id} className="sr-only">
-            Request JSON
+            {t.label}
           </label>
           <Textarea
             id={id}
             value={text}
             autoFocus
             spellCheck={false}
-            placeholder={PLACEHOLDER}
+            placeholder={t.placeholder}
             aria-invalid={showError || undefined}
             aria-describedby={`${id}-status`}
             className="h-64 resize-none font-mono text-data leading-relaxed field-sizing-fixed"
@@ -92,21 +84,19 @@ export function ImportJsonDialog({
                 <span className="text-destructive">{result.message}</span>
               </>
             ) : result.ok ? (
-              <span className="text-muted-foreground">
-                Ready to fill the form{result.draft.id ? ` with ${result.draft.id}` : ""}.
-              </span>
+              <span className="text-muted-foreground">{t.ready(result.draft.id)}</span>
             ) : null}
           </p>
         </div>
         <DialogFooter>
           <span className="mr-auto hidden text-xs text-muted-foreground sm:inline">
-            <kbd className="font-sans">⌘ Enter</kbd> to fill
+            <kbd className="font-sans">⌘ Enter</kbd> {t.toFill}
           </span>
           <DialogClose asChild>
-            <Button variant="ghost">Cancel</Button>
+            <Button variant="ghost">{t.cancel}</Button>
           </DialogClose>
           <Button disabled={!result.ok} onClick={fill}>
-            Fill form
+            {t.fill}
           </Button>
         </DialogFooter>
       </DialogContent>

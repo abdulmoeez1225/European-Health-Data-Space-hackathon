@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useT } from "@/i18n";
 
 import {
   REQUEST_KINDS,
@@ -16,18 +17,6 @@ import {
   type RequestKind,
   type RequiredField,
 } from "./draft";
-
-const DEFINITION_EXAMPLES = [
-  "Adult = aged 18 or older on 31 December 2025.",
-  "Type 2 diabetes = any condition with an ICD-10 code starting with E11.",
-  "Report per region: adults, adults with type 2 diabetes and the prevalence.",
-];
-
-const KIND_HELP: Record<RequestKind, string> = {
-  statistics: "Answered with anonymised counts, percentages or means.",
-  records:
-    "Records are only granted inside a secure workspace, and only if the purpose explains why statistics are not enough.",
-};
 
 type FormProps = {
   draft: RequestDraft;
@@ -40,6 +29,8 @@ type FormProps = {
 };
 
 export function RequestForm({ draft, onChange, errors, touched, onTouch, disabled }: FormProps) {
+  const t = useT().applicant;
+  const f = t.form;
   const id = useId();
   const shown = (field: RequiredField) => (touched.has(field) ? errors[field] : undefined);
   const errorProps = (field: RequiredField, errorId: string) =>
@@ -47,14 +38,14 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
 
   return (
     <fieldset disabled={disabled} className="grid disabled:opacity-70">
-      <legend className="sr-only">Data request</legend>
+      <legend className="sr-only">{f.legend}</legend>
 
-      <SettingsSection title="Applicant" description="Who is asking. Decisions are made per organisation.">
-        <Field label="Organisation" htmlFor={`${id}-org`} required error={shown("organisation")}>
+      <SettingsSection title={f.applicant} description={f.applicantDescription}>
+        <Field label={f.organisation} htmlFor={`${id}-org`} required error={shown("organisation")}>
           <Input
             id={`${id}-org`}
             value={draft.organisation}
-            placeholder="University research group"
+            placeholder={f.organisationPlaceholder}
             autoComplete="organization"
             aria-required
             {...errorProps("organisation", `${id}-org-error`)}
@@ -67,18 +58,18 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
           />
         </Field>
         <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_7rem]">
-          <Field label="Contact name" htmlFor={`${id}-name`}>
+          <Field label={f.contactName} htmlFor={`${id}-name`}>
             <Input
               id={`${id}-name`}
               value={draft.name}
-              placeholder="Dr. Sophie Lechner"
+              placeholder={f.contactNamePlaceholder}
               autoComplete="name"
               onChange={(event) => {
                 onChange({ name: event.target.value });
               }}
             />
           </Field>
-          <Field label="Country" htmlFor={`${id}-country`}>
+          <Field label={f.country} htmlFor={`${id}-country`}>
             <Input
               id={`${id}-country`}
               value={draft.country}
@@ -93,11 +84,8 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Request"
-        description="What you need and why. Only this text is sent to the language model."
-      >
-        <Field label="Type" htmlFor={`${id}-kind`} hint={KIND_HELP[draft.kind]}>
+      <SettingsSection title={f.request} description={f.requestDescription}>
+        <Field label={f.type} htmlFor={`${id}-kind`} hint={t.draft.kindHelp[draft.kind]}>
           <Select
             value={draft.kind}
             onValueChange={(value) => {
@@ -117,11 +105,11 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Purpose" htmlFor={`${id}-purpose`} required error={shown("purpose")}>
+        <Field label={f.purpose} htmlFor={`${id}-purpose`} required error={shown("purpose")}>
           <Textarea
             id={`${id}-purpose`}
             value={draft.purpose}
-            placeholder="What the data will be used for, and the public benefit."
+            placeholder={f.purposePlaceholder}
             className="min-h-24"
             aria-required
             {...errorProps("purpose", `${id}-purpose-error`)}
@@ -133,11 +121,11 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             }}
           />
         </Field>
-        <Field label="Question" htmlFor={`${id}-question`}>
+        <Field label={f.question} htmlFor={`${id}-question`}>
           <Textarea
             id={`${id}-question`}
             value={draft.question}
-            placeholder="How many adults have type 2 diabetes in each region?"
+            placeholder={f.questionPlaceholder}
             className="min-h-16"
             onChange={(event) => {
               onChange({ question: event.target.value });
@@ -146,11 +134,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
         </Field>
       </SettingsSection>
 
-      <SettingsSection
-        title="Definitions"
-        required
-        description="Every condition, drug, measurement and group, in plain English. Codes are looked up for you."
-      >
+      <SettingsSection title={f.definitions} required description={f.definitionsDescription}>
         <Definitions
           definitions={draft.definitions}
           onChange={(definitions) => {
@@ -180,6 +164,7 @@ function Definitions({
   error?: string;
   errorId: string;
 }) {
+  const f = useT().applicant.form;
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const focusIndex = useRef<number | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -206,7 +191,7 @@ function Definitions({
   return (
     <div className="grid gap-3">
       {definitions.length ? (
-        <ol className="grid max-h-80 gap-2 overflow-y-auto p-0.5" aria-label="Definitions">
+        <ol className="grid max-h-80 gap-2 overflow-y-auto p-0.5" aria-label={f.definitions}>
           {definitions.map((definition, index) => (
             <li key={index} className="flex items-center gap-2">
               <span
@@ -220,9 +205,9 @@ function Definitions({
                   inputs.current[index] = element;
                 }}
                 value={definition}
-                aria-label={`Definition ${index + 1}`}
+                aria-label={f.definition(index + 1)}
                 {...(error ? { "aria-invalid": true, "aria-describedby": errorId } : {})}
-                placeholder={DEFINITION_EXAMPLES[index] ?? "Another definition"}
+                placeholder={f.definitionExamples[index] ?? f.anotherDefinition}
                 onBlur={onTouch}
                 onChange={(event) => {
                   onChange(definitions.map((d, i) => (i === index ? event.target.value : d)));
@@ -241,7 +226,7 @@ function Definitions({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Remove definition ${index + 1}`}
+                aria-label={f.removeDefinition(index + 1)}
                 onClick={() => {
                   remove(index);
                 }}
@@ -253,7 +238,7 @@ function Definitions({
         </ol>
       ) : (
         <p className="rounded-lg bg-muted px-4 py-5 text-body text-muted-foreground">
-          No definitions yet. For example: <span className="text-foreground">{DEFINITION_EXAMPLES[0]}</span>
+          {f.noDefinitions} <span className="text-foreground">{f.definitionExamples[0]}</span>
         </p>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -265,9 +250,9 @@ function Definitions({
           }}
         >
           <Plus aria-hidden />
-          Add definition
+          {f.addDefinition}
         </Button>
-        <span className="text-data text-muted-foreground">Press Enter in a row to add the next one.</span>
+        <span className="text-data text-muted-foreground">{f.enterHint}</span>
       </div>
       {error ? (
         <p id={errorId} className="text-data text-destructive">

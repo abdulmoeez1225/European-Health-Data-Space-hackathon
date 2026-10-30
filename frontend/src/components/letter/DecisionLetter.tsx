@@ -1,6 +1,16 @@
-import { ArrowRight, ArrowUpRight, ChevronRight, Lightbulb, Lock, TriangleAlert } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ChevronRight,
+  Lightbulb,
+  Lock,
+  RotateCcw,
+  TriangleAlert,
+} from "lucide-react";
 import Link from "next/link";
 import { useId, type ReactNode } from "react";
+
+import { useT } from "@/i18n";
 
 import type { RequestResult, SpeOutput } from "@/api/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,12 +27,6 @@ import { ArticleChip } from "../ArticleChip";
 import { DecisionBadge } from "../DecisionBadge";
 import { StatsTable } from "../StatsTable";
 
-const WITHDRAWN_TEXT: Record<RequestResult["decision"], string> = {
-  APPROVE_STATISTICAL: "The statistics are no longer available.",
-  APPROVE_SPE: "The secure workspace is no longer available.",
-  REJECT: "The automated refusal no longer stands.",
-};
-
 type LetterProps = {
   result: RequestResult;
   /** The applicant's own copy links to their secure workspace; staff previews do not. */
@@ -31,9 +35,12 @@ type LetterProps = {
 
 /** The decision as the applicant receives it: outcome, one sentence, legal basis, then what they get. */
 export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
+  const t = useT();
   const meta = decisionMeta(result.decision);
   const headingId = useId();
   const withdrawn = result.status === "withdrawn";
+  const reopened = result.status === "reopened";
+  const reason = result.staff_action?.reason ? `${result.staff_action.reason.replace(/\.$/, "")}. ` : "";
 
   return (
     <Card role="article" aria-labelledby={headingId} className="animate-in duration-150 fade-in-0">
@@ -41,16 +48,29 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
         {withdrawn ? (
           <Alert variant="warning" role="alert">
             <TriangleAlert />
-            <AlertTitle>Withdrawn by the access body</AlertTitle>
+            <AlertTitle>{t.letter.withdrawnTitle}</AlertTitle>
             <AlertDescription>
               <p>
-                {result.withdrawal?.reason ? `${result.withdrawal.reason.replace(/\.$/, "")}. ` : ""}
-                {WITHDRAWN_TEXT[result.decision]} The access body will contact you.
+                {reason}
+                {t.letter.withdrawnData[result.decision]} {t.letter.willContact}
               </p>
             </AlertDescription>
           </Alert>
         ) : null}
-        <div className="grid justify-items-start gap-3">
+        {reopened ? (
+          <Alert variant="info" role="alert">
+            <RotateCcw />
+            <AlertTitle>{t.letter.reopenedTitle}</AlertTitle>
+            <AlertDescription>
+              <p>
+                {reason}
+                {t.letter.reopenedContact}
+              </p>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {/* A reopened refusal stays visible, muted: it is set aside, not replaced yet. */}
+        <div className={cn("grid justify-items-start gap-3", reopened && "opacity-60")}>
           <DecisionBadge decision={result.decision} />
           <h2 id={headingId} className="text-headline font-semibold tracking-[-0.01em]">
             {meta.headline}
@@ -61,7 +81,7 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
         {result.articles.length ? (
           <section aria-labelledby={`${headingId}-basis`} className="grid gap-3">
             <h3 id={`${headingId}-basis`} className="text-data font-medium text-subtle-foreground">
-              Legal basis
+              {t.letter.legalBasis}
             </h3>
             <ul className="grid gap-2.5">
               {legalBasisRows(result).map((row) => (
@@ -76,19 +96,19 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
       </div>
 
       {result.statistics ? (
-        <Section label="Your statistics">
-          <StatsTable stats={result.statistics} caption={`Statistics released for ${result.request_id}`} />
+        <Section label={t.letter.yourStatistics}>
+          <StatsTable stats={result.statistics} caption={t.letter.statsCaption(result.request_id)} />
         </Section>
       ) : null}
 
       {result.spe ? <PermitSummary spe={result.spe} workspaceLink={workspaceLink} /> : null}
 
       {result.decision === "REJECT" ? (
-        <Section label="What you can do instead">
+        <Section label={t.letter.insteadSection}>
           <p className="flex max-w-[60ch] gap-3 text-body">
             <Lightbulb aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
             <span>
-              <span className="font-medium">What you can do instead.</span>{" "}
+              <span className="font-medium">{t.letter.insteadTitle}</span>{" "}
               <span className="text-muted-foreground">
                 {prohibitionFor(result.assessment.prohibited_ground).instead}
               </span>
@@ -101,9 +121,10 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
 
       <CardFooter className="flex-wrap justify-between gap-x-4 gap-y-1">
         <span>
-          Issued automatically
-          {result.cached ? "" : ` in ${formatSeconds(result.timings?.total_s)}`} on{" "}
-          {formatTime(result.processed_at)}
+          {t.letter.issued(
+            result.cached ? null : formatSeconds(result.timings?.total_s),
+            formatTime(result.processed_at),
+          )}
         </span>
         <a
           href={EUR_LEX_URL}
@@ -111,9 +132,9 @@ export function DecisionLetter({ result, workspaceLink = true }: LetterProps) {
           rel="noreferrer"
           className="inline-flex items-center gap-0.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Regulation (EU) 2025/327
+          {t.regulation}
           <ArrowUpRight aria-hidden className="size-3.5" />
-          <span className="sr-only"> (opens in a new tab)</span>
+          <span className="sr-only"> {t.letter.opensInNewTab}</span>
         </a>
       </CardFooter>
     </Card>
@@ -129,6 +150,7 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function FullReasoning({ result }: { result: RequestResult }) {
+  const t = useT();
   return (
     <Collapsible className="border-t border-divider px-6 py-3 sm:px-8">
       <CollapsibleTrigger className="group -mx-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-ui text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
@@ -136,7 +158,7 @@ function FullReasoning({ result }: { result: RequestResult }) {
           aria-hidden
           className="size-4 transition-transform duration-100 group-data-[state=open]:rotate-90"
         />
-        Full reasoning
+        {t.letter.fullReasoning}
       </CollapsibleTrigger>
       <CollapsibleContent className="grid max-w-[60ch] gap-4 pt-2 pb-4">
         <p className="text-body">{result.reason}</p>
@@ -169,31 +191,34 @@ function Stat({ label, value, note, mono }: { label: string; value: string; note
 }
 
 function PermitSummary({ spe, workspaceLink }: { spe: SpeOutput; workspaceLink: boolean }) {
+  const t = useT();
   const tables = Object.entries(spe.tables).filter(([name]) => name !== "cohort");
   const records = tables.reduce((sum, [, rows]) => sum + rows, 0);
   return (
-    <Section label="Your data permit">
+    <Section label={t.letter.yourPermit}>
       <div className="grid gap-7">
         <dl className="grid gap-6 sm:grid-cols-3">
-          <Stat label="Patients (exact)" value={formatValue(spe.cohort_size)} />
+          <Stat label={t.letter.patientsExact} value={formatValue(spe.cohort_size)} />
           <Stat
-            label="Records copied"
+            label={t.letter.recordsCopied}
             value={formatValue(records)}
-            note={tables.map(([name, rows]) => `${humanise(name)}\u00a0${formatValue(rows)}`).join(" · ")}
+            note={tables
+              .map(
+                ([name, rows]) => `${t.letter.tableNames[name] ?? humanise(name)}\u00a0${formatValue(rows)}`,
+              )
+              .join(" · ")}
           />
-          <Stat label="Data permit" value={spe.permit_id} mono />
+          <Stat label={t.letter.dataPermit} value={spe.permit_id} mono />
         </dl>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="flex items-center gap-2 text-ui text-muted-foreground">
             <Lock aria-hidden className="size-4" />
-            {spe.download_blocked
-              ? "Nothing can be downloaded (Art. 73); only aggregates leave, through the airlock."
-              : "Download allowed."}
+            {spe.download_blocked ? t.letter.downloadBlocked : t.letter.downloadAllowed}
           </p>
           {workspaceLink ? (
             <Button asChild size="lg">
               <Link href={`/spe/?permit=${encodeURIComponent(spe.permit_id)}`}>
-                Open secure workspace
+                {t.letter.openWorkspace}
                 <ArrowRight aria-hidden />
               </Link>
             </Button>

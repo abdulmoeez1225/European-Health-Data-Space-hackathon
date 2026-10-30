@@ -6,6 +6,7 @@ import { useRef, type ReactNode } from "react";
 import type { RequestResult } from "@/api/types";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useT } from "@/i18n";
 
 const SPLIT_QUERY = "(min-width: 1280px)";
 
@@ -23,6 +24,7 @@ type ListDetailProps = {
 
 /** List beside the selected item on wide screens; the item opens in a sheet below 1280 px. */
 export function ListDetail({ results, lookup = results, basePath, list, detail }: ListDetailProps) {
+  const t = useT();
   const router = useRouter();
   const selectedParam = useSearchParams().get("id");
   const split = useMediaQuery(SPLIT_QUERY);
@@ -64,8 +66,8 @@ export function ListDetail({ results, lookup = results, basePath, list, detail }
               if (id) document.querySelector<HTMLElement>(`[data-request="${CSS.escape(id)}"]`)?.focus();
             }}
           >
-            <SheetTitle className="sr-only">Request {selected?.request_id}</SheetTitle>
-            <SheetDescription className="sr-only">Decision details</SheetDescription>
+            <SheetTitle className="sr-only">{t.common.requestDetails(selected?.request_id ?? "")}</SheetTitle>
+            <SheetDescription className="sr-only">{t.common.decisionDetails}</SheetDescription>
             {selected ? detail(selected) : null}
           </SheetContent>
         </Sheet>

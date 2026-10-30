@@ -12,40 +12,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { useT } from "@/i18n";
 import { setTheme, storedTheme, subscribeTheme, type Theme } from "@/lib/preferences";
 
-const THEMES: { value: Theme; label: string; icon: LucideIcon }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+const THEMES: { value: Theme; icon: LucideIcon }[] = [
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
+  { value: "system", icon: Monitor },
 ];
 
 export function ThemeMenu() {
   const theme = useSyncExternalStore(subscribeTheme, storedTheme, () => "system" as const);
+  const t = useT();
   const current = THEMES.find((option) => option.value === theme) ?? THEMES[2];
+  const label = t.shell.themes[current?.value ?? "system"];
   const Icon = current?.icon ?? Monitor;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarMenuButton tooltip={`Theme: ${current?.label ?? "System"}`} aria-label="Theme">
+        <SidebarMenuButton tooltip={`${t.shell.theme}: ${label}`} aria-label={t.shell.theme}>
           <Icon aria-hidden />
-          <span className="flex-1">Theme</span>
-          <span className="text-caption text-subtle-foreground">{current?.label}</span>
+          <span className="flex-1">{t.shell.theme}</span>
+          <span className="text-caption text-subtle-foreground">{label}</span>
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-44">
-        <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.shell.appearance}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={theme}
           onValueChange={(value) => {
             setTheme(value as Theme);
           }}
         >
-          {THEMES.map(({ value, label, icon: ItemIcon }) => (
+          {THEMES.map(({ value, icon: ItemIcon }) => (
             <DropdownMenuRadioItem key={value} value={value}>
               <ItemIcon aria-hidden />
-              {label}
+              {t.shell.themes[value]}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

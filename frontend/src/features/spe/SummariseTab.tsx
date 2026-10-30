@@ -13,24 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/cn";
-import { capitalise, formatValue, humanise, isProtectedMarker, plural } from "@/lib/format";
+import { capitalise, formatValue, humanise, isProtectedMarker } from "@/lib/format";
 
 import { ResultTable } from "./ResultTable";
 import { defaultSummary, groupableColumns, summarySql, type FilterOp } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
 
-const OPS: { value: FilterOp; label: string }[] = [
-  { value: "starts_with", label: "starts with" },
-  { value: "contains", label: "contains" },
-  { value: "equals", label: "is" },
-];
-
-const summaryLabel = (column: string) => (column === "n" ? "Patients" : humanise(column));
+const OPS: FilterOp[] = ["starts_with", "contains", "equals"];
 
 /** A no-code aggregate: patients per group, previewed inside, exported through the airlock. */
 export function SummariseTab({ permitId, tables }: { permitId: string; tables: SpeTable[] }) {
+  const t = useT().spe.summarise;
   const id = useId();
+  const summaryLabel = (column: string) => (column === "n" ? t.patientsColumn : humanise(column));
   const schema = tables.map(({ name, columns }) => ({ name, columns }));
   const countable = tables.filter(
     (table) => table.columns.includes("patient_id") && groupableColumns(table).length,
@@ -73,18 +70,16 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
   };
 
   if (!countable.length) {
-    return (
-      <p className="text-ui text-muted-foreground">No table in this permit can be summarised by patient.</p>
-    );
+    return <p className="text-ui text-muted-foreground">{t.noTable}</p>;
   }
 
   return (
     <div className="grid gap-8">
-      <section aria-label="Summary" className="grid gap-4">
+      <section aria-label={t.summary} className="grid gap-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-3 text-ui">
-          <span>Count patients in</span>
+          <span>{t.countPatientsIn}</span>
           <Select value={tableName} onValueChange={chooseTable}>
-            <SelectTrigger aria-label="Table" className="h-9 w-44">
+            <SelectTrigger aria-label={t.tableLabel} className="h-9 w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,9 +90,9 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
               ))}
             </SelectContent>
           </Select>
-          <span>by</span>
+          <span>{t.by}</span>
           <Select value={groupBy} onValueChange={setGroupBy}>
-            <SelectTrigger aria-label="Group by" className="h-9 w-48">
+            <SelectTrigger aria-label={t.groupBy} className="h-9 w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -112,14 +107,14 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
 
         {condition ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-3 text-ui">
-            <span>where</span>
+            <span>{t.where}</span>
             <Select
               value={condition.column}
               onValueChange={(column) => {
                 setCondition({ ...condition, column });
               }}
             >
-              <SelectTrigger aria-label="Condition column" className="h-9 w-48">
+              <SelectTrigger aria-label={t.conditionColumn} className="h-9 w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -136,22 +131,22 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
                 setCondition({ ...condition, op: op as FilterOp });
               }}
             >
-              <SelectTrigger aria-label="Condition" className="h-9 w-36">
+              <SelectTrigger aria-label={t.condition} className="h-9 w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {OPS.map((op) => (
-                  <SelectItem key={op.value} value={op.value}>
-                    {op.label}
+                  <SelectItem key={op} value={op}>
+                    {t.ops[op]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Input
               id={`${id}-value`}
-              aria-label="Value"
+              aria-label={t.value}
               value={condition.value}
-              placeholder="e.g. A10"
+              placeholder={t.valuePlaceholder}
               className="h-9 w-44"
               onChange={(event) => {
                 setCondition({ ...condition, value: event.target.value });
@@ -160,7 +155,7 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Remove condition"
+              aria-label={t.removeCondition}
               onClick={() => {
                 setCondition(null);
               }}
@@ -181,7 +176,7 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
             }}
           >
             <Plus aria-hidden />
-            Add condition
+            {t.addCondition}
           </Button>
         )}
       </section>
@@ -190,19 +185,19 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
       <p role="status" className="sr-only">
         {exported?.isSuccess
           ? exported.data.status === "released"
-            ? "Released through the airlock."
-            : "The airlock refused the export."
+            ? t.releasedStatus
+            : t.refusedStatus
           : ""}
       </p>
-      {exported?.isError ? <ErrorState title="The export failed" error={exported.error} /> : null}
-      {exported?.isSuccess ? <AirlockResultView result={exported.data} /> : null}
+      {exported?.isError ? <ErrorState title={t.exportFailed} error={exported.error} /> : null}
+      {exported?.isSuccess ? <AirlockResultView result={exported.data} columnLabel={summaryLabel} /> : null}
       <section aria-labelledby={`${id}-preview`} className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h3 id={`${id}-preview`} className="text-card-title font-semibold">
-              Preview
+              {t.preview}
             </h3>
-            <p className="text-ui text-muted-foreground">Exact counts, visible only inside this workspace.</p>
+            <p className="text-ui text-muted-foreground">{t.previewNote}</p>
           </div>
           <Button
             className="h-9"
@@ -216,15 +211,15 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
             ) : (
               <ArrowUpFromLine aria-hidden />
             )}
-            Export via airlock
+            {t.export}
           </Button>
         </div>
         {buildError ? (
-          <ErrorState title="This summary cannot be built" error={buildError} />
+          <ErrorState title={t.cannotBuild} error={buildError} />
         ) : preview.isError ? (
-          <ErrorState title="The summary could not be computed" error={preview.error} />
+          <ErrorState title={t.computeFailed} error={preview.error} />
         ) : preview.isPending ? (
-          <div className="grid gap-px" role="status" aria-label="Computing summary">
+          <div className="grid gap-px" role="status" aria-label={t.computing}>
             {Array.from({ length: 6 }, (_, index) => (
               <Skeleton key={index} className="h-9" />
             ))}
@@ -235,25 +230,32 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
               className="max-w-2xl"
               columns={preview.data.columns}
               rows={preview.data.rows}
-              caption="Summary preview"
+              caption={t.previewCaption}
               columnLabel={summaryLabel}
             />
           </div>
         )}
-        {sql ? <CodeBlock title="Show SQL" language="SQL" code={sql} /> : null}
+        {sql ? <CodeBlock title={t.showSql} language="SQL" code={sql} /> : null}
       </section>
     </div>
   );
 }
 
-function AirlockResultView({ result }: { result: Awaited<ReturnType<typeof api.speAirlock>> }) {
+function AirlockResultView({
+  result,
+  columnLabel,
+}: {
+  result: Awaited<ReturnType<typeof api.speAirlock>>;
+  columnLabel: (column: string) => string;
+}) {
+  const spe = useT().spe;
   const rows = result.rows ?? [];
   const reasons = result.reasons ?? [];
   if (result.status === "blocked") {
     return (
       <Alert variant="destructive" role="alert">
         <Ban />
-        <AlertTitle>The airlock refused the export</AlertTitle>
+        <AlertTitle>{spe.airlock.refused}</AlertTitle>
         <AlertDescription>
           <ul className="grid list-disc gap-0.5 pl-4">
             {reasons.map((reason) => (
@@ -266,20 +268,24 @@ function AirlockResultView({ result }: { result: Awaited<ReturnType<typeof api.s
   }
   const suppressed = rows.filter((row) => row.some(isProtectedMarker)).length;
   return (
-    <section aria-label="Airlock export" className="grid gap-4">
+    <section aria-label={spe.airlock.region} className="grid gap-4">
       <p className="flex flex-wrap items-center gap-1.5 text-ui">
         <CheckCircle2 aria-hidden className="size-4 text-success" />
-        <span className="font-medium">Released through the airlock</span>
+        <span className="font-medium">{spe.airlock.released}</span>
         <span className="text-muted-foreground">
-          · {plural(rows.length - suppressed, "row")} · {formatValue(suppressed)} suppressed
+          ·{" "}
+          {spe.airlock.suppressed(
+            spe.rows(rows.length - suppressed, formatValue(rows.length - suppressed)),
+            formatValue(suppressed),
+          )}
         </span>
       </p>
       <ResultTable
         className="max-w-2xl"
         columns={result.columns ?? []}
         rows={rows}
-        caption="Airlock export"
-        columnLabel={summaryLabel}
+        caption={spe.airlock.region}
+        columnLabel={columnLabel}
       />
     </section>
   );

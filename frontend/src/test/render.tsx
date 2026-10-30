@@ -3,7 +3,7 @@ import { render, type RenderResult } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
 import { keys } from "@/api/queries";
-import type { JsonObject, RequestResult, Withdrawal } from "@/api/types";
+import type { JsonObject, RequestResult, StaffAction } from "@/api/types";
 import { Providers } from "@/app/providers";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOCK_SAMPLES } from "@/mock/data";
@@ -28,7 +28,8 @@ export function renderWithProviders(
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  client.setQueryData(keys.law, MOCK_LAW);
+  client.setQueryData(keys.law("en"), MOCK_LAW);
+  client.setQueryData(keys.law("de"), MOCK_LAW);
 
   function Wrapper({ children }: { children: ReactNode }) {
     const tree = (
@@ -50,21 +51,38 @@ export function sampleRequest(id: string): JsonObject {
 }
 
 /**
- * The result after staff withdrew it, as the API returns it: status "withdrawn", a withdrawal record,
+ * The result after staff withdrew a grant, as the API returns it: status "withdrawn", a staff action,
  * released statistics and permit pulled, and no longer needing attention.
  */
-export function withdrawn(result: RequestResult, withdrawal: Partial<Withdrawal> = {}): RequestResult {
+export function withdrawn(result: RequestResult, action: Partial<StaffAction> = {}): RequestResult {
   return {
     ...result,
     status: "withdrawn",
     needs_attention: false,
     statistics: null,
     spe: null,
-    withdrawal: {
+    staff_action: {
+      kind: "withdrawn",
       reason: "Purpose needs an ethics vote.",
-      withdrawn_at: "2026-10-29T18:45:00+01:00",
+      at: "2026-10-29T18:45:00+01:00",
       released_data_withdrawn: Boolean(result.statistics ?? result.spe),
-      ...withdrawal,
+      ...action,
+    },
+  };
+}
+
+/** The result after staff reopened a refusal: status "reopened", the refusal stays, nothing was released. */
+export function reopened(result: RequestResult, action: Partial<StaffAction> = {}): RequestResult {
+  return {
+    ...result,
+    status: "reopened",
+    needs_attention: false,
+    staff_action: {
+      kind: "reopened",
+      reason: "The purpose is covered by Art. 53.",
+      at: "2026-10-29T18:45:00+01:00",
+      released_data_withdrawn: false,
+      ...action,
     },
   };
 }

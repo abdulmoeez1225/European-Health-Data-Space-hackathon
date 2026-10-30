@@ -1,6 +1,7 @@
 import type { AuditEvent, Decision } from "@/api/types";
+import { messages } from "@/i18n/runtime";
 import { decisionMeta } from "@/lib/decisions";
-import { capitalise, humanise, plural } from "@/lib/format";
+import { capitalise, humanise } from "@/lib/format";
 
 /**
  * Human names for audit events. The activity log filters by groups of event types; the API
@@ -13,43 +14,29 @@ export type EventTone = "neutral" | "success" | "info" | "destructive" | "warnin
 
 export const ALL_EVENTS = "all";
 
-const GROUPS: AuditGroup[] = [
-  { key: "decisions", label: "Decisions", types: ["decision"] },
-  { key: "withdrawals", label: "Withdrawals", types: ["decision_withdrawn"] },
-  { key: "workspaces", label: "Workspaces opened", types: ["spe_created"] },
-  { key: "queries", label: "Workspace queries", types: ["spe_query"] },
-  { key: "blocked-queries", label: "Blocked queries", types: ["spe_query_blocked"] },
-  { key: "blocked-downloads", label: "Blocked downloads", types: ["download_blocked"] },
-  { key: "airlock", label: "Airlock exports", types: ["airlock_released", "airlock_blocked"] },
-  { key: "blocked-releases", label: "Blocked releases", types: ["ledger_blocked"] },
-  { key: "admin", label: "Admin", types: ["ledger_reset", "spe_deleted"] },
+const GROUP_TYPES: { key: string; types: string[] }[] = [
+  { key: "decisions", types: ["decision"] },
+  { key: "withdrawals", types: ["decision_withdrawn"] },
+  { key: "reopened", types: ["decision_reopened"] },
+  { key: "workspaces", types: ["spe_created"] },
+  { key: "queries", types: ["spe_query"] },
+  { key: "blocked-queries", types: ["spe_query_blocked"] },
+  { key: "blocked-downloads", types: ["download_blocked"] },
+  { key: "airlock", types: ["airlock_released", "airlock_blocked"] },
+  { key: "blocked-releases", types: ["ledger_blocked"] },
+  { key: "admin", types: ["ledger_reset", "spe_deleted"] },
 ];
 
-const EVENT_LABELS: Record<string, string> = {
-  decision: "Decision",
-  decision_withdrawn: "Decision withdrawn",
-  spe_created: "Workspace opened",
-  spe_deleted: "Workspace deleted",
-  spe_query: "Workspace query",
-  spe_query_blocked: "Blocked query",
-  download_blocked: "Blocked download",
-  airlock_released: "Airlock export",
-  airlock_blocked: "Blocked airlock export",
-  ledger_blocked: "Blocked release",
-  ledger_reset: "Ledger reset",
-};
-
-const ACTORS: Record<string, string> = {
-  researcher: "Researcher",
-  gatekeeper: "Gatekeeper (automatic)",
-  staff: "Staff",
-  system: "System",
-};
+/** Labels are read at call time so they follow the interface language. */
+function knownGroups(): AuditGroup[] {
+  const labels = messages().privacy.labels.groups;
+  return GROUP_TYPES.map((group) => ({ ...group, label: labels[group.key] ?? humanise(group.key) }));
+}
 
 /** The group an event type belongs to; unknown types form their own group. */
 export function groupFor(type: string): AuditGroup {
   return (
-    GROUPS.find((group) => group.types.includes(type)) ?? {
+    knownGroups().find((group) => group.types.includes(type)) ?? {
       key: `type:${type}`,
       label: humanise(type),
       types: [type],
@@ -66,31 +53,36 @@ export function filterOptions(counts: Record<string, number>): AuditFilterOption
     const existing = options.get(group.key);
     options.set(group.key, { ...group, count: (existing?.count ?? 0) + count });
   }
-  const known = GROUPS.flatMap((group) => {
+  const groups = knownGroups();
+  const known = groups.flatMap((group) => {
     const option = options.get(group.key);
     return option ? [option] : [];
   });
   const unknown = [...options.values()]
-    .filter((option) => !GROUPS.some((group) => group.key === option.key))
+    .filter((option) => !groups.some((group) => group.key === option.key))
     .sort((a, b) => a.label.localeCompare(b.label));
   const total = [...options.values()].reduce((sum, option) => sum + option.count, 0);
-  return [{ key: ALL_EVENTS, label: "All", types: [], count: total }, ...known, ...unknown];
+  return [
+    { key: ALL_EVENTS, label: messages().privacy.labels.all, types: [], count: total },
+    ...known,
+    ...unknown,
+  ];
 }
 
 export function eventLabel(type: string): string {
-  return EVENT_LABELS[type] ?? humanise(type);
+  return messages().privacy.labels.events[type] ?? humanise(type);
 }
 
 export function eventTone(type: string): EventTone {
   if (type === "decision_withdrawn" || /reset|deleted/.test(type)) return "warning";
   if (/blocked/.test(type)) return "destructive";
   if (/released|created/.test(type)) return "success";
-  if (type === "decision") return "info";
+  if (type === "decision" || type === "decision_reopened") return "info";
   return "neutral";
 }
 
 export function actorLabel(actor: string): string {
-  return ACTORS[actor] ?? capitalise(humanise(actor));
+  return messages().privacy.labels.actors[actor] ?? capitalise(humanise(actor));
 }
 
 const isDecision = (value: unknown): value is Decision =>
@@ -121,6 +113,8 @@ function genericLine(detail: Record<string, unknown>): string {
 
 /** One concise line per event; the full detail stays available as the row's title. */
 export function detailLine(event: Pick<AuditEvent, "event" | "detail">): string {
+  const t = messages();
+  const words = t.privacy.labels.detail;
   const detail = event.detail ?? {};
   switch (event.event) {
     case "decision": {
@@ -128,28 +122,34 @@ export function detailLine(event: Pick<AuditEvent, "event" | "detail">): string 
         isDecision(detail.decision) ? decisionMeta(detail.decision).label : text(detail.decision),
         Array.isArray(detail.articles) && detail.articles.length ? `Art. ${text(detail.articles)}` : "",
         text(detail.applicant),
-        count(detail.review_flags) ? plural(count(detail.review_flags), "review flag") : "",
+        count(detail.review_flags) ? t.common.reviewFlags(count(detail.review_flags)) : "",
       ];
       return parts.filter(Boolean).join(" · ");
     }
     case "decision_withdrawn":
-      return text(detail.reason) || "Withdrawn";
+      return text(detail.reason) || words.withdrawn;
+    case "decision_reopened":
+      return text(detail.reason) || words.reopened;
     case "spe_created": {
       const tables =
         detail.tables !== null && typeof detail.tables === "object" ? Object.keys(detail.tables) : [];
-      return tables.length ? `Tables: ${tables.join(", ")}` : "Workspace created";
+      return tables.length ? words.tables(tables.join(", ")) : words.workspaceCreated;
     }
     case "spe_query":
-      return `${plural(count(detail.rows), "row")} · ${text(detail.sql)}`;
+      return `${words.rows(count(detail.rows))} · ${text(detail.sql)}`;
     case "spe_query_blocked":
     case "download_blocked":
       return capitalise(text(detail.reason));
     case "airlock_released":
-      return `${plural(count(detail.rows), "row")} released, ${count(detail.suppressed_rows)} suppressed`;
+      return words.rowsReleased(words.rows(count(detail.rows)), count(detail.suppressed_rows));
     case "airlock_blocked":
       return capitalise(text(detail.reasons));
     case "ledger_blocked":
-      return `${humanise(text(detail.metric))}: with ${text(detail.other_request_id)} it would reveal ${plural(count(detail.revealed_count), "patient")}`;
+      return words.blockedRelease(
+        humanise(text(detail.metric)),
+        text(detail.other_request_id),
+        t.privacy.blocked.patients(count(detail.revealed_count)),
+      );
     default:
       return genericLine(detail);
   }

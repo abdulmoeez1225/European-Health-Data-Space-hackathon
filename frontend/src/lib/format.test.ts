@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { setLocale } from "@/i18n";
 
 import {
   capitalise,
@@ -179,5 +181,57 @@ describe("formatSeconds, plural and toResultValue", () => {
     expect(toResultValue(false)).toBe(false);
     expect(toResultValue({ a: 1 })).toBe('{"a":1}');
     expect(toResultValue([1, 2])).toBe("[1,2]");
+  });
+});
+
+describe("German formatting", () => {
+  beforeEach(() => {
+    setLocale("de");
+  });
+  afterEach(() => {
+    setLocale("en");
+  });
+
+  it("groups thousands with a dot and puts a comma before the decimal", () => {
+    expect(formatValue(1152)).toBe("1.152");
+    expect(formatValue(2740, "count")).toBe("2.740");
+    expect(formatValue(8.3, "percent")).toBe("8,3");
+    expect(formatValue(8, "mean")).toBe("8,0");
+    expect(formatValue(1234.5, "mean")).toBe("1.234,5");
+  });
+
+  it("shows the suppressed marker in German but passes <10 through", () => {
+    expect(formatValue("suppressed")).toBe("unterdrückt");
+    expect(formatValue("suppressed", "percent")).toBe("unterdrückt");
+    expect(formatValue("<10", "count")).toBe("<10");
+  });
+
+  it("still recognises the suppressed marker as protected data, whatever the language", () => {
+    expect(isProtectedMarker("suppressed")).toBe(true);
+    expect(isProtectedMarker("unterdrückt")).toBe(false);
+  });
+
+  it("shows seconds with a decimal comma", () => {
+    expect(formatSeconds(4.64)).toBe("4,6 s");
+    expect(formatSeconds(undefined)).toBe("0,0 s");
+  });
+
+  it("pluralises with German grouping of the count", () => {
+    expect(plural(1152, "patient")).toBe("1.152 patients");
+  });
+
+  it("formats a date the Austrian way", () => {
+    const text = formatTime("2026-10-30T01:06:00");
+
+    expect(text).toContain("30.10.2026");
+    expect(text).toContain("01:06");
+  });
+
+  it("goes back to English when the language is switched back", () => {
+    setLocale("en");
+
+    expect(formatValue(1152)).toBe("1,152");
+    expect(formatValue("suppressed")).toBe("suppressed");
+    expect(formatSeconds(4.64)).toBe("4.6 s");
   });
 });

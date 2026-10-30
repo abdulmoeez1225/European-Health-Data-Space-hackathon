@@ -9,13 +9,17 @@ with the switcher at the top of the sidebar (a demo stand-in for sign-in):
 | Applicant   | Decision         | `/requests/?id=R05` (opens after submitting)                       |
 | Applicant   | My requests      | `/requests/`                                                       |
 | Applicant   | Secure workspace | `/spe/` (Browse · Summarise · SQL)                                 |
-| Access body | Decision queue   | `/staff/` (Needs attention · All · Withdrawn)                      |
+| Access body | Decision queue   | `/staff/` (Needs attention · All · Actioned)                       |
 | Access body | Privacy & audit  | `/staff/privacy/` (red-team check, blocked releases, activity log) |
 
 The applicant workspace never shows or links staff pages. "My requests" and the secure workspace are
 scoped to the request ids this browser submitted (kept in `localStorage`). Decisions are issued at
-once; staff are alerted when the AI was unsure (`needs_attention`) and can withdraw a decision
-(`POST /api/requests/{id}/withdraw` with a reason), which pulls released statistics or the workspace.
+once; staff are alerted when the AI was unsure (`needs_attention`) and can act once with a reason the
+applicant sees: withdraw a grant (`POST /api/requests/{id}/withdraw`, pulls statistics or the
+workspace) or reopen a refusal for manual review (`POST /api/requests/{id}/reopen`).
+
+The interface is available in English and German (sidebar → Sprache / Language, or `?lang=de`); see
+the Language section of [DESIGN.md](DESIGN.md).
 
 The secure workspace builds its Browse and Summarise SQL in the browser (`src/features/spe/sqlBuilder.ts`:
 table and column names whitelisted from `GET /api/spe/{id}`, values quoted, numeric LIMIT/OFFSET) and runs

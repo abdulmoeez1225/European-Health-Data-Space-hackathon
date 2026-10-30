@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useT } from "@/i18n";
 import { formatShortTime, formatTime, formatValue } from "@/lib/format";
 
 import {
@@ -48,6 +49,7 @@ function useDebounced(value: string, ms: number): string {
 
 /** Mounted only while its tab is visible, so auto-refresh runs only then. */
 export function ActivityPanel() {
+  const t = useT().privacy;
   const id = useId();
   const [groupKey, setGroupKey] = useState(ALL_EVENTS);
   const [limit, setLimit] = useState(PAGE);
@@ -91,13 +93,11 @@ export function ActivityPanel() {
 
   return (
     <div className="grid gap-4">
-      <p className="max-w-[60ch] text-body text-muted-foreground">
-        Every decision, withdrawal, workspace query, blocked download and export — append-only.
-      </p>
+      <p className="max-w-[60ch] text-body text-muted-foreground">{t.activity.intro}</p>
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-2">
-          <Label htmlFor={`${id}-type`}>Show</Label>
+          <Label htmlFor={`${id}-type`}>{t.activity.show}</Label>
           <Select
             value={group?.key ?? ALL_EVENTS}
             onValueChange={(value) => {
@@ -121,7 +121,7 @@ export function ActivityPanel() {
           </Select>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor={`${id}-subject`}>Request or permit</Label>
+          <Label htmlFor={`${id}-subject`}>{t.activity.subject}</Label>
           <div className="relative">
             <Search
               aria-hidden
@@ -130,7 +130,7 @@ export function ActivityPanel() {
             <Input
               id={`${id}-subject`}
               value={subjectText}
-              placeholder="e.g. R05 or permit-R05"
+              placeholder={t.activity.subjectPlaceholder}
               className="w-60 pl-9 font-mono"
               spellCheck={false}
               onChange={(event) => {
@@ -141,30 +141,24 @@ export function ActivityPanel() {
           </div>
         </div>
         <p aria-live="polite" className="ml-auto pb-2 text-data text-muted-foreground tabular-nums">
-          {page.data ? `Showing latest ${formatValue(events.length)} of ${formatValue(total)}` : ""}
+          {page.data ? t.activity.showing(formatValue(events.length), formatValue(total)) : ""}
         </p>
       </div>
 
       {page.isPending && !page.data ? (
         <TableSkeleton />
       ) : page.error && !page.data ? (
-        <ErrorState
-          title="Could not load the activity log"
-          error={page.error}
-          onRetry={() => void page.refetch()}
-        />
+        <ErrorState title={t.activity.loadError} error={page.error} onRetry={() => void page.refetch()} />
       ) : events.length === 0 ? (
         <div className={TABLE_FRAME}>
-          <EmptyState icon={<ScrollText />} title="No activity matches">
-            {subject
-              ? "No events for this request or permit."
-              : "Nothing has been recorded for this filter yet."}
+          <EmptyState icon={<ScrollText />} title={t.activity.emptyTitle}>
+            {subject ? t.activity.emptyForSubject : t.activity.emptyForFilter}
           </EmptyState>
         </div>
       ) : (
         <div className={TABLE_FRAME}>
           <Table
-            label="Activity log"
+            label={t.activity.tableLabel}
             containerClassName="max-h-[560px] overflow-auto"
             className="table-fixed"
           >
@@ -178,12 +172,12 @@ export function ActivityPanel() {
             </colgroup>
             <TableHeader className={STICKY_HEADER}>
               <TableRow className="hover:bg-transparent">
-                <TableHead scope="col">Time</TableHead>
-                <TableHead scope="col">Event</TableHead>
-                <TableHead scope="col">Actor</TableHead>
-                <TableHead scope="col">Subject</TableHead>
-                <TableHead scope="col">Detail</TableHead>
-                <TableHead scope="col">ID</TableHead>
+                <TableHead scope="col">{t.activity.columns.time}</TableHead>
+                <TableHead scope="col">{t.activity.columns.event}</TableHead>
+                <TableHead scope="col">{t.activity.columns.actor}</TableHead>
+                <TableHead scope="col">{t.activity.columns.subject}</TableHead>
+                <TableHead scope="col">{t.activity.columns.detail}</TableHead>
+                <TableHead scope="col">{t.activity.columns.id}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,7 +214,7 @@ export function ActivityPanel() {
               setLimit((current) => Math.min(current + PAGE, MAX_LIMIT));
             }}
           >
-            Load more
+            {t.activity.loadMore}
           </Button>
         </div>
       ) : null}

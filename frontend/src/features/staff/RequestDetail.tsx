@@ -1,12 +1,27 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CircleSlash, FileText, Loader2, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleSlash,
+  FileText,
+  Loader2,
+  XCircle,
+  RotateCcw,
+} from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 
 import { errorMessage } from "@/api/errors";
-import { useWithdraw } from "@/api/queries";
+import { useStaffAction } from "@/api/queries";
 import { readRequest } from "@/api/request";
-import type { CodeMapping, Consensus, PrivacyCheck, RequestResult, Withdrawal } from "@/api/types";
+import type {
+  CodeMapping,
+  Consensus,
+  PrivacyCheck,
+  ProhibitedGround,
+  RequestResult,
+  StaffAction,
+} from "@/api/types";
 import { ArticleChip } from "@/components/ArticleChip";
 import { CodeBlock } from "@/components/CodeBlock";
 import { DecisionBadge } from "@/components/DecisionBadge";
@@ -27,13 +42,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useT, type Messages } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { purposeLabel } from "@/lib/decisions";
-import { formatTime, formatValue, humanise } from "@/lib/format";
+import { formatTime, formatValue } from "@/lib/format";
 import { parseLegalLine } from "@/lib/legal";
 
 /** An issued decision as a case officer checks it; the one action is to withdraw it. */
 export function RequestDetail({ result }: { result: RequestResult }) {
+  const t = useT();
   const request = readRequest(result.request);
   const flags = result.review_flags ?? [];
   const details = new Map(
@@ -44,11 +61,11 @@ export function RequestDetail({ result }: { result: RequestResult }) {
 
   return (
     <article aria-labelledby="detail-title" className="grid gap-8 px-5 py-8 sm:px-8">
-      {result.withdrawal ? <WithdrawnStamp withdrawal={result.withdrawal} /> : null}
+      {result.staff_action ? <StaffActionStamp action={result.staff_action} /> : null}
       {result.needs_attention && flags.length ? (
         <Alert variant="warning">
           <AlertTriangle />
-          <AlertTitle>Why this needs attention</AlertTitle>
+          <AlertTitle>{t.staff.detail.attentionTitle}</AlertTitle>
           <AlertDescription>
             <ul className="grid list-disc gap-1 pl-4">
               {flags.map((flag) => (
@@ -81,25 +98,32 @@ export function RequestDetail({ result }: { result: RequestResult }) {
           <LetterPreview result={result} />
           {result.spe ? (
             <span>
-              Permit <span className="font-mono text-foreground">{result.spe.permit_id}</span> ·{" "}
-              {formatValue(result.spe.cohort_size)} patients
+              {t.staff.detail.permit}{" "}
+              <span className="font-mono text-foreground">{result.spe.permit_id}</span> ·{" "}
+              {t.staff.detail.patients(formatValue(result.spe.cohort_size))}
             </span>
           ) : null}
         </div>
       </header>
 
-      <Section title="AI assessment">
+      <Section title={t.staff.detail.assessment.title}>
         <dl className="grid grid-cols-[10rem_minmax(0,1fr)] gap-x-6 gap-y-3 text-ui">
-          <Property label="Prohibited ground">
+          <Property label={t.staff.detail.assessment.prohibitedGround}>
             {result.assessment.prohibited ? (
-              <span className="font-medium">{humanise(result.assessment.prohibited_ground)}</span>
+              <span className="font-medium">{prohibitedLabel(t, result.assessment.prohibited_ground)}</span>
             ) : (
-              "None"
+              t.staff.detail.assessment.none
             )}
           </Property>
-          <Property label="Purpose">{purposeLabel(result.assessment.allowed_purpose)}</Property>
-          <Property label="Records justified">{result.assessment.records_justified ? "Yes" : "No"}</Property>
-          <Property label="Consensus">
+          <Property label={t.staff.detail.assessment.purpose}>
+            {purposeLabel(result.assessment.allowed_purpose)}
+          </Property>
+          <Property label={t.staff.detail.assessment.recordsJustified}>
+            {result.assessment.records_justified
+              ? t.staff.detail.assessment.yes
+              : t.staff.detail.assessment.no}
+          </Property>
+          <Property label={t.staff.detail.assessment.consensus}>
             <ConsensusSummary consensus={result.consensus} hasPlan={Boolean(result.plan)} />
           </Property>
         </dl>
@@ -111,25 +135,26 @@ export function RequestDetail({ result }: { result: RequestResult }) {
       </Section>
 
       {result.code_mappings?.length ? (
-        <Section title="Code mappings">
+        <Section title={t.staff.detail.mappings.title}>
           <MappingsTable mappings={result.code_mappings} />
         </Section>
       ) : null}
 
       {result.statistics?.privacy_checks.length ? (
-        <Section title="Privacy checks">
+        <Section title={t.staff.detail.privacyChecks.title}>
           <ChecksList checks={result.statistics.privacy_checks} />
         </Section>
       ) : null}
 
       {result.plan || result.statistics ? (
-        <Section
-          title="Query plan and SQL"
-          description="The language model writes the plan; the SQL is compiled from it by rules."
-        >
+        <Section title={t.staff.detail.plan.title} description={t.staff.detail.plan.description}>
           <div className="grid gap-2">
             {result.plan ? (
-              <CodeBlock title="Query plan" language="JSON" code={JSON.stringify(result.plan, null, 2)} />
+              <CodeBlock
+                title={t.staff.detail.plan.planBlock}
+                language="JSON"
+                code={JSON.stringify(result.plan, null, 2)}
+              />
             ) : null}
             {result.statistics ? <CodeBlock title="SQL" language="SQL" code={result.statistics.sql} /> : null}
           </div>
@@ -139,34 +164,47 @@ export function RequestDetail({ result }: { result: RequestResult }) {
   );
 }
 
+/** The prohibited ground in the applicant-facing wording. */
+function prohibitedLabel(t: Messages, ground: ProhibitedGround): string {
+  if (ground === "none") return t.staff.detail.assessment.none;
+  return t.prohibitions[ground === "other_unlawful_or_unethical" ? "other" : ground].title;
+}
+
 const shortTime = (iso: string) => formatTime(iso).split(", ").at(-1) ?? "";
 
-/** After a withdrawal: who, when and why, as the case file records it. */
-function WithdrawnStamp({ withdrawal }: { withdrawal: Withdrawal }) {
+/** After a staff action: who, when and why, as the case file records it. */
+function StaffActionStamp({ action }: { action: StaffAction }) {
+  const t = useT();
+  const withdrawn = action.kind === "withdrawn";
+  const Icon = withdrawn ? CircleSlash : RotateCcw;
   return (
     <div role="status" className="grid gap-1.5 rounded-lg bg-muted px-4 py-3">
       <p className="flex items-center gap-2 text-ui font-medium">
-        <CircleSlash aria-hidden className="size-4 text-subtle-foreground" />
-        Withdrawn by staff
-        <span className="font-normal text-muted-foreground">{` · ${shortTime(withdrawal.withdrawn_at)}`}</span>
+        <Icon aria-hidden className="size-4 text-subtle-foreground" />
+        {withdrawn ? t.staff.withdrawn.stamp : t.staff.reopened.stamp}
+        <span className="font-normal text-muted-foreground">{` · ${shortTime(action.at)}`}</span>
       </p>
-      <p className="max-w-[60ch] text-body text-foreground/85">{withdrawal.reason}</p>
-      {withdrawal.released_data_withdrawn ? (
-        <p className="text-data text-muted-foreground">
-          Released data was pulled; the case is handled manually.
-        </p>
+      <p className="max-w-[60ch] text-body text-foreground/85">{action.reason}</p>
+      {action.released_data_withdrawn ? (
+        <p className="text-data text-muted-foreground">{t.staff.withdrawn.releasedPulled}</p>
       ) : null}
     </div>
   );
 }
 
-/** The one staff action: pull an issued decision, with a reason the applicant will see. */
+/**
+ * The one staff action on an issued decision, with a reason the applicant will see: a grant can be
+ * withdrawn (its data is pulled), a refusal reopened for manual reconsideration.
+ */
 export function WithdrawAction({ result }: { result: RequestResult }) {
+  const t = useT();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [tried, setTried] = useState(false);
-  const withdraw = useWithdraw(result.request_id);
+  const reopen = result.decision === "REJECT";
+  const copy = reopen ? { ...t.staff.withdraw, ...t.staff.reopen } : t.staff.withdraw;
+  const withdraw = useStaffAction(result.request_id, reopen ? "reopen" : "withdraw");
   const missing = !reason.trim();
 
   return (
@@ -181,15 +219,12 @@ export function WithdrawAction({ result }: { result: RequestResult }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="destructive-outline">Withdraw decision…</Button>
+        <Button variant={reopen ? "outline" : "destructive-outline"}>{copy.trigger}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Withdraw this decision?</DialogTitle>
-          <DialogDescription>
-            Released statistics or the secure workspace are pulled and the case moves to manual handling. The
-            applicant sees the reason.
-          </DialogDescription>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
         <form
           noValidate
@@ -206,12 +241,12 @@ export function WithdrawAction({ result }: { result: RequestResult }) {
           }}
         >
           <div className="grid gap-2">
-            <Label htmlFor={id}>Reason</Label>
+            <Label htmlFor={id}>{t.staff.withdraw.reason}</Label>
             <Textarea
               id={id}
               value={reason}
               autoFocus
-              placeholder="Why the decision does not stand. The applicant reads this."
+              placeholder={copy.placeholder}
               aria-required
               aria-invalid={tried && missing ? true : undefined}
               aria-describedby={tried && missing ? `${id}-error` : undefined}
@@ -221,7 +256,7 @@ export function WithdrawAction({ result }: { result: RequestResult }) {
             />
             {tried && missing ? (
               <p id={`${id}-error`} className="text-data text-destructive">
-                A reason is required to withdraw.
+                {copy.required}
               </p>
             ) : null}
             {withdraw.isError ? (
@@ -232,11 +267,11 @@ export function WithdrawAction({ result }: { result: RequestResult }) {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="ghost">Cancel</Button>
+              <Button variant="ghost">{t.staff.withdraw.cancel}</Button>
             </DialogClose>
-            <Button type="submit" variant="destructive" disabled={withdraw.isPending}>
+            <Button type="submit" variant={reopen ? "default" : "destructive"} disabled={withdraw.isPending}>
               {withdraw.isPending ? <Loader2 aria-hidden className="animate-spin" /> : null}
-              Withdraw
+              {copy.submit}
             </Button>
           </DialogFooter>
         </form>
@@ -247,12 +282,13 @@ export function WithdrawAction({ result }: { result: RequestResult }) {
 
 /** The letter exactly as the applicant received it, without leaving the staff workspace. */
 function LetterPreview({ result }: { result: RequestResult }) {
+  const t = useT();
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="-ml-3">
           <FileText aria-hidden />
-          Preview letter
+          {t.staff.detail.previewLetter}
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -263,8 +299,8 @@ function LetterPreview({ result }: { result: RequestResult }) {
           (event.currentTarget as HTMLElement | null)?.focus();
         }}
       >
-        <DialogTitle className="sr-only">Decision letter for {result.request_id}</DialogTitle>
-        <DialogDescription className="sr-only">As sent to the applicant</DialogDescription>
+        <DialogTitle className="sr-only">{t.staff.detail.letterTitle(result.request_id)}</DialogTitle>
+        <DialogDescription className="sr-only">{t.staff.detail.letterDescription}</DialogDescription>
         <DecisionLetter result={result} workspaceLink={false} />
       </DialogContent>
     </Dialog>
@@ -272,15 +308,16 @@ function LetterPreview({ result }: { result: RequestResult }) {
 }
 
 function ConsensusSummary({ consensus, hasPlan }: { consensus: Consensus | undefined; hasPlan: boolean }) {
+  const t = useT().staff.detail.consensus;
   const rows: { label: string; votes: number; agreeing: number }[] = [
     {
-      label: "Assessment",
+      label: t.assessment,
       votes: consensus?.assessment_votes ?? 0,
       agreeing: consensus?.assessment_agreeing ?? 0,
     },
   ];
   if (hasPlan)
-    rows.push({ label: "Plan", votes: consensus?.plan_votes ?? 0, agreeing: consensus?.plan_agreeing ?? 0 });
+    rows.push({ label: t.plan, votes: consensus?.plan_votes ?? 0, agreeing: consensus?.plan_agreeing ?? 0 });
   return (
     <ul className="grid gap-1">
       {rows.map((row) => (
@@ -304,11 +341,11 @@ function ConsensusSummary({ consensus, hasPlan }: { consensus: Consensus | undef
                 ))}
               </span>
               <span className={row.agreeing < row.votes ? "text-warning" : undefined}>
-                {row.agreeing} of {row.votes} independent readings agreed
+                {t.agreed(row.agreeing, row.votes)}
               </span>
             </>
           ) : (
-            <span className="text-muted-foreground">Not measured</span>
+            <span className="text-muted-foreground">{t.notMeasured}</span>
           )}
         </li>
       ))}
@@ -317,18 +354,19 @@ function ConsensusSummary({ consensus, hasPlan }: { consensus: Consensus | undef
 }
 
 function MappingsTable({ mappings }: { mappings: CodeMapping[] }) {
+  const t = useT().staff.detail.mappings;
   return (
     <div className="overflow-hidden rounded-lg border">
       <Table>
         <TableHeader className="bg-muted">
           <TableRow className="hover:bg-transparent">
             <TableHead scope="col" className="w-20">
-              System
+              {t.system}
             </TableHead>
             <TableHead scope="col" className="w-24">
-              Prefix
+              {t.prefix}
             </TableHead>
-            <TableHead scope="col">Codes found in the data</TableHead>
+            <TableHead scope="col">{t.found}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -352,7 +390,7 @@ function MappingsTable({ mappings }: { mappings: CodeMapping[] }) {
                     })}
                   </ul>
                 ) : (
-                  <span className="text-muted-foreground">No codes found</span>
+                  <span className="text-muted-foreground">{t.none}</span>
                 )}
               </TableCell>
             </TableRow>
@@ -364,14 +402,19 @@ function MappingsTable({ mappings }: { mappings: CodeMapping[] }) {
 }
 
 function ChecksList({ checks }: { checks: PrivacyCheck[] }) {
+  const t = useT().staff.detail.privacyChecks;
   return (
     <ul className="divide-y divide-divider overflow-hidden rounded-lg border">
       {checks.map((check) => (
         <li key={check.name} className="flex gap-3 px-4 py-3">
           {check.passed ? (
-            <CheckCircle2 role="img" aria-label="Passed" className="mt-0.5 size-3.5 shrink-0 text-success" />
+            <CheckCircle2
+              role="img"
+              aria-label={t.passed}
+              className="mt-0.5 size-3.5 shrink-0 text-success"
+            />
           ) : (
-            <XCircle role="img" aria-label="Failed" className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            <XCircle role="img" aria-label={t.failed} className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           )}
           <div className="min-w-0 text-ui">
             <p>{check.name}</p>

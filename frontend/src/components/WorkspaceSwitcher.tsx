@@ -13,12 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
+import { useT } from "@/i18n";
 import { rememberWorkspace } from "@/lib/preferences";
 import { WORKSPACES, type WorkspaceId } from "@/lib/routes";
 
 /** Linear-style switcher between the applicant and the access-body workspace. */
 export function WorkspaceSwitcher({ workspace }: { workspace: WorkspaceId }) {
   const router = useRouter();
+  const t = useT();
   const { setOpenMobile } = useSidebar();
   const current = WORKSPACES[workspace];
 
@@ -28,7 +30,7 @@ export function WorkspaceSwitcher({ workspace }: { workspace: WorkspaceId }) {
         <SidebarMenuButton
           size="lg"
           tooltip={`Gatekeeper · ${current.name}`}
-          aria-label={`Workspace: ${current.name}. Switch workspace`}
+          aria-label={t.shell.switchWorkspace(current.name)}
           className="gap-2.5 data-[state=open]:bg-sidebar-accent"
         >
           <span
@@ -46,7 +48,7 @@ export function WorkspaceSwitcher({ workspace }: { workspace: WorkspaceId }) {
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom" className="w-64">
-        <DropdownMenuLabel>Workspace</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.shell.workspace}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={workspace}
           onValueChange={(value) => {

@@ -1,24 +1,15 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { PageBody, PageHeader } from "@/components/PageHeader";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SecureEnvironment, SPE_DESCRIPTION } from "@/features/spe/SecureEnvironment";
+import { PageBody } from "@/components/PageHeader";
+import { SecureEnvironment, SecureEnvironmentFallback } from "@/features/spe/SecureEnvironment";
 
 export const metadata: Metadata = { title: "Secure workspace" };
 
 export default function SpePage() {
   return (
     <PageBody>
-      <Suspense
-        fallback={
-          <div className="grid gap-8">
-            <PageHeader title="Secure workspace" description={SPE_DESCRIPTION} />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-64" />
-          </div>
-        }
-      >
+      <Suspense fallback={<SecureEnvironmentFallback />}>
         <SecureEnvironment />
       </Suspense>
     </PageBody>

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuditEvent } from "@/api/types";
+import { setLocale } from "@/i18n";
+import { RED_TEAM_QUESTIONS } from "@/lib/redteam";
 
 import {
   actorLabel,
@@ -17,6 +19,7 @@ describe("groupFor", () => {
   it.each([
     ["decision", "Decisions"],
     ["decision_withdrawn", "Withdrawals"],
+    ["decision_reopened", "Reopened"],
     ["spe_created", "Workspaces opened"],
     ["spe_query", "Workspace queries"],
     ["spe_query_blocked", "Blocked queries"],
@@ -43,6 +46,7 @@ describe("filterOptions", () => {
   const counts = {
     decision: 307,
     decision_withdrawn: 4,
+    decision_reopened: 2,
     spe_created: 31,
     download_blocked: 12,
     airlock_released: 6,
@@ -53,7 +57,7 @@ describe("filterOptions", () => {
   };
 
   it("starts with All, totalling every event", () => {
-    expect(filterOptions(counts)[0]).toEqual({ key: ALL_EVENTS, label: "All", types: [], count: 368 });
+    expect(filterOptions(counts)[0]).toEqual({ key: ALL_EVENTS, label: "All", types: [], count: 370 });
   });
 
   it("sums the counts of the event types in a group", () => {
@@ -67,6 +71,7 @@ describe("filterOptions", () => {
       "All",
       "Decisions",
       "Withdrawals",
+      "Reopened",
       "Workspaces opened",
       "Blocked downloads",
       "Airlock exports",
@@ -85,6 +90,7 @@ describe("eventLabel, eventTone and actorLabel", () => {
     expect(eventLabel("download_blocked")).toBe("Blocked download");
     expect(eventLabel("spe_created")).toBe("Workspace opened");
     expect(eventLabel("decision_withdrawn")).toBe("Decision withdrawn");
+    expect(eventLabel("decision_reopened")).toBe("Refusal reopened");
     expect(eventLabel("something_new")).toBe("Something new");
   });
 
@@ -154,6 +160,14 @@ describe("detailLine", () => {
     expect(detailLine({ event: "decision_withdrawn" })).toBe("Withdrawn");
   });
 
+  it("gives the reason of a reopened refusal, or says only that it was reopened", () => {
+    expect(
+      detailLine({ event: "decision_reopened", detail: { decision: "REJECT", reason: "Second look" } }),
+    ).toBe("Second look");
+    expect(detailLine({ event: "decision_reopened", detail: {} })).toBe("Reopened");
+    expect(detailLine({ event: "decision_reopened" })).toBe("Reopened");
+  });
+
   it("lists other details generically", () => {
     expect(detailLine({ event: "permit_renewed", detail: { until: "2027-01-01", tables: {} } })).toBe(
       "Until: 2027-01-01",
@@ -180,5 +194,32 @@ describe("mergePages", () => {
     );
     expect(merged.total).toBe(11);
     expect(merged.events.map((e) => e.id)).toEqual(["a", "c"]);
+  });
+});
+
+describe("German labels", () => {
+  beforeEach(() => {
+    setLocale("de");
+  });
+  afterEach(() => {
+    setLocale("en");
+  });
+
+  it("names the filter groups, events and actors in German", () => {
+    expect(groupFor("decision_withdrawn").label).toBe("Rücknahmen");
+    expect(groupFor("decision_reopened").label).toBe("Wieder geöffnet");
+    expect(eventLabel("decision_reopened")).toBe("Ablehnung wieder geöffnet");
+    expect(groupFor("airlock_blocked").label).toBe("Schleusen-Exporte");
+    expect(groupFor("ledger_reset").label).toBe("Verwaltung");
+    expect(filterOptions({ decision: 2 })[0]?.label).toBe("Alle");
+    expect(eventLabel("download_blocked")).toBe("Blockierter Download");
+    expect(actorLabel("staff")).toBe("Zugangsstelle");
+  });
+
+  it("words detail lines and the red-team questions in German", () => {
+    expect(detailLine({ event: "airlock_released", detail: { rows: 16, suppressed_rows: 1 } })).toBe(
+      "16 Zeilen freigegeben, 1 unterdrückt",
+    );
+    expect(RED_TEAM_QUESTIONS[2]).toMatch(/Derselbe Antragsteller/);
   });
 });

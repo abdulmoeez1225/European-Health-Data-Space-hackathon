@@ -2,32 +2,48 @@
  * Two separate workspaces: applicants (researchers and organisations) and the Health Data Access
  * Body's staff. An applicant workspace never lists or links a staff route.
  */
+import { messages } from "@/i18n/runtime";
+
 export type WorkspaceId = "applicant" | "staff";
 
-type NavItem = { path: string; href: string; title: string };
+type NavItem = { path: string; href: string; readonly title: string };
 
-type Workspace = { name: string; audience: string; home: string; items: NavItem[] };
+type Workspace = { readonly name: string; readonly audience: string; home: string; items: NavItem[] };
+
+/** Titles and names are read in the active language each time they are used. */
+function item(path: string, href: string): NavItem {
+  return {
+    path,
+    href,
+    get title() {
+      return messages().shell.nav[path] ?? path;
+    },
+  };
+}
+
+function workspace(id: WorkspaceId, home: string, items: NavItem[]): Workspace {
+  return {
+    home,
+    items,
+    get name() {
+      return messages().shell.workspaces[id].name;
+    },
+    get audience() {
+      return messages().shell.workspaces[id].audience;
+    },
+  };
+}
 
 export const WORKSPACES: Record<WorkspaceId, Workspace> = {
-  applicant: {
-    name: "Applicant",
-    audience: "Researchers & organisations",
-    home: "/",
-    items: [
-      { path: "/", href: "/", title: "Request data" },
-      { path: "/requests", href: "/requests/", title: "My requests" },
-      { path: "/spe", href: "/spe/", title: "Secure workspace" },
-    ],
-  },
-  staff: {
-    name: "Access body",
-    audience: "HDAB staff",
-    home: "/staff/",
-    items: [
-      { path: "/staff", href: "/staff/", title: "Decision queue" },
-      { path: "/staff/privacy", href: "/staff/privacy/", title: "Privacy & audit" },
-    ],
-  },
+  applicant: workspace("applicant", "/", [
+    item("/", "/"),
+    item("/requests", "/requests/"),
+    item("/spe", "/spe/"),
+  ]),
+  staff: workspace("staff", "/staff/", [
+    item("/staff", "/staff/"),
+    item("/staff/privacy", "/staff/privacy/"),
+  ]),
 };
 
 /** "/staff/" and "/staff" are the same page (the static export uses trailing slashes). */

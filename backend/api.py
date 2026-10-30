@@ -23,8 +23,15 @@ from backend.config import ROOT, settings
 from backend.db import connection
 from backend.law import ARTICLES, ARTICLES_DE, EUR_LEX_URL, Article
 from backend.llm import backend_name
-from backend.models import RequestResult, WithdrawRequest
-from backend.pipeline import get_result, process_request, results, withdraw_decision
+from backend.models import RequestResult, StaffActionRequest
+from backend.pipeline import (
+    ActionNotAllowed,
+    get_result,
+    process_request,
+    reopen_decision,
+    results,
+    withdraw_decision,
+)
 
 access_log = logging.getLogger("gatekeeper.access")
 
@@ -151,16 +158,36 @@ def get_request(request_id: str) -> RequestResult:
     return found
 
 
+def _staff_action(result: RequestResult | None, request_id: str) -> RequestResult:
+    if result is None:
+        raise HTTPException(404, f"No processed request {request_id}.")
+    return result
+
+
 @app.post(
     "/api/requests/{request_id}/withdraw",
     response_model=RequestResult,
-    responses={404: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+    responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
 )
-def withdraw_request(request_id: str, body: WithdrawRequest) -> RequestResult:
-    withdrawn = withdraw_decision(request_id, body.reason)
-    if withdrawn is None:
-        raise HTTPException(404, f"No processed request {request_id}.")
-    return withdrawn
+def withdraw_request(request_id: str, body: StaffActionRequest) -> RequestResult:
+    """Take back a grant (statistics or secure access)."""
+    try:
+        return _staff_action(withdraw_decision(request_id, body.reason), request_id)
+    except ActionNotAllowed as error:
+        raise HTTPException(409, str(error)) from error
+
+
+@app.post(
+    "/api/requests/{request_id}/reopen",
+    response_model=RequestResult,
+    responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+)
+def reopen_request(request_id: str, body: StaffActionRequest) -> RequestResult:
+    """Set a refusal aside for manual review."""
+    try:
+        return _staff_action(reopen_decision(request_id, body.reason), request_id)
+    except ActionNotAllowed as error:
+        raise HTTPException(409, str(error)) from error
 
 
 @app.get("/api/law", response_model=LawResponse)

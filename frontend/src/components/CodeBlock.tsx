@@ -3,10 +3,12 @@
 import { ChevronRight } from "lucide-react";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useT } from "@/i18n";
 
 import { CopyButton } from "./CopyButton";
 
 export function CodeBlock({ title, code, language }: { title: string; code: string; language: string }) {
+  const t = useT();
   return (
     <Collapsible className="rounded-md border">
       <div className="flex items-center gap-1 pr-1">
@@ -18,7 +20,7 @@ export function CodeBlock({ title, code, language }: { title: string; code: stri
           {title}
           <span className="font-mono text-caption font-normal text-muted-foreground">{language}</span>
         </CollapsibleTrigger>
-        <CopyButton text={code} label={`Copy ${title.toLowerCase()}`} />
+        <CopyButton text={code} label={t.common.copy(title)} />
       </div>
       <CollapsibleContent>
         <pre className="max-h-80 overflow-auto border-t bg-muted/40 px-3 py-2.5 font-mono text-data leading-relaxed">

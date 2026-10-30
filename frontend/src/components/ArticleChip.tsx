@@ -2,7 +2,8 @@
 
 import { useLaw } from "@/api/queries";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ARTICLE_TITLES } from "@/lib/decisions";
+import { useT } from "@/i18n";
+import { articleTitle } from "@/lib/decisions";
 
 /**
  * "Art. 53" chip. Hover or focus shows the article title, why it applies to this decision
@@ -11,7 +12,8 @@ import { ARTICLE_TITLES } from "@/lib/decisions";
 export function ArticleChip({ article, detail }: { article: string; detail?: string }) {
   const { data } = useLaw();
   const entry = data?.articles.find((a) => a.number === article);
-  const title = entry?.title ?? ARTICLE_TITLES[article] ?? "Regulation (EU) 2025/327";
+  const t = useT();
+  const title = entry?.title ?? articleTitle(article) ?? t.regulation;
   return (
     <Tooltip>
       <TooltipTrigger asChild>

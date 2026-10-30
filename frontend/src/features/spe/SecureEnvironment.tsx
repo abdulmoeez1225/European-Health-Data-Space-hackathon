@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useT } from "@/i18n";
 import { formatValue, shorten } from "@/lib/format";
 import { useMyRequestIds } from "@/lib/my-requests";
 
@@ -26,19 +27,12 @@ import { BrowseTab } from "./BrowseTab";
 import { SqlConsole } from "./SqlConsole";
 import { SummariseTab } from "./SummariseTab";
 
-export const SPE_DESCRIPTION =
-  "Work with approved pseudonymised records under your data permit. Nothing can be downloaded.";
-
 type Permit = { spe: SpeOutput; organisation: string; requestId: string };
 
-const TABS = [
-  { value: "browse", label: "Browse" },
-  { value: "summarise", label: "Summarise" },
-  { value: "sql", label: "SQL (advanced)" },
-] as const;
-type Tab = (typeof TABS)[number]["value"];
+const TABS = ["browse", "summarise", "sql"] as const;
+type Tab = (typeof TABS)[number];
 
-const isTab = (value: string | null): value is Tab => TABS.some((tab) => tab.value === value);
+const isTab = (value: string | null): value is Tab => TABS.some((tab) => tab === value);
 
 function workspaceUrl(permitId: string, tab: Tab): string {
   const query = new URLSearchParams({ permit: permitId });
@@ -46,9 +40,20 @@ function workspaceUrl(permitId: string, tab: Tab): string {
   return `/spe/?${query.toString()}`;
 }
 
-const TITLE = "Secure workspace";
+/** Shown while the page suspends; client-side so the heading follows the language. */
+export function SecureEnvironmentFallback() {
+  const t = useT().spe;
+  return (
+    <div className="grid gap-8">
+      <PageHeader title={t.title} description={t.description} />
+      <Skeleton className="h-20" />
+      <Skeleton className="h-64" />
+    </div>
+  );
+}
 
 export function SecureEnvironment() {
+  const t = useT().spe;
   // Only permits issued on requests from this browser: the applicant's own workspaces.
   const ids = useMyRequestIds();
   const requests = useMyRequests(ids);
@@ -86,21 +91,18 @@ export function SecureEnvironment() {
 
   return (
     <div className="grid gap-6">
-      <PageHeader title={TITLE} description={SPE_DESCRIPTION} />
+      <PageHeader title={t.title} description={t.description} />
       {ids.length > 0 && requests.isPending ? (
-        <div className="grid gap-3" role="status" aria-label="Loading data permits">
+        <div className="grid gap-3" role="status" aria-label={t.loadingPermits}>
           <Skeleton className="h-14" />
           <Skeleton className="h-64" />
         </div>
       ) : (
         <div className="rounded-md border">
-          <EmptyState icon={<KeyRound />} title="No secure workspace yet">
-            <p>
-              A workspace opens when an access application is approved: one that asks for pseudonymised
-              records and explains why statistics are not enough (for example sample R05).
-            </p>
+          <EmptyState icon={<KeyRound />} title={t.empty.title}>
+            <p>{t.empty.text}</p>
             <Button asChild className="mt-3">
-              <Link href="/">Request data</Link>
+              <Link href="/">{t.empty.action}</Link>
             </Button>
           </EmptyState>
         </div>
@@ -117,6 +119,7 @@ type WorkspaceProps = {
 };
 
 function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
+  const t = useT().spe;
   const permitId = permit.spe.permit_id;
   const info = useSpeInfo(permitId);
   const download = useMutation({ mutationFn: () => api.speDownload(permitId) });
@@ -125,8 +128,8 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
   return (
     <div className="grid gap-8">
       <PageHeader
-        title={TITLE}
-        description={SPE_DESCRIPTION}
+        title={t.title}
+        description={t.description}
         actions={
           <>
             <Select
@@ -135,7 +138,7 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
                 onNavigate(id, tab);
               }}
             >
-              <SelectTrigger aria-label="Data permit" className="h-9 w-60 max-w-full">
+              <SelectTrigger aria-label={t.permitSelect} className="h-9 w-60 max-w-full">
                 <SelectValue>
                   <span className="font-mono">{permitId}</span>
                 </SelectValue>
@@ -164,22 +167,22 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
               ) : (
                 <Download aria-hidden />
               )}
-              Download data
+              {t.download}
             </Button>
           </>
         }
       />
 
       <dl className="grid grid-cols-3 gap-6 rounded-lg border bg-card px-6 py-5">
-        <Property label="Patients (exact)">
+        <Property label={t.strip.patients}>
           <span className="text-2xl font-medium tracking-tight tabular-nums">
             {formatValue(permit.spe.cohort_size)}
           </span>
         </Property>
-        <Property label="Permit">
+        <Property label={t.strip.permit}>
           <span className="font-mono text-ui">{permitId}</span>
         </Property>
-        <Property label="Request">
+        <Property label={t.strip.request}>
           <span className="font-mono text-ui">{permit.requestId}</span>
           {permit.organisation ? (
             <span className="block truncate text-xs text-muted-foreground" title={permit.organisation}>
@@ -192,28 +195,24 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
       {blocked ? (
         <Alert key={download.submittedAt} variant="destructive" role="alert">
           <ShieldAlert />
-          <AlertTitle>
-            Download blocked — data cannot leave the secure processing environment (Art. 73)
-          </AlertTitle>
+          <AlertTitle>{t.downloadBlocked}</AlertTitle>
           <AlertDescription>
             <p>{blocked.message.replace(/^Download blocked:[^.]*\(Art\. 73\)\.\s*/i, "")}</p>
             {blocked.auditId ? (
               <p className="flex items-center gap-1">
-                Logged as audit event <span className="font-mono text-foreground">{blocked.auditId}</span>
-                <CopyButton text={blocked.auditId} label="Copy audit event ID" />
+                {t.loggedAs} <span className="font-mono text-foreground">{blocked.auditId}</span>
+                <CopyButton text={blocked.auditId} label={t.copyAuditId} />
               </p>
             ) : null}
           </AlertDescription>
         </Alert>
       ) : download.isError ? (
-        <ErrorState title="Download check failed" error={download.error} />
+        <ErrorState title={t.downloadCheckFailed} error={download.error} />
       ) : download.isSuccess ? (
         <Alert variant="destructive" role="alert">
           <ShieldAlert />
-          <AlertTitle>Unexpected: the server did not block the download</AlertTitle>
-          <AlertDescription>
-            Report this to the access body; data must not leave the environment.
-          </AlertDescription>
+          <AlertTitle>{t.notBlocked.title}</AlertTitle>
+          <AlertDescription>{t.notBlocked.text}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -224,25 +223,21 @@ function Workspace({ permit, permits, tab, onNavigate }: WorkspaceProps) {
         }}
         className="gap-6"
       >
-        <TabsList aria-label="Ways to work with the records" className="h-9">
-          {TABS.map(({ value, label }) => (
+        <TabsList aria-label={t.tabsLabel} className="h-9">
+          {TABS.map((value) => (
             <TabsTrigger key={value} value={value} className="px-3">
-              {label}
+              {t.tabs[value]}
             </TabsTrigger>
           ))}
         </TabsList>
         {info.isPending ? (
-          <div className="grid gap-2" role="status" aria-label="Opening the workspace">
+          <div className="grid gap-2" role="status" aria-label={t.opening}>
             {Array.from({ length: 6 }, (_, i) => (
               <Skeleton key={i} className="h-9" />
             ))}
           </div>
         ) : info.isError ? (
-          <ErrorState
-            title="Could not open the workspace"
-            error={info.error}
-            onRetry={() => void info.refetch()}
-          />
+          <ErrorState title={t.openFailed} error={info.error} onRetry={() => void info.refetch()} />
         ) : (
           <>
             <TabsContent value="browse">

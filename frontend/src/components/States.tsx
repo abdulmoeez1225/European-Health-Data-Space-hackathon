@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { errorMessage } from "@/api/errors";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/cn";
 
 export function EmptyState({
@@ -42,6 +43,7 @@ export function ErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
+  const t = useT();
   return (
     <Alert variant="destructive" role="alert" className={className}>
       <AlertCircle />
@@ -51,7 +53,7 @@ export function ErrorState({
         {onRetry ? (
           <Button variant="outline" size="sm" className="mt-1" onClick={onRetry}>
             <RotateCw aria-hidden />
-            Try again
+            {t.common.tryAgain}
           </Button>
         ) : null}
       </AlertDescription>

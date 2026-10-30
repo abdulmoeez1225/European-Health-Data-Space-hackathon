@@ -1,12 +1,14 @@
 import { useMutation, useMutationState, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useLocale } from "@/i18n";
+
 import { api, type AuditQuery } from "./client";
 import type { JsonObject, RequestResult } from "./types";
 
 export const AUTO_REFRESH_MS = 5000;
 
 export const keys = {
-  law: ["law"] as const,
+  law: (lang: string) => ["law", lang] as const,
   samples: ["samples"] as const,
   requests: ["requests"] as const,
   request: (requestId: string) => ["requests", requestId] as const,
@@ -20,7 +22,11 @@ export const mutationKeys = {
   redTeam: (step: number) => ["red-team", step] as const,
 };
 
-export const useLaw = () => useQuery({ queryKey: keys.law, queryFn: api.law, staleTime: Infinity });
+/** Plain-language article summaries in the reader's language. */
+export function useLaw() {
+  const lang = useLocale();
+  return useQuery({ queryKey: keys.law(lang), queryFn: () => api.law(lang), staleTime: Infinity });
+}
 
 export const useSamples = () =>
   useQuery({ queryKey: keys.samples, queryFn: api.samples, staleTime: Infinity });
@@ -129,11 +135,14 @@ export function useResetLedger() {
   });
 }
 
-/** Staff withdraw an issued decision: released statistics or the workspace are pulled. */
-export function useWithdraw(requestId: string) {
+/**
+ * The one staff action on an issued decision: withdraw a grant (released statistics or the
+ * workspace are pulled) or reopen a refusal for manual reconsideration.
+ */
+export function useStaffAction(requestId: string, kind: "withdraw" | "reopen") {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (reason: string) => api.withdraw(requestId, reason),
+    mutationFn: (reason: string) => (kind === "withdraw" ? api.withdraw : api.reopen)(requestId, reason),
     onSuccess: (result) => {
       client.setQueryData(keys.request(result.request_id), result);
       client.setQueryData<RequestResult[]>(keys.requests, (current) =>

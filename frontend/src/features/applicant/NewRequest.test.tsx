@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "@/api/client";
 import { ApiError } from "@/api/errors";
+import { setLocale } from "@/i18n";
 import { burgenlandResult, speResult } from "@/mock/data";
 import { renderWithProviders, sampleRequest } from "@/test/render";
 
@@ -135,5 +136,38 @@ describe("NewRequest: incomplete request", () => {
     expect(submit).not.toHaveBeenCalled();
     expect(navigation.push).not.toHaveBeenCalled();
     expect(rememberedIds()).toEqual([]);
+  });
+});
+
+describe("NewRequest: German", () => {
+  afterEach(() => {
+    setLocale("en");
+  });
+
+  it("shows the form and its validation in German, and submits canonical English values", async () => {
+    setLocale("de");
+    const user = userEvent.setup();
+    const submit = vi.spyOn(api, "submit").mockResolvedValue(speResult(sampleRequest("R05")));
+    renderWithProviders(<NewRequest />, { viewState: true });
+
+    expect(screen.getByRole("heading", { name: "Gesundheitsdaten anfragen" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Anfrage senden" }));
+    expect(
+      await screen.findByText("Erforderlich: Organisation, Zweck, eine Definition."),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox", { name: /Organisation/ }), "Danube Institute");
+    await user.type(screen.getByRole("textbox", { name: /Zweck/ }), "Diabetes-Prävention planen.");
+    await user.click(screen.getByRole("button", { name: "Definition hinzufügen" }));
+    await user.type(screen.getByRole("textbox", { name: "Definition 1" }), "Erwachsene = ab 18 Jahren.");
+    await user.click(screen.getByRole("button", { name: "Anfrage senden" }));
+
+    await waitFor(() => {
+      expect(submit).toHaveBeenCalledTimes(1);
+    });
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({
+      requested_as: "health data request",
+      requested_format: "anonymised statistics",
+    });
   });
 });

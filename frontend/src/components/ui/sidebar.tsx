@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { MOBILE_QUERY, useMediaQuery } from "@/hooks/use-media-query";
+import { messages } from "@/i18n/runtime";
 import { cn } from "@/lib/cn";
 import {
   SIDEBAR_COLLAPSE_QUERY,
@@ -174,7 +175,7 @@ export function SidebarTrigger({ className, ...props }: ComponentProps<typeof Bu
           data-slot="sidebar-trigger"
           variant="ghost"
           size="icon-sm"
-          aria-label="Toggle sidebar"
+          aria-label={messages().shell.toggleSidebar}
           aria-keyshortcuts="Meta+B Control+B"
           data-state={state}
           className={cn("-ml-1", className)}
@@ -185,7 +186,7 @@ export function SidebarTrigger({ className, ...props }: ComponentProps<typeof Bu
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        Toggle sidebar <kbd className="ml-1 font-sans text-muted-foreground">⌘B</kbd>
+        {messages().shell.toggleSidebar} <kbd className="ml-1 font-sans text-muted-foreground">⌘B</kbd>
       </TooltipContent>
     </Tooltip>
   );

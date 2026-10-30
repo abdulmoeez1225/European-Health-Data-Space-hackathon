@@ -1,5 +1,6 @@
 import { SmallCellBadge } from "@/components/SmallCellBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { formatValue, humanise, isProtectedMarker, toResultValue } from "@/lib/format";
 
@@ -34,6 +35,7 @@ export function ResultTable({
   rawHeaders = false,
   className,
 }: ResultTableProps) {
+  const t = useT().spe;
   const shown = rows.slice(0, MAX_ROWS);
   const numeric = numericColumns(columns, shown);
   return (
@@ -63,7 +65,7 @@ export function ResultTable({
                 colSpan={Math.max(columns.length, 1)}
                 className="py-8 text-center text-muted-foreground"
               >
-                No rows match
+                {t.noRows}
               </TableCell>
             </TableRow>
           ) : (
@@ -93,7 +95,7 @@ export function ResultTable({
       </Table>
       {rows.length > MAX_ROWS ? (
         <p className="text-xs text-muted-foreground">
-          Showing the first {MAX_ROWS} of {formatValue(rows.length)} rows.
+          {t.showingFirst(formatValue(MAX_ROWS), formatValue(rows.length))}
         </p>
       ) : null}
     </div>

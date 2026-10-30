@@ -95,7 +95,7 @@ function base(
     spe: null,
     consensus: { assessment_votes: 3, assessment_agreeing: 3, plan_votes: 3, plan_agreeing: 3 },
     status: "issued",
-    withdrawal: null,
+    staff_action: null,
     timings: { llm_s: 4.2, compute_s: 0.3, total_s: 4.6 },
     ...extra,
     needs_attention: (extra.review_flags?.length ?? 0) > 0,

@@ -17,9 +17,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useT } from "@/i18n";
 import { rememberWorkspace, storedWorkspace } from "@/lib/preferences";
 import { normalisePath, routeFor, WORKSPACES } from "@/lib/routes";
 
+import { LanguageMenu } from "./LanguageMenu";
 import { ThemeMenu } from "./ThemeMenu";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
@@ -41,6 +43,7 @@ export function AppSidebar() {
   const workspace = route?.workspace ?? fallback;
   const mock = useSyncExternalStore(noSubscription, isMockMode, () => false);
   const { setOpenMobile } = useSidebar();
+  const t = useT();
 
   useEffect(() => {
     if (route?.workspace) rememberWorkspace(route.workspace);
@@ -84,13 +87,18 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <LanguageMenu />
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <ThemeMenu />
           </SidebarMenuItem>
         </SidebarMenu>
         <p className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 text-caption text-subtle-foreground collapsed:hidden">
-          <span>Synthetic data · EHDS 2025/327</span>
+          <span>{t.shell.synthetic}</span>
           {mock ? (
-            <span className="rounded-sm border px-1 text-caption font-medium text-foreground">Mock</span>
+            <span className="rounded-sm border px-1 text-caption font-medium text-foreground">
+              {t.shell.mock}
+            </span>
           ) : null}
         </p>
       </SidebarFooter>

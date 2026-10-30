@@ -103,14 +103,18 @@ function auditParams({ limit, event, subject }: AuditQuery): string {
 }
 
 export const api = {
-  law: () => call<LawResponse>("GET", "/api/law"),
+  law: (lang: string) => call<LawResponse>("GET", `/api/law?lang=${encodeURIComponent(lang)}`),
   samples: () => call<JsonObject[]>("GET", "/api/samples"),
   requests: () => call<RequestResult[]>("GET", "/api/requests"),
   request: (requestId: string) =>
     call<RequestResult>("GET", `/api/requests/${encodeURIComponent(requestId)}`),
   submit: (request: JsonObject) => call<RequestResult>("POST", "/api/requests", request),
+  /** Grants only; the server answers 409 for refusals and for decisions already actioned. */
   withdraw: (requestId: string, reason: string) =>
     call<RequestResult>("POST", `/api/requests/${encodeURIComponent(requestId)}/withdraw`, { reason }),
+  /** Refusals only: set aside for manual reconsideration. */
+  reopen: (requestId: string, reason: string) =>
+    call<RequestResult>("POST", `/api/requests/${encodeURIComponent(requestId)}/reopen`, { reason }),
   speInfo: (permitId: string) => call<SpeInfo>("GET", spePath(permitId)),
   speQuery: (permitId: string, sql: string) =>
     call<QueryResult>("POST", `${spePath(permitId)}/query`, { sql }),

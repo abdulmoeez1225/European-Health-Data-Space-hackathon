@@ -1,4 +1,5 @@
 import type { CellValue, ResultValue } from "@/api/types";
+import { intlLocale, messages } from "@/i18n/runtime";
 
 /** Markers the small-cell rule puts in place of a number. */
 export const LESS_THAN_TEN = "<10";
@@ -9,10 +10,12 @@ const ONE_DECIMAL_KINDS = new Set(["percent", "mean"]);
 /** Released values: counts as integers, percentages and means with exactly one decimal. */
 export function formatValue(value: CellValue | ResultValue | undefined, kind?: string): string {
   if (value === null || value === undefined) return "NULL";
+  // The small-cell marker is data ("suppressed"); it is shown in the reader's language.
+  if (value === SUPPRESSED) return messages().smallCells.suppressedMarker;
   if (typeof value !== "number") return String(value);
   const oneDecimal = kind !== undefined && ONE_DECIMAL_KINDS.has(kind);
   return value.toLocaleString(
-    "en-GB",
+    intlLocale("number"),
     oneDecimal ? { minimumFractionDigits: 1, maximumFractionDigits: 1 } : { maximumFractionDigits: 2 },
   );
 }
@@ -63,15 +66,19 @@ export function formatTime(iso: string | undefined): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? iso
-    : date.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+    : date.toLocaleString(intlLocale("date"), { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function formatSeconds(seconds: number | undefined): string {
-  return `${(seconds ?? 0).toFixed(1)} s`;
+  const value = (seconds ?? 0).toLocaleString(intlLocale("number"), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `${value} s`;
 }
 
 export function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
-  return `${count.toLocaleString("en-GB")} ${count === 1 ? noun : pluralNoun}`;
+  return `${count.toLocaleString(intlLocale("number"))} ${count === 1 ? noun : pluralNoun}`;
 }
 
 /** Narrow a DuckDB result cell (typed `unknown` in the API) to something displayable. */
@@ -97,6 +104,6 @@ export function formatShortTime(iso: string | undefined, now: Date = new Date())
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toDateString() === now.toDateString()
-    ? date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    ? date.toLocaleTimeString(intlLocale("date"), { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString(intlLocale("date"), { day: "numeric", month: "short" });
 }

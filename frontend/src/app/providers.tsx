@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { ApiError } from "@/api/errors";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LocaleProvider } from "@/i18n";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -54,7 +55,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <TooltipProvider>
-        <ViewStateContext.Provider value={viewState}>{children}</ViewStateContext.Provider>
+        <ViewStateContext.Provider value={viewState}>
+          <LocaleProvider>{children}</LocaleProvider>
+        </ViewStateContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
   );

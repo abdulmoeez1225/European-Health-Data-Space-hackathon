@@ -9,7 +9,7 @@ import { formatTime } from "@/lib/format";
 import { plainSentence } from "@/lib/letter";
 import { burgenlandResult, r08Result, rejectResult, speResult } from "@/mock/data";
 import { MOCK_LAW } from "@/mock/law";
-import { renderWithProviders, sampleRequest, withdrawn } from "@/test/render";
+import { renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
 
 import { DecisionLetter } from "./DecisionLetter";
 
@@ -284,7 +284,7 @@ describe("DecisionLetter: legal basis", () => {
     const { client } = renderWithProviders(<DecisionLetter result={result} />);
 
     act(() => {
-      client.setQueryData(keys.law, {
+      client.setQueryData(keys.law("en"), {
         ...MOCK_LAW,
         articles: MOCK_LAW.articles.map((article) =>
           article.number === "53" ? { ...article, title: "Reuse of health data" } : article,
@@ -400,7 +400,7 @@ describe("DecisionLetter: withdrawn by the access body", () => {
   });
 
   it("leaves the reason out when none was recorded", () => {
-    const result: RequestResult = { ...withdrawn(rejectResult(sampleRequest("R02"))), withdrawal: null };
+    const result: RequestResult = { ...withdrawn(rejectResult(sampleRequest("R02"))), staff_action: null };
     renderWithProviders(<DecisionLetter result={result} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -425,6 +425,54 @@ describe("DecisionLetter: withdrawn by the access body", () => {
     expect(screen.queryByRole("region", { name: "Your data permit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Open secure workspace/ })).not.toBeInTheDocument();
     expect(screen.queryByText("permit-R05")).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: reopened by the access body", () => {
+  const REOPEN_REASON = "The purpose is covered by Art. 53.";
+
+  it("tells the applicant the refusal is being reconsidered, with the reason", () => {
+    renderWithProviders(<DecisionLetter result={reopened(rejectResult(sampleRequest("R02")))} />);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Being reconsidered by the access body");
+    expect(alert).toHaveTextContent(`${REOPEN_REASON} You will be contacted.`);
+    expect(screen.queryByText("Withdrawn by the access body")).not.toBeInTheDocument();
+  });
+
+  it("ends the reason with exactly one full stop", () => {
+    renderWithProviders(
+      <DecisionLetter result={reopened(rejectResult(sampleRequest("R02")), { reason: "Second look" })} />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Second look. You will be contacted.");
+  });
+
+  it("leaves the reason out when none was recorded", () => {
+    const result: RequestResult = { ...reopened(rejectResult(sampleRequest("R02"))), staff_action: null };
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /^Being reconsidered by the access body\s*You will be contacted\.$/,
+    );
+  });
+
+  it("keeps the refusal visible below the alert", () => {
+    const result = reopened(rejectResult(sampleRequest("R02")));
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    const alert = screen.getByRole("alert");
+    const headline = screen.getByRole("heading", { level: 2, name: decisionMeta("REJECT").headline });
+    expect(alert.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Refused")).toBeInTheDocument();
+    expect(screen.getByText(plainSentence(result))).toBeInTheDocument();
+  });
+
+  it("shows no reconsideration alert for an issued refusal", () => {
+    renderWithProviders(<DecisionLetter result={rejectResult(sampleRequest("R02"))} />);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("Being reconsidered by the access body")).not.toBeInTheDocument();
   });
 });
 

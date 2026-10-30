@@ -1,4 +1,4 @@
-"""Staff oversight of issued decisions: flagged cases need attention; any decision can be withdrawn."""
+"""Staff oversight: flagged cases need attention; grants can be withdrawn, refusals reopened."""
 
 import json
 from pathlib import Path
@@ -39,7 +39,7 @@ def _submit(client: TestClient, request_id: str) -> dict[str, Any]:
 
 def test_decisions_are_issued_and_flagged_ones_need_attention(client: TestClient) -> None:
     body = _submit(client, "R04")
-    assert body["status"] == "issued" and body["withdrawal"] is None
+    assert body["status"] == "issued" and body["staff_action"] is None
     assert body["needs_attention"] is bool(body["review_flags"])
 
 
@@ -60,24 +60,49 @@ def test_withdrawal_pulls_the_secure_workspace(client: TestClient) -> None:
     body = client.post("/api/requests/R05/withdraw", json={"reason": "Justification needs a closer look."}).json()
 
     assert body["status"] == "withdrawn" and body["needs_attention"] is False
-    assert body["withdrawal"]["released_data_withdrawn"] is True
+    assert body["staff_action"]["kind"] == "withdrawn"
+    assert body["staff_action"]["released_data_withdrawn"] is True
     assert body["spe"] is None and body["statistics"] is None
     assert client.get("/api/spe/permit-R05").status_code == 404
     assert any(e.event == "decision_withdrawn" and e.subject == "R05" for e in audit.events())
 
 
-def test_withdrawal_survives_a_restart(client: TestClient) -> None:
+def test_refusal_is_reopened_not_withdrawn(client: TestClient) -> None:
     _submit(client, "R04")
-    client.post("/api/requests/R04/withdraw", json={"reason": "Applicant asked to cancel."})
+
+    assert client.post("/api/requests/R04/withdraw", json={"reason": "x"}).status_code == 409
+    body = client.post("/api/requests/R04/reopen", json={"reason": "Could be public health research."}).json()
+
+    assert body["status"] == "reopened" and body["staff_action"]["kind"] == "reopened"
+    assert body["staff_action"]["released_data_withdrawn"] is False
+    assert any(e.event == "decision_reopened" and e.subject == "R04" for e in audit.events())
+
+
+def test_grant_cannot_be_reopened_and_actions_happen_once(client: TestClient) -> None:
+    _submit(client, "R05")
+    output = spe.create_spe("permit-R05", REFERENCE_PLANS["R05"])
+    with pipeline._results_lock:
+        granted = pipeline._results["R05"].model_copy(update={"decision": "APPROVE_SPE", "spe": output})
+        pipeline._results["R05"] = granted
+
+    assert client.post("/api/requests/R05/reopen", json={"reason": "x"}).status_code == 409
+    assert client.post("/api/requests/R05/withdraw", json={"reason": "x"}).status_code == 200
+    assert client.post("/api/requests/R05/withdraw", json={"reason": "again"}).status_code == 409
+
+
+def test_staff_action_survives_a_restart(client: TestClient) -> None:
+    _submit(client, "R04")
+    client.post("/api/requests/R04/reopen", json={"reason": "Applicant clarified the purpose."})
     pipeline._results_loaded_from = None
-    assert client.get("/api/requests/R04").json()["status"] == "withdrawn"
+    assert client.get("/api/requests/R04").json()["status"] == "reopened"
 
 
 @pytest.mark.parametrize("payload", [{}, {"reason": ""}, {"reason": "   "}])
-def test_withdrawal_needs_a_reason(client: TestClient, payload: dict[str, str]) -> None:
+def test_staff_actions_need_a_reason(client: TestClient, payload: dict[str, str]) -> None:
     _submit(client, "R04")
-    assert client.post("/api/requests/R04/withdraw", json=payload).status_code == 422
+    assert client.post("/api/requests/R04/reopen", json=payload).status_code == 422
 
 
-def test_withdrawing_an_unknown_request_is_not_found(client: TestClient) -> None:
+def test_actions_on_unknown_requests_are_not_found(client: TestClient) -> None:
     assert client.post("/api/requests/NOPE/withdraw", json={"reason": "x"}).status_code == 404
+    assert client.post("/api/requests/NOPE/reopen", json={"reason": "x"}).status_code == 404

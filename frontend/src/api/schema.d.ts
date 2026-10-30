@@ -82,8 +82,31 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Withdraw Request */
+    /**
+     * Withdraw Request
+     * @description Take back a grant (statistics or secure access).
+     */
     post: operations["withdraw_request_api_requests__request_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/requests/{request_id}/reopen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reopen Request
+     * @description Set a refusal aside for manual review.
+     */
+    post: operations["reopen_request_api_requests__request_id__reopen_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -932,8 +955,8 @@ export interface components {
        * @default issued
        * @enum {string}
        */
-      status: "issued" | "withdrawn";
-      withdrawal?: components["schemas"]["Withdrawal"] | null;
+      status: "issued" | "withdrawn" | "reopened";
+      staff_action?: components["schemas"]["StaffAction"] | null;
       timings?: components["schemas"]["Timings"];
       /**
        * Processed At
@@ -1010,6 +1033,37 @@ export interface components {
       /** Sql */
       sql: string;
     };
+    /**
+     * StaffAction
+     * @description What access-body staff did with an issued decision.
+     *
+     *     withdrawn: a grant was taken back; released statistics and the secure workspace were pulled.
+     *     reopened: a refusal was set aside; staff reconsider the case manually.
+     */
+    StaffAction: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "withdrawn" | "reopened";
+      /** Reason */
+      reason: string;
+      /**
+       * At
+       * Format: date-time
+       */
+      at: string;
+      /**
+       * Released Data Withdrawn
+       * @default false
+       */
+      released_data_withdrawn: boolean;
+    };
+    /** StaffActionRequest */
+    StaffActionRequest: {
+      /** Reason */
+      reason: string;
+    };
     /** StatisticsOutput */
     StatisticsOutput: {
       /** Dimensions */
@@ -1055,26 +1109,6 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
-    };
-    /** WithdrawRequest */
-    WithdrawRequest: {
-      /** Reason */
-      reason: string;
-    };
-    /**
-     * Withdrawal
-     * @description Staff withdrew an issued decision; released data was pulled and the case is handled manually.
-     */
-    Withdrawal: {
-      /** Reason */
-      reason: string;
-      /**
-       * Withdrawn At
-       * Format: date-time
-       */
-      withdrawn_at: string;
-      /** Released Data Withdrawn */
-      released_data_withdrawn: boolean;
     };
   };
   responses: never;
@@ -1233,7 +1267,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["WithdrawRequest"];
+        "application/json": components["schemas"]["StaffActionRequest"];
       };
     };
     responses: {
@@ -1248,6 +1282,68 @@ export interface operations {
       };
       /** @description Not Found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Unprocessable Entity */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+    };
+  };
+  reopen_request_api_requests__request_id__reopen_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StaffActionRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RequestResult"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorBody"];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

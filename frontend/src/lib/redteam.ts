@@ -1,4 +1,5 @@
 import type { CellValue, JsonObject, RequestResult } from "@/api/types";
+import { messages } from "@/i18n/runtime";
 
 export const RED_TEAM_ORGANISATION = "Curious Analytics GmbH";
 export type RedTeamStep = 1 | 2;
@@ -33,10 +34,14 @@ export function redTeamRequest(step: RedTeamStep): JsonObject {
   };
 }
 
-/** The two questions, as the applicant would ask them. */
+/** The two questions as the applicant would ask them, in the active interface language. */
 export const RED_TEAM_QUESTIONS: Record<RedTeamStep, string> = {
-  1: `${RED_TEAM_ORGANISATION} asks: How many adults with type 2 diabetes live in Burgenland?`,
-  2: "The same applicant asks: How many of them are aged 40 or older?",
+  get 1() {
+    return messages().privacy.redTeam.question1(RED_TEAM_ORGANISATION);
+  },
+  get 2() {
+    return messages().privacy.redTeam.question2;
+  },
 };
 
 export type RedTeamOutcome = {

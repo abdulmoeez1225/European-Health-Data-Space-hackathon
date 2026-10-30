@@ -6,14 +6,17 @@ import { api } from "@/api/client";
 import { ApiError } from "@/api/errors";
 import { keys } from "@/api/queries";
 import type { RequestResult } from "@/api/types";
+import { setLocale } from "@/i18n";
 import { burgenlandResult, rejectResult, speResult } from "@/mock/data";
-import { renderWithProviders, sampleRequest, withdrawn } from "@/test/render";
+import { renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
 
 import { RequestDetail, WithdrawAction } from "./RequestDetail";
 
-const ID = "R02";
+const ID = "R05";
 const REASON = "Purpose is not credible.";
-const issued = () => rejectResult(sampleRequest(ID));
+const issued = () => speResult(sampleRequest("R05"));
+const REFUSAL_ID = "R02";
+const refusal = () => rejectResult(sampleRequest(REFUSAL_ID));
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -182,6 +185,92 @@ describe("WithdrawAction", () => {
   });
 });
 
+describe("WithdrawAction: reopening a refusal", () => {
+  const REOPEN_REASON = "The purpose is covered by Art. 53.";
+
+  async function openReopenDialog() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Reopen for manual review…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Reopen this refusal?" });
+    return { user, dialog };
+  }
+
+  it("offers reopening instead of withdrawing a refusal", () => {
+    renderWithProviders(<WithdrawAction result={refusal()} />);
+
+    expect(screen.getByRole("button", { name: "Reopen for manual review…" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Withdraw decision…" })).not.toBeInTheDocument();
+  });
+
+  it("offers no reopening for a grant", () => {
+    renderWithProviders(<WithdrawAction result={issued()} />);
+
+    expect(screen.queryByRole("button", { name: "Reopen for manual review…" })).not.toBeInTheDocument();
+  });
+
+  it("refuses an empty reason without calling the API", async () => {
+    const reopen = vi.spyOn(api, "reopen");
+    const withdraw = vi.spyOn(api, "withdraw");
+    renderWithProviders(<WithdrawAction result={refusal()} />);
+    const { user, dialog } = await openReopenDialog();
+
+    await user.click(within(dialog).getByRole("button", { name: "Reopen" }));
+
+    expect(within(dialog).getByText("A reason is required to reopen.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: "Reason" })).toBeInvalid();
+    expect(reopen).not.toHaveBeenCalled();
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it("reopens with the trimmed reason through api.reopen, never api.withdraw", async () => {
+    const result = reopened(refusal(), { reason: REOPEN_REASON });
+    const reopen = vi.spyOn(api, "reopen").mockResolvedValue(result);
+    const withdraw = vi.spyOn(api, "withdraw");
+    renderWithProviders(<WithdrawAction result={refusal()} />);
+    const { user, dialog } = await openReopenDialog();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Reason" }), `  ${REOPEN_REASON}  `);
+    await user.click(within(dialog).getByRole("button", { name: "Reopen" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(reopen).toHaveBeenCalledExactlyOnceWith(REFUSAL_ID, REOPEN_REASON);
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it("stores the reopened refusal as the request and in the queue, and refreshes the audit log", async () => {
+    const result = reopened(refusal(), { reason: REOPEN_REASON });
+    vi.spyOn(api, "reopen").mockResolvedValue(result);
+    const { client } = renderWithProviders(<WithdrawAction result={refusal()} />);
+    const other = burgenlandResult(sampleRequest("R01"), 32, null);
+    client.setQueryData<RequestResult[]>(keys.requests, [refusal(), other]);
+    client.setQueryData(keys.audit, { total: 0, events: [] });
+    const { user, dialog } = await openReopenDialog();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Reason" }), REOPEN_REASON);
+    await user.click(within(dialog).getByRole("button", { name: "Reopen" }));
+
+    await waitFor(() => {
+      expect(client.getQueryData(keys.request(REFUSAL_ID))).toEqual(result);
+    });
+    expect(client.getQueryData<RequestResult[]>(keys.requests)).toEqual([result, other]);
+    expect(client.getQueryState(keys.audit)?.isInvalidated).toBe(true);
+  });
+
+  it("keeps the dialog open and shows the error when reopening fails", async () => {
+    vi.spyOn(api, "reopen").mockRejectedValue(new ApiError(409, "This decision was already actioned."));
+    renderWithProviders(<WithdrawAction result={refusal()} />);
+    const { user, dialog } = await openReopenDialog();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Reason" }), REOPEN_REASON);
+    await user.click(within(dialog).getByRole("button", { name: "Reopen" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("This decision was already actioned.");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
+
 describe("RequestDetail: needs attention", () => {
   it("lists the review flags in a warning at the top when the decision needs attention", () => {
     const result: RequestResult = {
@@ -206,7 +295,7 @@ describe("RequestDetail: needs attention", () => {
   });
 
   it("shows the flag of a refusal the AI was unsure about", () => {
-    const result = issued();
+    const result = refusal();
     renderWithProviders(<RequestDetail result={result} />);
 
     expect(screen.getByText("Why this needs attention")).toBeInTheDocument();
@@ -222,24 +311,25 @@ describe("RequestDetail: needs attention", () => {
     expect(screen.queryByText("Withdrawn by staff")).not.toBeInTheDocument();
   });
 
-  it("offers to withdraw an issued decision", () => {
+  it("offers to withdraw an issued grant", () => {
     renderWithProviders(<RequestDetail result={issued()} />);
 
     expect(screen.getByRole("button", { name: "Withdraw decision…" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Reopen for manual review…" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
   });
 });
 
 /** The code blocks have their own status live regions, so pick the stamp by its text. */
-function stamp(): HTMLElement {
-  const [found] = screen.getAllByRole("status").filter((el) => el.textContent.includes("Withdrawn by staff"));
-  if (!found) throw new Error("No withdrawn stamp");
+function stamp(text = "Withdrawn by staff"): HTMLElement {
+  const [found] = screen.getAllByRole("status").filter((el) => el.textContent.includes(text));
+  if (!found) throw new Error(`No stamp reading "${text}"`);
   return found;
 }
 
 describe("RequestDetail: withdrawn", () => {
   it("stamps the withdrawal with the time and the reason", () => {
-    const result = withdrawn(issued(), { reason: REASON });
+    const result = withdrawn(issued(), { reason: REASON, released_data_withdrawn: false });
     renderWithProviders(<RequestDetail result={result} />);
 
     const withdrawal = stamp();
@@ -263,5 +353,62 @@ describe("RequestDetail: withdrawn", () => {
 
     expect(screen.queryByRole("button", { name: "Withdraw decision…" })).not.toBeInTheDocument();
     expect(screen.queryByText("Why this needs attention")).not.toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail: refusals", () => {
+  it("offers to reopen a refusal and never to withdraw it", () => {
+    renderWithProviders(<RequestDetail result={refusal()} />);
+
+    expect(screen.getByRole("button", { name: "Reopen for manual review…" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Withdraw decision…" })).not.toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail: reopened", () => {
+  it("stamps the reopening with the time and the reason", () => {
+    const result = reopened(refusal(), { reason: "Second look." });
+    renderWithProviders(<RequestDetail result={result} />);
+
+    const reopening = stamp("Reopened by staff");
+    expect(reopening).toHaveTextContent(/Reopened by staff\s*· \d{2}:\d{2}/);
+    expect(within(reopening).getByText("Second look.")).toBeInTheDocument();
+    expect(within(reopening).queryByText(/Released data was pulled/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Withdrawn by staff")).not.toBeInTheDocument();
+    expect(screen.getByRole("article").firstElementChild).toBe(reopening);
+  });
+
+  it("offers no further action and no attention alert, even if the result still carries flags", () => {
+    const result = reopened(refusal());
+    expect(result.review_flags?.length).toBeGreaterThan(0);
+    renderWithProviders(<RequestDetail result={result} />);
+
+    expect(screen.queryByRole("button", { name: "Reopen for manual review…" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Withdraw decision…" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Why this needs attention")).not.toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail in German", () => {
+  afterEach(() => {
+    setLocale("en");
+  });
+
+  it("speaks German for the attention alert, the withdraw action and the assessment", () => {
+    setLocale("de");
+    renderWithProviders(<RequestDetail result={issued()} />);
+
+    expect(screen.getByText("Warum das Aufmerksamkeit braucht")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entscheidung zurückziehen…" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "KI-Bewertung" })).toBeInTheDocument();
+    expect(screen.queryByText("Why this needs attention")).not.toBeInTheDocument();
+  });
+
+  it("offers reopening a refusal in German", () => {
+    setLocale("de");
+    renderWithProviders(<RequestDetail result={refusal()} />);
+
+    expect(screen.getByRole("button", { name: "Zur manuellen Prüfung wieder öffnen…" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Entscheidung zurückziehen…" })).not.toBeInTheDocument();
   });
 });
