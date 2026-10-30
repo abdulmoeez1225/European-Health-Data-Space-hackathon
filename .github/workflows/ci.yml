@@ -87,6 +87,12 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # A new security-group rule can take a while to apply: wait until port 22 answers.
+          for attempt in $(seq 1 24); do
+            if timeout 5 bash -c "</dev/tcp/$DEPLOY_HOST/22" 2>/dev/null; then break; fi
+            echo "SSH not reachable yet (attempt $attempt), waiting"
+            sleep 5
+          done
           # The key is restricted on the server to running `sudo gatekeeper-deploy`.
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=20 "ubuntu@$DEPLOY_HOST"
 
