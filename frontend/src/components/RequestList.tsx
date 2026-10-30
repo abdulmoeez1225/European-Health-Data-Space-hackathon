@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleSlash, RotateCcw, TriangleAlert } from "lucide-react";
+import { CircleSlash, KeyRound, MessageSquareText, RotateCcw, TriangleAlert } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
 import { readRequest } from "@/api/request";
@@ -49,6 +49,8 @@ export function RequestList({
         const request = readRequest(result.request);
         const withdrawn = result.status === "withdrawn";
         const reopened = result.status === "reopened";
+        const awaitingPermit = result.status === "awaiting_permit";
+        const reviewRequested = Boolean(result.appeal) && result.status === "issued";
         const selected = result.request_id === selectedId;
         return (
           <li key={result.request_id} className="border-b border-divider">
@@ -64,15 +66,17 @@ export function RequestList({
                 selected && "bg-accent hover:bg-accent",
               )}
             >
-              {staff ? (
-                <QueueStatus attention={result.needs_attention} withdrawn={withdrawn} reopened={reopened} />
-              ) : null}
-              <span className="w-11 shrink-0 font-mono text-subtle-foreground">{result.request_id}</span>
+              {staff ? <QueueStatus result={result} /> : null}
+              <span className="min-w-11 shrink-0 font-mono whitespace-nowrap text-subtle-foreground">
+                {result.request_id}
+              </span>
               <span className="min-w-0 flex-1 truncate">
                 {request.applicant.organisation || t.common.unknownApplicant}
               </span>
               {!staff && withdrawn ? <Badge variant="warning">{t.common.withdrawn}</Badge> : null}
               {!staff && reopened ? <Badge variant="info">{t.common.reconsidering}</Badge> : null}
+              {!staff && awaitingPermit ? <Badge variant="info">{t.common.awaitingPermit}</Badge> : null}
+              {!staff && reviewRequested ? <Badge variant="neutral">{t.common.reviewRequested}</Badge> : null}
               <span className="hidden shrink-0 sm:inline-flex">
                 <DecisionBadge decision={result.decision} short />
               </span>
@@ -91,40 +95,29 @@ export function RequestList({
   );
 }
 
-/** Staff queue: an alert icon when the AI was unsure, a muted mark once actioned, else nothing. */
-function QueueStatus({
-  attention,
-  withdrawn,
-  reopened,
-}: {
-  attention: boolean;
-  withdrawn: boolean;
-  reopened: boolean;
-}) {
+/**
+ * Staff queue: why a decision needs attention (a waiting permit, a review request or an unsure AI),
+ * a muted mark once actioned, else nothing.
+ */
+function QueueStatus({ result }: { result: RequestResult }) {
   const t = useT();
-  if (reopened) {
-    return (
-      <span title={t.common.reopened} className="shrink-0">
-        <RotateCcw aria-hidden className="size-4 text-subtle-foreground" />
-        <span className="sr-only">{t.common.reopened}: </span>
-      </span>
-    );
-  }
-  if (withdrawn) {
-    return (
-      <span title={t.common.withdrawn} className="shrink-0">
-        <CircleSlash aria-hidden className="size-4 text-subtle-foreground" />
-        <span className="sr-only">{t.common.withdrawn}: </span>
-      </span>
-    );
-  }
-  if (attention) {
-    return (
-      <span title={t.common.needsAttention} className="shrink-0">
-        <TriangleAlert aria-hidden className="size-4 text-warning" />
-        <span className="sr-only">{t.common.needsAttention}: </span>
-      </span>
-    );
-  }
-  return <span aria-hidden className="size-4 shrink-0" />;
+  const mark = (() => {
+    if (result.status === "reopened") return { Icon: RotateCcw, label: t.common.reopened, muted: true };
+    if (result.status === "withdrawn") return { Icon: CircleSlash, label: t.common.withdrawn, muted: true };
+    if (result.status === "awaiting_permit")
+      return { Icon: KeyRound, label: t.common.awaitingPermit, muted: false };
+    if (result.appeal && result.status === "issued") {
+      return { Icon: MessageSquareText, label: t.common.reviewRequested, muted: false };
+    }
+    if (result.needs_attention) return { Icon: TriangleAlert, label: t.common.needsAttention, muted: false };
+    return null;
+  })();
+  if (!mark) return <span aria-hidden className="size-4 shrink-0" />;
+  const { Icon, label, muted } = mark;
+  return (
+    <span title={label} className="shrink-0">
+      <Icon aria-hidden className={cn("size-4", muted ? "text-subtle-foreground" : "text-warning")} />
+      <span className="sr-only">{label}: </span>
+    </span>
+  );
 }

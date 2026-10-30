@@ -5,16 +5,14 @@ const en = {
     title: "Privacy & audit",
     description:
       "Oversight for the access body: what was withheld to protect patients, and a complete record of what the system did.",
-    resetFailed: "Could not reset the ledger",
   },
   redTeam: {
     title: "Red-team check: can two harmless questions expose one patient?",
     subtitle:
-      "The small-cell rule checks each answer alone; the ledger remembers what this applicant already received.",
+      "The small-cell rule checks each answer alone; the ledger remembers what has already been released, to any applicant.",
     question1: (organisation: string) =>
       `${organisation} asks: How many adults with type 2 diabetes live in Burgenland?`,
     question2: "The same applicant asks: How many of them are aged 40 or older?",
-    reset: "Reset demo",
     run: "Run both questions",
     asking: "Asking…",
     notRun: "Not run yet",
@@ -40,7 +38,7 @@ const en = {
   loading: "Loading",
   blocked: {
     intro:
-      "Answers withheld because, combined with an earlier answer to the same applicant, they would reveal fewer than 10 patients.",
+      "Values withheld because, combined with values already released to any applicant or with the rest of the same answer, they would reveal fewer than 10 patients.",
     loadError: "Could not load the blocked releases",
     emptyTitle: "Nothing blocked yet.",
     emptyText: "Run the red-team check to see one.",
@@ -124,16 +122,14 @@ const de: PrivacyMessages = {
     title: "Datenschutz & Protokoll",
     description:
       "Aufsicht für die Zugangsstelle: was zum Schutz von Patientinnen und Patienten zurückgehalten wurde und ein lückenloses Protokoll dessen, was das System getan hat.",
-    resetFailed: "Das Freigabe-Register konnte nicht zurückgesetzt werden",
   },
   redTeam: {
     title: "Red-Team-Prüfung: Können zwei harmlose Fragen eine Person offenlegen?",
     subtitle:
-      "Die Kleinzellenregel prüft jede Antwort für sich; das Freigabe-Register merkt sich, was dieser Antragsteller bereits erhalten hat.",
+      "Die Kleinzellenregel prüft jede Antwort für sich; das Freigabe-Register merkt sich, was bereits freigegeben wurde, egal an welchen Antragsteller.",
     question1: (organisation) =>
       `${organisation} fragt: Wie viele Erwachsene mit Typ-2-Diabetes leben im Burgenland?`,
     question2: "Derselbe Antragsteller fragt: Wie viele von ihnen sind 40 Jahre oder älter?",
-    reset: "Demo zurücksetzen",
     run: "Beide Fragen stellen",
     asking: "Wird gefragt…",
     notRun: "Noch nicht ausgeführt",
@@ -159,7 +155,7 @@ const de: PrivacyMessages = {
   loading: "Wird geladen",
   blocked: {
     intro:
-      "Antworten, die zurückgehalten wurden, weil sie zusammen mit einer früheren Antwort an denselben Antragsteller weniger als 10 Personen offenlegen würden.",
+      "Werte, die zurückgehalten wurden, weil sie zusammen mit bereits freigegebenen Werten, egal an welchen Antragsteller, oder mit dem Rest derselben Antwort weniger als 10 Personen offenlegen würden.",
     loadError: "Die blockierten Freigaben konnten nicht geladen werden",
     emptyTitle: "Noch nichts blockiert.",
     emptyText: "Starten Sie die Red-Team-Prüfung, um eine Blockierung zu sehen.",

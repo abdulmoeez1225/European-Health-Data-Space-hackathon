@@ -94,21 +94,25 @@ Textarea, Label, Separator, Skeleton, DropdownMenu, Dialog, Sheet, Alert, Breadc
   Question), Definitions (rows; Enter adds one; empty state). Replacing an edited form asks first. A
   sticky action bar holds the status (required fields, elapsed seconds while deciding, errors), Clear
   and Submit. The page never shows a decision.
-- **Decision page** (`/requests/?id=R05`): back link, "Decision · R05" with the organisation, Edit and
-  resubmit / New request, then the letter ("Issued automatically in X s"). A withdrawn decision shows a
-  warning with the reason at the top of the letter and no data.
-- **My requests** (`/requests/`): this browser's requests as rows (with a "Withdrawn" tag when staff
-  withdrew one).
-- **Secure workspace** (`/spe/`): permit header with Download data (always blocked, Art. 73, audit id);
+- **Decision page** (`/requests/?id=R05`): back link, "Decision · R05" with the organisation, New request
+  (plus Edit and resubmit for refusals, under a fresh id), then the letter ("Issued automatically in X s")
+  with the AI's explanation under "Why this decision". A withdrawn decision leads with the withdrawal as
+  its headline, quotes the access body's reason under its own label and shows no data. Records access
+  starts as "Records access recommended": the permit is shown, the workspace opens once staff issue it.
+  A refusal has a card with the case reference and "Ask for a review…" (once), then "Review requested on …".
+- **My requests** (`/requests/`): this browser's requests as rows, tagged "Awaiting permit", "Withdrawn",
+  "Reconsidering" or "Review requested".
+- **Secure workspace** (`/spe/`): pinned secure-session bar (permit, organisation, exact patients, "every query is logged · no downloads"), a lock line instead of any download button (Art. 73; the API still refuses and audits download attempts), a faint watermark naming permit, organisation and time over every record view;
   tabs Browse (tables, filters, 50-row pages), Summarise (no-code "count patients in … by … where …",
   preview, Export via airlock, Show SQL), SQL (advanced) with examples.
 
 **Access body**
 
-- **Decision queue** (`/staff/`): Needs attention · All · Actioned; rows mark decisions the AI was unsure
-  about; detail with "Why this needs attention" (review flags) and one action with a required reason the
-  applicant sees: "Withdraw decision…" for grants (pulls statistics or the workspace) or "Reopen for
-  manual review…" for refusals; then a stamp. Also letter preview, AI assessment with consensus, code
+- **Decision queue** (`/staff/`): Needs attention · All · Actioned; rows mark waiting permits, review
+  requests and decisions the AI was unsure about; detail with the reason it needs attention and actions
+  with a required note the applicant sees: "Issue permit…" (conditions) or "Withdraw decision…" for a
+  waiting records grant, "Withdraw decision…" for issued grants, "Reopen for manual review…" for refusals
+  (next to the applicant's review request); then a stamp. Also letter preview, AI assessment with consensus, code
   mappings, privacy checks, query plan and SQL.
 - **Privacy & audit** (`/staff/privacy/`): the red-team check as two numbered questions with their
   outcomes ("33 — released", "<10 — withheld, would reveal 1 patient"), then Blocked releases and the

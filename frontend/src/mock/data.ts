@@ -102,6 +102,18 @@ function base(
   };
 }
 
+/** Mirrors the backend: waiting permits, open review requests and flagged issued decisions. */
+export function needsAttention(result: RequestResult): boolean {
+  if (result.status === "awaiting_permit") return true;
+  if (result.status !== "issued") return false;
+  return Boolean(result.appeal) || (result.review_flags?.length ?? 0) > 0;
+}
+
+/** A records grant as decided: the workspace is prepared but locked until staff issue the permit. */
+export function awaitingPermit(result: RequestResult): RequestResult {
+  return { ...result, status: "awaiting_permit", needs_attention: true };
+}
+
 function regionRows<T extends readonly (number | string)[]>(
   data: Record<Region, T>,
   metrics: [string, string][],
@@ -365,10 +377,28 @@ export function burgenlandResult(
 }
 
 export const SPE_TABLES: SpeTable[] = [
-  { name: "cohort", rows: 1152, columns: ["patient_id"] },
-  { name: "conditions", rows: 2477, columns: ["patient_id", "icd10", "description", "onset_date"] },
-  { name: "medications", rows: 3065, columns: ["patient_id", "atc", "name", "start_date", "end_date"] },
-  { name: "observations", rows: 2807, columns: ["patient_id", "loinc", "name", "value", "unit", "date"] },
+  { name: "cohort", rows: 1152, columns: ["patient_id"], airlock_group_by: [], airlock_means: [] },
+  {
+    name: "conditions",
+    rows: 2477,
+    columns: ["patient_id", "icd10", "description", "onset_date"],
+    airlock_group_by: ["icd10", "description", "onset_year"],
+    airlock_means: [],
+  },
+  {
+    name: "medications",
+    rows: 3065,
+    columns: ["patient_id", "atc", "name", "start_date", "end_date"],
+    airlock_group_by: ["atc", "name", "start_year", "end_year"],
+    airlock_means: [],
+  },
+  {
+    name: "observations",
+    rows: 2807,
+    columns: ["patient_id", "loinc", "name", "value", "unit", "date"],
+    airlock_group_by: ["loinc", "name", "unit", "year"],
+    airlock_means: ["value"],
+  },
 ];
 
 export const ATC_COUNTS: [string, number][] = [

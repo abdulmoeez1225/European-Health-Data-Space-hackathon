@@ -41,8 +41,16 @@ records_justified: true ONLY if the application explains why anonymised statisti
 question could be answered with aggregate counts, percentages or means per group, it is false even if records \
 were requested. For a "health data request" (statistics) it is always false.
 
-explanation_for_applicant: two or three short, plain-language sentences addressed to the applicant ("you"), \
-naming the purpose and why it is allowed or prohibited. No legal jargon beyond article numbers."""
+allowed_purpose: "none" if the text states no purpose that fits Art. 53 (for example it is empty, meaningless or \
+only repeats the question).
+
+explanation_for_applicant: two or three short, plain-language sentences addressed to the applicant ("you"): name \
+the purpose, say whether it is allowed and what the applicant receives. A health data request, or an access \
+application that does not justify records, receives anonymised statistics per group: say only that; for these \
+the words "records", "individual" and "patient-level" must not appear (not even "rather than records"). A justified access application \
+receives pseudonymised records inside the secure processing environment once the data permit is issued. If the \
+purpose is allowed, never invite the applicant to explain more, resubmit or change the request. No legal jargon \
+beyond article numbers."""
 
 _KEYWORDS: dict[ProhibitedGround, list[str]] = {
     "employment_or_insurance_or_credit": [
@@ -92,6 +100,21 @@ _RECORDS_KEYWORDS = [
     r"aggregat\w* (reich|genüg)\w* nicht", r"statistik\w* (reich|genüg)\w* nicht", r"individual\w*daten",
     r"patientenbezogen", r"einzelfallbezogen", r"\btrainier\w*.*\bmodell", r"maschinelles lernen",
 ]
+# Wording that names an Art. 53 purpose; checked in this order, the first match wins.
+_ALLOWED_PURPOSE_KEYWORDS: dict[AllowedPurpose, list[str]] = {
+    "official_statistics": [r"official statistic", r"health report", r"amtliche statistik", r"gesundheitsbericht"],
+    "education_and_teaching": [r"teach", r"\beducation", r"\blehr", r"unterricht", r"fortbildung", r"ausbildung"],
+    "public_interest_public_health": [
+        r"public health", r"prevent", r"surveillance", r"outbreak", r"öffentliche gesundheit", r"prävention",
+    ],
+    "product_and_algorithm_development": [
+        r"algorithm", r"\bmodel", r"artificial intelligence", r"\bai\b", r"predict", r"algorithmus", r"modell",
+        r"\bki\b", r"vorhersage",
+    ],
+    "improving_care": [r"quality", r"treatment gap", r"improv\w* (the )?care", r"versorgung", r"qualität"],
+    "policy_making_and_regulation": [r"\bpolic(y|ies)\b", r"regulat", r"health authorit", r"gesundheitspolitik"],
+    "scientific_research": [r"research", r"\bstud(y|ies)\b", r"risk factor", r"forsch", r"untersuch", r"studie"],
+}
 _ACCESS_APPLICATION = re.compile(
     r"access application|zugangsantrag|antrag auf (daten)?zugang|zugang zu gesundheitsdaten", re.IGNORECASE
 )
@@ -119,6 +142,14 @@ def keyword_hits(request: dict) -> dict[ProhibitedGround, list[str]]:
     return hits
 
 
+def _rule_allowed_purpose(request: dict) -> AllowedPurpose:
+    text = str(request.get("purpose", "")).lower()
+    return next(
+        (purpose for purpose, patterns in _ALLOWED_PURPOSE_KEYWORDS.items() if any(re.search(p, text) for p in patterns)),
+        "none",
+    )
+
+
 def rule_assessment(request: dict) -> PurposeAssessment:
     """Deterministic assessment used when no LLM is available."""
     hits = keyword_hits(request)
@@ -128,7 +159,7 @@ def rule_assessment(request: dict) -> PurposeAssessment:
     return PurposeAssessment(
         prohibited=bool(hits),
         prohibited_ground=ground,
-        allowed_purpose="none" if hits else "scientific_research",
+        allowed_purpose="none" if hits else _rule_allowed_purpose(request),
         records_justified=justified,
         justification="; ".join(w for words in hits.values() for w in words) or "No prohibited terms found.",
         explanation_for_applicant="This assessment was made by keyword rules and will be reviewed by staff.",
@@ -181,6 +212,12 @@ def decide(request: dict, assessment: PurposeAssessment, *, llm_used: bool) -> D
         code, articles = "REJECT", ["54"]
         reason = f"Your request is refused. {_GROUND_TEXT[ground]} (Art. 54)."
         basis = [f"Art. 54 – {ARTICLES['54'].title}: {_GROUND_TEXT[ground]}."]
+    elif assessment.allowed_purpose == "none":
+        code, articles = "REJECT", ["53"]
+        reason = ("Your request is refused. No purpose allowed under Art. 53 was given. Health data may only be "
+                  "used for the purposes listed there, such as public health, research, official statistics, "
+                  "teaching or improving care.")
+        basis = [f"Art. 53 – {ARTICLES['53'].title}: no purpose allowed under Art. 53 was given."]
     elif not is_access_application(request):
         code, articles = "APPROVE_STATISTICAL", ["53", "69"]
         reason = (f"{purpose} is an allowed purpose (Art. 53). Anonymised statistics answer your question (Art. 69). "

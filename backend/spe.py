@@ -2,14 +2,16 @@
 
 Each permit gets its own DuckDB file holding only the cohort's patients and the
 record types the request names, with patient IDs kept (pseudonymised). Inside
-it researchers may run read-only SELECTs. Nothing is downloadable; results
-leave only through the airlock, which releases anonymised aggregates only.
+it researchers may run read-only SELECTs with a capped result size. Nothing is
+downloadable; results leave only through the airlock, which takes no SQL: it
+computes patient counts per allowlisted group itself and suppresses small cells.
 """
 
 from __future__ import annotations
 
+import json
 import re
-from decimal import Decimal
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Literal
 
@@ -32,9 +34,30 @@ _CODE_COLUMN = {
     "observations": "loinc",
     "encounters": "primary_icd10",
 }
-_IDENTIFYING_COLUMN = re.compile(r"patient_id|encounter_id|birth_date", re.IGNORECASE)
-_IDENTIFYING_VALUE = re.compile(r"^(p-[0-9a-f]{8}|e\d{6})$")
 _LOGGED_SQL_CHARS = 300
+
+# One console query shows a page of records, not a table: browsing stays possible,
+# bulk copying out of the workspace in a single call does not.
+MAX_ROWS = 200
+MAX_COLUMNS = 30
+MAX_CELL_CHARS = 200
+TRUNCATION_MARK = "…"
+# Aggregates that fold many rows into one value would carry a whole table in one cell.
+_ROW_FOLDING = frozenset({
+    "string_agg", "group_concat", "listagg", "list", "array_agg", "json_group_array",
+    "json_group_object", "json_group_structure", "histogram", "histogram_exact", "approx_top_k",
+})
+# min(x, n), arg_max(x, y, n) and friends return the top n values as a list.
+_TOP_N_ARITY = {"min": 1, "max": 1, "arg_min": 2, "arg_max": 2, "argmin": 2, "argmax": 2, "min_by": 2, "max_by": 2}
+
+# The airlock groups only by categorical, low-cardinality columns and by the year of a date;
+# identifiers, exact dates and free numbers never become group labels.
+_CATEGORICAL = frozenset({
+    "icd10", "primary_icd10", "description", "atc", "name", "loinc", "unit", "type", "sex", "region", "data_holder",
+})
+_YEAR_OF = {"onset_year": "onset_date", "start_year": "start_date", "end_year": "end_date", "year": "date"}
+_MEANS = frozenset({"value", "age"})
+MAX_GROUP_BY = 3
 
 
 class SpeNotFound(LookupError):
@@ -55,6 +78,8 @@ class SpeTable(BaseModel):
     name: str
     rows: int
     columns: list[str]
+    airlock_group_by: list[str] = Field(description="Group keys the airlock accepts for this table.")
+    airlock_means: list[str] = Field(description="Numeric columns the airlock can average.")
 
 
 class SpeInfo(BaseModel):
@@ -66,6 +91,22 @@ class QueryResult(BaseModel):
     columns: list[str]
     rows: list[list[Any]]
     truncated: bool = False
+    truncated_cells: int = Field(0, description=f"Values cut to {MAX_CELL_CHARS} characters, ending in '…'.")
+
+
+class AirlockFilter(BaseModel):
+    column: str
+    op: Literal["starts_with", "contains", "equals"]
+    value: str = Field(min_length=1, max_length=100)
+
+
+class AirlockRequest(BaseModel):
+    """An aggregate the airlock computes itself: distinct patients per group, optionally a mean."""
+
+    table: str
+    group_by: list[str] = Field(min_length=1, max_length=MAX_GROUP_BY)
+    mean: str | None = None
+    filter: AirlockFilter | None = None
 
 
 class AirlockResult(BaseModel):
@@ -162,6 +203,18 @@ def _open_read_only(path: Path) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(str(path), read_only=True, config={"enable_external_access": False})
 
 
+def _airlock_group_by(columns: list[str]) -> list[str]:
+    if "patient_id" not in columns:
+        return []
+    year_keys = {source: key for key, source in _YEAR_OF.items()}
+    return [column if column in _CATEGORICAL else year_keys[column]
+            for column in columns if column in _CATEGORICAL or column in year_keys]
+
+
+def _airlock_means(columns: list[str]) -> list[str]:
+    return [column for column in columns if column in _MEANS] if "patient_id" in columns else []
+
+
 def spe_info(permit_id: str) -> SpeInfo:
     con = _open_read_only(_existing_path(permit_id))
     try:
@@ -171,11 +224,21 @@ def spe_info(permit_id: str) -> SpeInfo:
             count_row = con.execute(f'SELECT count(*) FROM "{name}"').fetchone()
             assert count_row is not None
             rows = count_row[0]
-            columns = [row[0] for row in con.execute(f'DESCRIBE "{name}"').fetchall()]
-            tables.append(SpeTable(name=name, rows=rows, columns=columns))
+            columns = _columns(con, name)
+            tables.append(SpeTable(
+                name=name, rows=rows, columns=columns,
+                airlock_group_by=_airlock_group_by(columns), airlock_means=_airlock_means(columns),
+            ))
     finally:
         con.close()
     return SpeInfo(permit_id=permit_id, tables=tables)
+
+
+def _columns(con: duckdb.DuckDBPyConnection, table: str) -> list[str]:
+    rows = con.execute(
+        "SELECT column_name FROM duckdb_columns() WHERE table_name = ? ORDER BY column_index", [table]
+    ).fetchall()
+    return [row[0] for row in rows]
 
 
 def _check_select(sql: str) -> None:
@@ -189,36 +252,75 @@ def _check_select(sql: str) -> None:
         raise SpeBlocked(f"only SELECT is allowed inside the secure environment, not {statements[0].type.name}")
 
 
-def _execute(permit_id: str, sql: str, limit: int | None) -> tuple[list[str], list[list[Any]], bool]:
+def _function_calls(node: Any) -> Iterator[tuple[str, int]]:
+    """(name, argument count) of every function in a serialised DuckDB syntax tree."""
+    if isinstance(node, dict):
+        if "function_name" in node:
+            yield node["function_name"].lower(), len(node.get("arguments") or node.get("children") or [])
+        for child in node.values():
+            yield from _function_calls(child)
+    elif isinstance(node, list):
+        for child in node:
+            yield from _function_calls(child)
+
+
+def _check_functions(con: duckdb.DuckDBPyConnection, sql: str) -> None:
+    row = con.execute("SELECT json_serialize_sql(?)", [sql]).fetchone()
+    assert row is not None
+    tree = json.loads(row[0])
+    if tree.get("error"):
+        raise SpeBlocked(f"SQL could not be checked: {tree.get('error_message', 'unknown error')}")
+    for name, arguments in _function_calls(tree):
+        if name in _ROW_FOLDING or arguments > _TOP_N_ARITY.get(name, arguments):
+            raise SpeBlocked(f"{name}() combines many records into one value; query the records row by row")
+
+
+def _cap_cell(value: Any) -> tuple[Any, bool]:
+    text = value if isinstance(value, str) else str(value) if isinstance(value, (list, tuple, dict, bytes)) else None
+    if text is None or len(text) <= MAX_CELL_CHARS:
+        return value, False
+    return text[:MAX_CELL_CHARS] + TRUNCATION_MARK, True
+
+
+def _execute(permit_id: str, sql: str, limit: int) -> QueryResult:
     _check_select(sql)
     con = _open_read_only(_existing_path(permit_id))
     try:
+        _check_functions(con, sql)
         cursor = con.execute(sql)
         columns = [d[0] for d in cursor.description]
-        fetched = cursor.fetchall() if limit is None else cursor.fetchmany(limit + 1)
+        if len(columns) > MAX_COLUMNS:
+            raise SpeBlocked(f"at most {MAX_COLUMNS} columns per query")
+        fetched = cursor.fetchmany(limit + 1)
     except duckdb.PermissionException as error:
         raise SpeBlocked("access to files and external resources is disabled in the secure environment") from error
     except duckdb.Error as error:
         raise SpeQueryError(str(error)) from error
     finally:
         con.close()
-    truncated = limit is not None and len(fetched) > limit
-    rows = [list(row) for row in (fetched[:limit] if truncated else fetched)]
-    return columns, rows, truncated
+    rows, truncated_cells = [], 0
+    for record in fetched[:limit]:
+        row = []
+        for value in record:
+            capped, cut = _cap_cell(value)
+            row.append(capped)
+            truncated_cells += cut
+        rows.append(row)
+    return QueryResult(columns=columns, rows=rows, truncated=len(fetched) > limit, truncated_cells=truncated_cells)
 
 
 def _audit_sql(sql: str) -> dict:
     return {"sql": sql[:_LOGGED_SQL_CHARS]}
 
 
-def run_query(permit_id: str, sql: str, limit: int = 200, actor: str = DEFAULT_ACTOR) -> QueryResult:
+def run_query(permit_id: str, sql: str, limit: int = MAX_ROWS, actor: str = DEFAULT_ACTOR) -> QueryResult:
     try:
-        columns, rows, truncated = _execute(permit_id, sql, limit)
+        result = _execute(permit_id, sql, min(limit, MAX_ROWS))
     except SpeBlocked as blocked:
         audit.record("spe_query_blocked", actor, permit_id, {**_audit_sql(sql), "reason": blocked.reason})
         raise
-    audit.record("spe_query", actor, permit_id, {**_audit_sql(sql), "rows": len(rows)})
-    return QueryResult(columns=columns, rows=rows, truncated=truncated)
+    audit.record("spe_query", actor, permit_id, {**_audit_sql(sql), "rows": len(result.rows)})
+    return result
 
 
 def block_download(permit_id: str, actor: str) -> audit.AuditEvent:
@@ -228,54 +330,81 @@ def block_download(permit_id: str, actor: str) -> audit.AuditEvent:
     )
 
 
-def _is_number(value: Any) -> bool:
-    return isinstance(value, (int, float, Decimal)) and not isinstance(value, bool)
-
-
-def _identifying_reasons(columns: list[str], rows: list[list[Any]]) -> list[str]:
-    reasons = [f"column '{c}' identifies patients" for c in columns if _IDENTIFYING_COLUMN.search(c)]
-    if any(isinstance(v, str) and _IDENTIFYING_VALUE.match(v) for row in rows for v in row):
-        reasons.append("result contains patient or encounter identifiers")
+def _airlock_reasons(request: AirlockRequest, columns: list[str]) -> list[str]:
+    if not columns:
+        return [f"table '{request.table}' is not in this workspace"]
+    allowed = _airlock_group_by(columns)
+    if not allowed:
+        return [f"table '{request.table}' cannot be summarised by patient"]
+    listed = ", ".join(allowed)
+    reasons = [f"'{key}' cannot be grouped by; allowed: {listed}" for key in request.group_by if key not in allowed]
+    if len(set(request.group_by)) != len(request.group_by):
+        reasons.append("each group column may appear only once")
+    if request.filter and request.filter.column not in allowed:
+        reasons.append(f"'{request.filter.column}' cannot be filtered on; allowed: {listed}")
+    if request.mean is not None and request.mean not in _airlock_means(columns):
+        means = ", ".join(_airlock_means(columns)) or "none"
+        reasons.append(f"'{request.mean}' cannot be averaged; allowed: {means}")
     return reasons
 
 
-def _suppress_small_rows(columns: list[str], rows: list[list[Any]]) -> tuple[list[list[Any]], int]:
-    n_index = columns.index("n")
+def _key_expression(key: str) -> str:
+    return f'year("{_YEAR_OF[key]}")' if key in _YEAR_OF else f'"{key}"'
+
+
+def _summary_sql(request: AirlockRequest) -> tuple[str, list[str]]:
+    """Distinct patients per group, counted by the server; only allowlisted names reach this string."""
+    select = [f'{_key_expression(key)} AS "{key}"' for key in request.group_by]
+    select.append("count(DISTINCT patient_id) AS n")
+    if request.mean:
+        select.append(f'round(avg("{request.mean}"), 2) AS "mean_{request.mean}"')
+    sql = f'SELECT {", ".join(select)} FROM "{request.table}"'
+    params: list[str] = []
+    if request.filter:
+        text = f"CAST({_key_expression(request.filter.column)} AS VARCHAR)"
+        value = request.filter.value.strip()
+        if request.filter.op == "equals":
+            sql += f" WHERE {text} = ?"
+            params.append(value)
+        else:
+            sql += f" WHERE {request.filter.op}(lower({text}), ?)"
+            params.append(value.lower())
+    keys = ", ".join(str(i) for i in range(1, len(request.group_by) + 1))
+    return f"{sql} GROUP BY ALL ORDER BY n DESC, {keys}", params
+
+
+def _suppress_small_rows(rows: list[list[Any]], n_index: int) -> tuple[list[list[Any]], int]:
+    """Rows under the small-cell threshold keep their group label; count and mean are withheld."""
     released, suppressed = [], 0
     for row in rows:
-        n = row[n_index]
-        if _is_number(n) and n >= MIN_CELL:
+        if row[n_index] >= MIN_CELL:
             released.append(row)
             continue
         suppressed += 1
-        released.append([
-            LESS_THAN if i == n_index else SUPPRESSED if _is_number(v) else v
-            for i, v in enumerate(row)
-        ])
+        released.append([*row[:n_index], LESS_THAN, *(SUPPRESSED for _ in row[n_index + 1:])])
     return released, suppressed
 
 
-def _blocked(permit_id: str, sql: str, reasons: list[str]) -> AirlockResult:
-    audit.record("airlock_blocked", DEFAULT_ACTOR, permit_id, {**_audit_sql(sql), "reasons": reasons})
-    return AirlockResult(status="blocked", reasons=reasons)
-
-
-def airlock_export(permit_id: str, sql: str) -> AirlockResult:
-    """Output check: only aggregates with a patient count `n` leave, small rows suppressed."""
+def airlock_export(permit_id: str, request: AirlockRequest) -> AirlockResult:
+    """Output check: the airlock builds the aggregate itself and suppresses small cells."""
+    con = _open_read_only(_existing_path(permit_id))
     try:
-        columns, rows, _ = _execute(permit_id, sql, None)
-    except SpeBlocked as blocked:
-        return _blocked(permit_id, sql, [blocked.reason])
+        reasons = _airlock_reasons(request, _columns(con, request.table))
+        if reasons:
+            audit.record(
+                "airlock_blocked", DEFAULT_ACTOR, permit_id, {"request": request.model_dump(), "reasons": reasons},
+            )
+            return AirlockResult(status="blocked", reasons=reasons)
+        sql, params = _summary_sql(request)
+        cursor = con.execute(sql, params)
+        columns = [d[0] for d in cursor.description]
+        rows = [list(row) for row in cursor.fetchall()]
+    finally:
+        con.close()
 
-    reasons = _identifying_reasons(columns, rows)
-    if "n" not in columns:
-        reasons.append("result needs a column named 'n' with the number of patients in each row")
-    if reasons:
-        return _blocked(permit_id, sql, reasons)
-
-    released, suppressed = _suppress_small_rows(columns, rows)
+    released, suppressed = _suppress_small_rows(rows, len(request.group_by))
     audit.record(
         "airlock_released", DEFAULT_ACTOR, permit_id,
-        {**_audit_sql(sql), "rows": len(released), "suppressed_rows": suppressed},
+        {"request": request.model_dump(), "rows": len(released), "suppressed_rows": suppressed},
     )
     return AirlockResult(status="released", columns=columns, rows=released)

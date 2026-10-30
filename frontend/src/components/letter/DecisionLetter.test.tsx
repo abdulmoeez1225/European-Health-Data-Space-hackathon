@@ -9,7 +9,14 @@ import { formatTime } from "@/lib/format";
 import { plainSentence } from "@/lib/letter";
 import { burgenlandResult, r08Result, rejectResult, speResult } from "@/mock/data";
 import { MOCK_LAW } from "@/mock/law";
-import { renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
+import {
+  awaitingPermit,
+  permitIssued,
+  renderWithProviders,
+  reopened,
+  sampleRequest,
+  withdrawn,
+} from "@/test/render";
 
 import { DecisionLetter } from "./DecisionLetter";
 
@@ -76,6 +83,28 @@ describe("DecisionLetter: statistics with a ledger-withheld cell", () => {
 
     expect(screen.queryByRole("region", { name: "Your data permit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "What you can do instead" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: statistics granted but not computable", () => {
+  const reason = "The dataset contains only Austrian regions, not Italy.";
+  const granted = r08Result(sampleRequest("R08"));
+  const result: RequestResult = {
+    ...granted,
+    statistics: null,
+    plan: granted.plan ? { ...granted.plan, unsupported: reason } : granted.plan,
+  };
+
+  it("says the numbers are pending and why, instead of announcing ready statistics", () => {
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Your purpose is allowed, but these numbers could not be computed",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(`“${reason}”`)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your statistics" })).not.toBeInTheDocument();
   });
 });
 
@@ -353,59 +382,76 @@ describe("DecisionLetter: full reasoning", () => {
 });
 
 describe("DecisionLetter: withdrawn by the access body", () => {
-  const REASON = "Purpose needs an ethics vote.";
+  const REASON = "not safe";
 
-  it("shows no warning for an issued decision", () => {
+  it("shows no withdrawal for an issued decision", () => {
     renderWithProviders(<DecisionLetter result={rejectResult(sampleRequest("R02"))} />);
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText("Withdrawn by the access body")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reason given by the access body")).not.toBeInTheDocument();
   });
 
-  it.each<[Decision, RequestResult, string]>([
+  it.each<[Decision, RequestResult, string, string]>([
     [
       "APPROVE_STATISTICAL",
       burgenlandResult(sampleRequest("R01"), 32, null),
+      "Your statistics were withdrawn",
       "The statistics are no longer available.",
     ],
-    ["APPROVE_SPE", speResult(sampleRequest("R05")), "The secure workspace is no longer available."],
-    ["REJECT", rejectResult(sampleRequest("R02")), "The automated refusal no longer stands."],
+    [
+      "APPROVE_SPE",
+      speResult(sampleRequest("R05")),
+      "Your secure access was withdrawn",
+      "The secure workspace is no longer available.",
+    ],
+    [
+      "REJECT",
+      rejectResult(sampleRequest("R02")),
+      "The refusal was withdrawn",
+      "The automated refusal no longer stands.",
+    ],
   ])(
-    "tells the applicant that a %s decision was withdrawn, with the reason",
-    (_decision, issued, consequence) => {
+    "leads a withdrawn %s decision with the withdrawal, not the grant",
+    (decision, issued, headline, consequence) => {
       renderWithProviders(<DecisionLetter result={withdrawn(issued, { reason: REASON })} />);
 
-      const alert = screen.getByRole("alert");
-      expect(alert).toHaveTextContent("Withdrawn by the access body");
-      expect(alert).toHaveTextContent(`${REASON} ${consequence} The access body will contact you.`);
+      expect(screen.getByRole("heading", { level: 2, name: headline })).toBeInTheDocument();
+      expect(screen.getByRole("article", { name: headline })).toBeInTheDocument();
+      expect(screen.getByText("Withdrawn by the access body")).toBeInTheDocument();
+      expect(screen.getByText(`${consequence} The access body will contact you.`)).toBeInTheDocument();
+      expect(screen.queryByText(decisionMeta(decision).label)).not.toBeInTheDocument();
+      expect(screen.queryByText(decisionMeta(decision).headline)).not.toBeInTheDocument();
     },
   );
 
-  it("opens the letter with the warning, above the decision", () => {
-    renderWithProviders(<DecisionLetter result={withdrawn(rejectResult(sampleRequest("R02")))} />);
-
-    const alert = screen.getByRole("alert");
-    const headline = screen.getByRole("heading", { level: 2, name: decisionMeta("REJECT").headline });
-    expect(alert.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("ends the reason with exactly one full stop", () => {
+  it("quotes the staff reason under its own label, apart from the sentence", () => {
     renderWithProviders(
-      <DecisionLetter result={withdrawn(rejectResult(sampleRequest("R02")), { reason: "Wrong purpose" })} />,
+      <DecisionLetter
+        result={withdrawn(burgenlandResult(sampleRequest("R01"), 32, null), { reason: REASON })}
+      />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Wrong purpose. The automated refusal no longer stands. The access body will contact you.",
-    );
+    const note = screen.getByText("Reason given by the access body").closest("figure") as HTMLElement;
+    expect(within(note).getByText("“not safe”")).toBeInTheDocument();
+    expect(
+      screen.getByText("The statistics are no longer available. The access body will contact you."),
+    ).not.toHaveTextContent(REASON);
   });
 
   it("leaves the reason out when none was recorded", () => {
     const result: RequestResult = { ...withdrawn(rejectResult(sampleRequest("R02"))), staff_action: null };
     renderWithProviders(<DecisionLetter result={result} />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /^Withdrawn by the access body\s*The automated refusal no longer stands\. The access body will contact you\.$/,
-    );
+    expect(screen.getByText("Withdrawn by the access body")).toBeInTheDocument();
+    expect(screen.queryByText("Reason given by the access body")).not.toBeInTheDocument();
+  });
+
+  it("drops the explanation and legal basis of the decision that no longer stands", () => {
+    const issued = burgenlandResult(sampleRequest("R01"), 32, null);
+    renderWithProviders(<DecisionLetter result={withdrawn(issued, { reason: REASON })} />);
+
+    expect(screen.queryByRole("heading", { name: "Why this decision" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Legal basis" })).not.toBeInTheDocument();
   });
 
   it("shows no statistics table once the statistics are pulled", () => {
@@ -431,21 +477,14 @@ describe("DecisionLetter: withdrawn by the access body", () => {
 describe("DecisionLetter: reopened by the access body", () => {
   const REOPEN_REASON = "The purpose is covered by Art. 53.";
 
-  it("tells the applicant the refusal is being reconsidered, with the reason", () => {
+  it("tells the applicant the refusal is being reconsidered, and quotes the reason apart", () => {
     renderWithProviders(<DecisionLetter result={reopened(rejectResult(sampleRequest("R02")))} />);
 
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent("Being reconsidered by the access body");
-    expect(alert).toHaveTextContent(`${REOPEN_REASON} You will be contacted.`);
+    expect(alert).toHaveTextContent(/^Being reconsidered by the access body\s*You will be contacted\.$/);
+    const note = screen.getByText("Reason given by the access body").closest("figure") as HTMLElement;
+    expect(note).toHaveTextContent(`“${REOPEN_REASON}”`);
     expect(screen.queryByText("Withdrawn by the access body")).not.toBeInTheDocument();
-  });
-
-  it("ends the reason with exactly one full stop", () => {
-    renderWithProviders(
-      <DecisionLetter result={reopened(rejectResult(sampleRequest("R02")), { reason: "Second look" })} />,
-    );
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Second look. You will be contacted.");
   });
 
   it("leaves the reason out when none was recorded", () => {
@@ -455,6 +494,7 @@ describe("DecisionLetter: reopened by the access body", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       /^Being reconsidered by the access body\s*You will be contacted\.$/,
     );
+    expect(screen.queryByText("Reason given by the access body")).not.toBeInTheDocument();
   });
 
   it("keeps the refusal visible below the alert", () => {
@@ -473,6 +513,85 @@ describe("DecisionLetter: reopened by the access body", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText("Being reconsidered by the access body")).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: records access awaiting the permit", () => {
+  const waiting = () => awaitingPermit(speResult(sampleRequest("R05")));
+
+  it("says records access was recommended and the permit is being reviewed, not granted", () => {
+    renderWithProviders(<DecisionLetter result={waiting()} />);
+
+    expect(screen.getByText("Records access recommended")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "A case officer is reviewing your data permit" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Secure access granted")).not.toBeInTheDocument();
+    expect(screen.getByText(/^Recommended automatically/)).toBeInTheDocument();
+  });
+
+  it("shows the permit but no workspace link until the permit is issued", () => {
+    renderWithProviders(<DecisionLetter result={waiting()} />);
+
+    expect(screen.getByRole("region", { name: "Your data permit" })).toBeInTheDocument();
+    expect(screen.getByText("The workspace opens once the permit is issued.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open secure workspace/ })).not.toBeInTheDocument();
+  });
+
+  it("opens the workspace once issued and quotes the permit conditions", () => {
+    renderWithProviders(
+      <DecisionLetter result={permitIssued(speResult(sampleRequest("R05")), "Valid for 12 months.")} />,
+    );
+
+    expect(screen.getByRole("link", { name: /Open secure workspace/ })).toBeInTheDocument();
+    const note = screen.getByText("Conditions set by the access body").closest("figure") as HTMLElement;
+    expect(note).toHaveTextContent("“Valid for 12 months.”");
+    expect(screen.queryByText("Reason given by the access body")).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: the AI's explanation", () => {
+  it("shows the explanation written for this applicant", () => {
+    const result = speResult(sampleRequest("R05"));
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    const heading = screen.getByRole("heading", { level: 3, name: "Why this decision" });
+    expect(heading.parentElement).toHaveTextContent(result.assessment.explanation_for_applicant);
+  });
+
+  it("leaves the section out when the explanation is empty", () => {
+    const result = rejectResult(sampleRequest("R02"));
+    renderWithProviders(
+      <DecisionLetter
+        result={{ ...result, assessment: { ...result.assessment, explanation_for_applicant: " " } }}
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Why this decision" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DecisionLetter: refused for want of an allowed purpose", () => {
+  it("cites Art. 53 and advises naming an allowed purpose, not a prohibited use", () => {
+    const refused = rejectResult(sampleRequest("R02"));
+    const result: RequestResult = {
+      ...refused,
+      articles: ["53"],
+      assessment: {
+        ...refused.assessment,
+        prohibited: false,
+        prohibited_ground: "none",
+        allowed_purpose: "none",
+      },
+    };
+    renderWithProviders(<DecisionLetter result={result} />);
+
+    expect(screen.getByText("No allowed purpose recognised")).toBeInTheDocument();
+    expect(
+      screen.getByText(/is not one of the purposes for which the regulation allows/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Explain how the data serves an allowed purpose/)).toBeInTheDocument();
+    expect(screen.queryByText(/conflicts with Union or national law/)).not.toBeInTheDocument();
   });
 });
 

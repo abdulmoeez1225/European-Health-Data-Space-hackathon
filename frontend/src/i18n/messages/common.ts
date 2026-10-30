@@ -45,6 +45,8 @@ const en = {
     withdrawn: "Withdrawn",
     reconsidering: "Reconsidering",
     reopened: "Reopened",
+    awaitingPermit: "Awaiting permit",
+    reviewRequested: "Review requested",
     requestDetails: (id: string) => `Request ${id}`,
     decisionDetails: "Decision details",
     reviewFlags: (count: number) => `${count} review flag${count === 1 ? "" : "s"}`,
@@ -78,6 +80,8 @@ const en = {
     fullReasoning: "Full reasoning",
     issued: (seconds: string | null, time: string) =>
       seconds ? `Issued automatically in ${seconds} on ${time}` : `Issued automatically on ${time}`,
+    recommended: (seconds: string | null, time: string) =>
+      seconds ? `Recommended automatically in ${seconds} on ${time}` : `Recommended automatically on ${time}`,
     opensInNewTab: "(opens in a new tab)",
     patientsExact: "Patients (exact)",
     recordsCopied: "Records copied",
@@ -86,14 +90,37 @@ const en = {
     downloadAllowed: "Download allowed.",
     openWorkspace: "Open secure workspace",
     withdrawnTitle: "Withdrawn by the access body",
+    withdrawnHeadline: {
+      APPROVE_STATISTICAL: "Your statistics were withdrawn",
+      APPROVE_SPE: "Your secure access was withdrawn",
+      REJECT: "The refusal was withdrawn",
+    },
     withdrawnData: {
       APPROVE_STATISTICAL: "The statistics are no longer available.",
       APPROVE_SPE: "The secure workspace is no longer available.",
       REJECT: "The automated refusal no longer stands.",
     },
     willContact: "The access body will contact you.",
+    staffReason: "Reason given by the access body",
+    quoted: (text: string) => `“${text}”`,
     reopenedTitle: "Being reconsidered by the access body",
     reopenedContact: "You will be contacted.",
+    assessment: "Why this decision",
+    awaitingPermit: {
+      badge: "Records access recommended",
+      headline: "A case officer is reviewing your data permit",
+      sentence:
+        "Access to pseudonymised records was recommended. The secure workspace opens once the access body issues the data permit.",
+      locked: "The workspace opens once the permit is issued.",
+    },
+    noNumbers: {
+      badge: "Allowed, numbers pending",
+      headline: "Your purpose is allowed, but these numbers could not be computed",
+      sentence:
+        "The question could not be answered automatically from the available data. A case officer will review it and contact you.",
+      reason: "Why the numbers could not be computed",
+    },
+    permitConditions: "Conditions set by the access body",
   },
 };
 
@@ -144,6 +171,8 @@ const de: CommonMessages = {
     withdrawn: "Zurückgezogen",
     reconsidering: "Wird erneut geprüft",
     reopened: "Wieder geöffnet",
+    awaitingPermit: "Genehmigung ausstehend",
+    reviewRequested: "Überprüfung beantragt",
     requestDetails: (id) => `Anfrage ${id}`,
     decisionDetails: "Details zur Entscheidung",
     reviewFlags: (count) => `${count} ${count === 1 ? "Prüfhinweis" : "Prüfhinweise"}`,
@@ -178,6 +207,8 @@ const de: CommonMessages = {
     fullReasoning: "Begründung (Englisch)",
     issued: (seconds, time) =>
       seconds ? `Automatisch erteilt in ${seconds} am ${time}` : `Automatisch erteilt am ${time}`,
+    recommended: (seconds, time) =>
+      seconds ? `Automatisch empfohlen in ${seconds} am ${time}` : `Automatisch empfohlen am ${time}`,
     opensInNewTab: "(öffnet in neuem Tab)",
     patientsExact: "Personen (exakt)",
     recordsCopied: "Kopierte Datensätze",
@@ -187,14 +218,37 @@ const de: CommonMessages = {
     downloadAllowed: "Download erlaubt.",
     openWorkspace: "Sicheren Arbeitsbereich öffnen",
     withdrawnTitle: "Von der Zugangsstelle zurückgezogen",
+    withdrawnHeadline: {
+      APPROVE_STATISTICAL: "Ihre Statistik wurde zurückgezogen",
+      APPROVE_SPE: "Ihr sicherer Zugang wurde zurückgezogen",
+      REJECT: "Die Ablehnung wurde zurückgezogen",
+    },
     withdrawnData: {
       APPROVE_STATISTICAL: "Die Statistik ist nicht mehr verfügbar.",
       APPROVE_SPE: "Der sichere Arbeitsbereich ist nicht mehr verfügbar.",
       REJECT: "Die automatische Ablehnung gilt nicht mehr.",
     },
     willContact: "Die Zugangsstelle wird sich bei Ihnen melden.",
+    staffReason: "Begründung der Zugangsstelle",
+    quoted: (text) => `„${text}“`,
     reopenedTitle: "Wird von der Zugangsstelle erneut geprüft",
     reopenedContact: "Sie werden kontaktiert.",
+    assessment: "Warum so entschieden wurde",
+    awaitingPermit: {
+      badge: "Zugang zu Datensätzen empfohlen",
+      headline: "Ihre Datengenehmigung wird von der Zugangsstelle geprüft",
+      sentence:
+        "Der Zugang zu pseudonymisierten Datensätzen wurde empfohlen. Der sichere Arbeitsbereich öffnet sich, sobald die Zugangsstelle die Datengenehmigung erteilt.",
+      locked: "Der Arbeitsbereich öffnet sich, sobald die Genehmigung erteilt ist.",
+    },
+    noNumbers: {
+      badge: "Zulässig, Zahlen ausstehend",
+      headline: "Ihr Zweck ist zulässig, aber diese Zahlen konnten nicht berechnet werden",
+      sentence:
+        "Die Frage ließ sich mit den verfügbaren Daten nicht automatisch beantworten. Die Zugangsstelle prüft sie und meldet sich bei Ihnen.",
+      reason: "Warum die Zahlen nicht berechnet werden konnten",
+    },
+    permitConditions: "Auflagen der Zugangsstelle",
   },
 };
 

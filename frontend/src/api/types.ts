@@ -4,6 +4,7 @@ type Schemas = components["schemas"];
 
 export type RequestResult = Schemas["RequestResult"];
 export type Decision = RequestResult["decision"];
+export type RequestStatus = RequestResult["status"];
 export type PurposeAssessment = Schemas["PurposeAssessment"];
 export type ProhibitedGround = PurposeAssessment["prohibited_ground"];
 export type StatisticsOutput = Schemas["StatisticsOutput"];
@@ -24,6 +25,7 @@ export type AirlockResult = Schemas["AirlockResult"];
 export type AuditEvent = Schemas["AuditEvent"];
 export type AuditPage = Schemas["AuditPage"];
 export type StaffAction = Schemas["StaffAction"];
+export type Appeal = Schemas["Appeal"];
 export type LedgerEvent = Schemas["LedgerEvent"];
 export type SqlBody = Schemas["SqlBody"];
 
@@ -35,5 +37,3 @@ export type ResultValue = string | number | boolean | null;
 export type Article = Schemas["Article"];
 export type LawResponse = Schemas["LawResponse"];
 export type Health = Schemas["Health"];
-export type DownloadBlocked = Schemas["DownloadBlocked"];
-export type LedgerResetResult = Schemas["LedgerResetResult"];

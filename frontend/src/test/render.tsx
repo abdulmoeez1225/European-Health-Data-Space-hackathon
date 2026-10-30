@@ -86,3 +86,31 @@ export function reopened(result: RequestResult, action: Partial<StaffAction> = {
     },
   };
 }
+
+/** A records grant as decided: the workspace is prepared but locked until staff issue the permit. */
+export function awaitingPermit(result: RequestResult): RequestResult {
+  return { ...result, status: "awaiting_permit", needs_attention: true, staff_action: null };
+}
+
+/** The grant after staff issued its data permit, with the conditions the applicant reads. */
+export function permitIssued(result: RequestResult, conditions = "Valid for 12 months."): RequestResult {
+  return {
+    ...result,
+    status: "issued",
+    needs_attention: false,
+    staff_action: {
+      kind: "permit_issued",
+      reason: conditions,
+      at: "2026-10-29T18:45:00+01:00",
+      released_data_withdrawn: false,
+    },
+  };
+}
+
+/** An issued refusal the applicant asked to have reviewed; it needs attention until staff reopen it. */
+export function appealed(
+  result: RequestResult,
+  reason = "Our purpose is public health research.",
+): RequestResult {
+  return { ...result, needs_attention: true, appeal: { reason, at: "2026-10-30T09:15:00+01:00" } };
+}

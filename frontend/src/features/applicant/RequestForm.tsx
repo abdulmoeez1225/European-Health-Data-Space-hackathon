@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
+import { countryOptions } from "./countries";
 import {
   REQUEST_KINDS,
   type FieldErrors,
@@ -31,13 +32,15 @@ type FormProps = {
 export function RequestForm({ draft, onChange, errors, touched, onTouch, disabled }: FormProps) {
   const t = useT().applicant;
   const f = t.form;
+  const locale = useLocale();
   const id = useId();
+  const country = draft.country.trim().toUpperCase();
   const shown = (field: RequiredField) => (touched.has(field) ? errors[field] : undefined);
   const errorProps = (field: RequiredField, errorId: string) =>
     shown(field) ? { "aria-invalid": true, "aria-describedby": errorId } : {};
 
   return (
-    <fieldset disabled={disabled} className="grid disabled:opacity-70">
+    <fieldset disabled={disabled} className="grid min-w-0 disabled:opacity-70">
       <legend className="sr-only">{f.legend}</legend>
 
       <SettingsSection title={f.applicant} description={f.applicantDescription}>
@@ -57,7 +60,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             }}
           />
         </Field>
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_7rem]">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_14rem]">
           <Field label={f.contactName} htmlFor={`${id}-name`}>
             <Input
               id={`${id}-name`}
@@ -70,16 +73,24 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             />
           </Field>
           <Field label={f.country} htmlFor={`${id}-country`}>
-            <Input
-              id={`${id}-country`}
-              value={draft.country}
-              placeholder="AT"
-              maxLength={2}
-              className="uppercase placeholder:normal-case"
-              onChange={(event) => {
-                onChange({ country: event.target.value.toUpperCase() });
+            <Select
+              value={country}
+              onValueChange={(value) => {
+                onChange({ country: value });
               }}
-            />
+              disabled={disabled}
+            >
+              <SelectTrigger id={`${id}-country`} className="w-full min-w-0">
+                <SelectValue placeholder={f.countryPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {countryOptions(locale, country).map((option) => (
+                  <SelectItem key={option.code} value={option.code}>
+                    {option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
       </SettingsSection>
@@ -93,7 +104,7 @@ export function RequestForm({ draft, onChange, errors, touched, onTouch, disable
             }}
             disabled={disabled}
           >
-            <SelectTrigger id={`${id}-kind`} className="w-full" aria-describedby={`${id}-kind-hint`}>
+            <SelectTrigger id={`${id}-kind`} className="w-full min-w-0" aria-describedby={`${id}-kind-hint`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -276,15 +287,15 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-6 border-t border-divider py-10 first-of-type:border-t-0 first-of-type:pt-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
-      <div className="grid content-start gap-1.5">
+    <section className="grid min-w-0 gap-6 border-t border-divider py-10 first-of-type:border-t-0 first-of-type:pt-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid min-w-0 content-start gap-1.5">
         <h2 className="text-card-title font-semibold">
           {title}
           {required ? <RequiredMark /> : null}
         </h2>
         <p className="text-body text-muted-foreground">{description}</p>
       </div>
-      <div className="grid max-w-[640px] content-start gap-6">{children}</div>
+      <div className="grid max-w-[640px] min-w-0 content-start gap-6">{children}</div>
     </section>
   );
 }
@@ -305,7 +316,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="grid content-start gap-2">
+    <div className="grid min-w-0 content-start gap-2">
       <Label htmlFor={htmlFor}>
         {label}
         {required ? <RequiredMark /> : null}

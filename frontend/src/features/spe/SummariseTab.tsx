@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowUpFromLine, Ban, CheckCircle2, Loader2, Plus, X } from "lucide-react";
 import { useId, useState } from "react";
 
-import { api } from "@/api/client";
+import { api, type AirlockRequest } from "@/api/client";
 import type { SpeTable } from "@/api/types";
 import { CodeBlock } from "@/components/CodeBlock";
 import { ErrorState } from "@/components/States";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/cn";
 import { capitalise, formatValue, humanise, isProtectedMarker } from "@/lib/format";
 
 import { ResultTable } from "./ResultTable";
-import { defaultSummary, groupableColumns, summarySql, type FilterOp } from "./sqlBuilder";
+import { defaultSummary, summaryRequest, summarySql, type FilterOp } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
 
 const OPS: FilterOp[] = ["starts_with", "contains", "equals"];
@@ -28,11 +28,8 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
   const t = useT().spe.summarise;
   const id = useId();
   const summaryLabel = (column: string) => (column === "n" ? t.patientsColumn : humanise(column));
-  const schema = tables.map(({ name, columns }) => ({ name, columns }));
-  const countable = tables.filter(
-    (table) => table.columns.includes("patient_id") && groupableColumns(table).length,
-  );
-  const initial = defaultSummary(schema);
+  const countable = tables.filter((table) => table.airlock_group_by.length);
+  const initial = defaultSummary(tables);
 
   const [tableName, setTableName] = useState(initial?.table ?? "");
   const [groupBy, setGroupBy] = useState(initial?.groupBy ?? "");
@@ -40,15 +37,16 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
   const settledValue = useDebounced(condition?.value ?? "");
 
   const table = countable.find((candidate) => candidate.name === tableName);
-  const columns = table ? groupableColumns(table) : [];
-  const exportRun = useMutation({ mutationFn: (sql: string) => api.speAirlock(permitId, sql) });
+  const columns = table?.airlock_group_by ?? [];
+  const exportRun = useMutation({
+    mutationFn: (request: AirlockRequest) => api.speAirlock(permitId, request),
+  });
 
-  let sql: string | null = null;
+  let request: AirlockRequest | null = null;
   let buildError: Error | null = null;
   try {
-    sql = table
-      ? summarySql({
-          schema,
+    request = table
+      ? summaryRequest(countable, {
           table: table.name,
           groupBy,
           filter: condition ? { ...condition, value: settledValue } : null,
@@ -57,13 +55,14 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
   } catch (error) {
     buildError = error instanceof Error ? error : new Error(String(error));
   }
+  const sql = request ? summarySql(request) : null;
   const preview = useSpeSql(permitId, sql, `${tableName}:${groupBy}`);
   // An export belongs to the summary it was made from; changing the controls clears it.
-  const exported = exportRun.variables === sql ? exportRun : null;
+  const exported = exportRun.variables && sql === summarySql(exportRun.variables) ? exportRun : null;
 
   const chooseTable = (name: string) => {
     const next = countable.find((candidate) => candidate.name === name);
-    const nextColumns = next ? groupableColumns(next) : [];
+    const nextColumns = next?.airlock_group_by ?? [];
     setTableName(name);
     setGroupBy(nextColumns[0] ?? "");
     setCondition(null);
@@ -201,9 +200,9 @@ export function SummariseTab({ permitId, tables }: { permitId: string; tables: S
           </div>
           <Button
             className="h-9"
-            disabled={sql === null || exportRun.isPending}
+            disabled={request === null || exportRun.isPending}
             onClick={() => {
-              if (sql) exportRun.mutate(sql);
+              if (request) exportRun.mutate(request);
             }}
           >
             {exportRun.isPending ? (

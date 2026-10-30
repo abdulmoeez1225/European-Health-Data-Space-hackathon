@@ -18,15 +18,19 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import Scope
 
-from backend import audit, ledger, spe
+from backend import audit, ledger, pipeline, spe
 from backend.config import ROOT, settings
 from backend.db import connection
 from backend.law import ARTICLES, ARTICLES_DE, EUR_LEX_URL, Article
 from backend.llm import backend_name
-from backend.models import RequestResult, StaffActionRequest
+from backend.models import AppealRequest, RequestResult, StaffActionRequest
 from backend.pipeline import (
+    REQUEST_ID,
     ActionNotAllowed,
+    appeal_decision,
     get_result,
+    issue_permit,
+    permit_status,
     process_request,
     reopen_decision,
     results,
@@ -34,6 +38,10 @@ from backend.pipeline import (
 )
 
 access_log = logging.getLogger("gatekeeper.access")
+
+MAX_REQUEST_CHARS = 32_000
+MAX_TEXT_CHARS = 4_000
+PERMIT_NOT_ISSUED = "The data permit has not been issued yet"
 
 
 def _configure_logging() -> None:
@@ -138,10 +146,38 @@ def samples() -> list[dict[str, Any]]:
     return _load_requests(ROOT / "requests") + _load_requests(ROOT / "backend" / "samples")
 
 
-@app.post("/api/requests", response_model=RequestResult, responses={422: {"model": ErrorBody}})
-def submit(request: dict[str, Any]) -> RequestResult:
+def _texts(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [text for item in value.values() for text in _texts(item)]
+    if isinstance(value, list):
+        return [text for item in value for text in _texts(item)]
+    return []
+
+
+def _check_submission(request: dict[str, Any]) -> None:
     if not isinstance(request.get("applicant"), dict) or not request.get("purpose"):
         raise HTTPException(422, "A request needs an applicant object and a purpose.")
+    if request.get("id") and not REQUEST_ID.fullmatch(str(request["id"])):
+        raise HTTPException(422, "The request id may use only letters, digits, '-' and '_' (at most 64).")
+    if len(json.dumps(request, ensure_ascii=False)) > MAX_REQUEST_CHARS:
+        raise HTTPException(422, f"The request is too large (at most {MAX_REQUEST_CHARS} characters).")
+    if any(len(text) > MAX_TEXT_CHARS for text in _texts(request)):
+        raise HTTPException(422, f"A text field is too long (at most {MAX_TEXT_CHARS} characters each).")
+
+
+@app.post(
+    "/api/requests",
+    response_model=RequestResult,
+    responses={409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+)
+def submit(request: dict[str, Any]) -> RequestResult:
+    _check_submission(request)
+    # A staff action, a pending permit sign-off or an appeal stays in force; resubmitting must not undo it.
+    existing = get_result(pipeline.request_id(request))
+    if existing and (existing.staff_action or existing.status == "awaiting_permit" or existing.appeal):
+        raise HTTPException(409, "This request already has a decision; submit it under a new id.")
     return process_request(request)
 
 
@@ -165,12 +201,25 @@ def _staff_action(result: RequestResult | None, request_id: str) -> RequestResul
 
 
 @app.post(
+    "/api/requests/{request_id}/issue-permit",
+    response_model=RequestResult,
+    responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+)
+def issue_request_permit(request_id: str, body: StaffActionRequest) -> RequestResult:
+    """Sign off the data permit for approved record access; the secure workspace opens."""
+    try:
+        return _staff_action(issue_permit(request_id, body.reason), request_id)
+    except ActionNotAllowed as error:
+        raise HTTPException(409, str(error)) from error
+
+
+@app.post(
     "/api/requests/{request_id}/withdraw",
     response_model=RequestResult,
     responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
 )
 def withdraw_request(request_id: str, body: StaffActionRequest) -> RequestResult:
-    """Take back a grant (statistics or secure access)."""
+    """Take back a grant (statistics or secure access), also before its permit is issued."""
     try:
         return _staff_action(withdraw_decision(request_id, body.reason), request_id)
     except ActionNotAllowed as error:
@@ -183,9 +232,22 @@ def withdraw_request(request_id: str, body: StaffActionRequest) -> RequestResult
     responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
 )
 def reopen_request(request_id: str, body: StaffActionRequest) -> RequestResult:
-    """Set a refusal aside for manual review."""
+    """Set a refusal aside for manual review, for example after an appeal."""
     try:
         return _staff_action(reopen_decision(request_id, body.reason), request_id)
+    except ActionNotAllowed as error:
+        raise HTTPException(409, str(error)) from error
+
+
+@app.post(
+    "/api/requests/{request_id}/appeal",
+    response_model=RequestResult,
+    responses={404: {"model": ErrorBody}, 409: {"model": ErrorBody}, 422: {"model": ErrorBody}},
+)
+def appeal_request(request_id: str, body: AppealRequest) -> RequestResult:
+    """The applicant contests a refusal, once."""
+    try:
+        return _staff_action(appeal_decision(request_id, body.reason), request_id)
     except ActionNotAllowed as error:
         raise HTTPException(409, str(error)) from error
 
@@ -196,8 +258,19 @@ def law(lang: Literal["en", "de"] = "en") -> LawResponse:
     return LawResponse(source=EUR_LEX_URL, articles=list(articles.values()))
 
 
-@app.get("/api/spe/{permit_id}", response_model=spe.SpeInfo, responses={404: {"model": ErrorBody}})
+def _require_issued_permit(permit_id: str) -> None:
+    """The prepared secure workspace stays locked until staff issue the data permit (Art. 68)."""
+    if permit_status(permit_id) == "awaiting_permit":
+        raise HTTPException(403, PERMIT_NOT_ISSUED)
+
+
+@app.get(
+    "/api/spe/{permit_id}",
+    response_model=spe.SpeInfo,
+    responses={403: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+)
 def spe_info(permit_id: str) -> spe.SpeInfo:
+    _require_issued_permit(permit_id)
     try:
         return spe.spe_info(permit_id)
     except spe.SpeNotFound as error:
@@ -207,9 +280,10 @@ def spe_info(permit_id: str) -> spe.SpeInfo:
 @app.post(
     "/api/spe/{permit_id}/query",
     response_model=spe.QueryResult,
-    responses={400: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+    responses={400: {"model": ErrorBody}, 403: {"model": ErrorBody}, 404: {"model": ErrorBody}},
 )
 def spe_query(permit_id: str, body: SqlBody) -> spe.QueryResult:
+    _require_issued_permit(permit_id)
     try:
         return spe.run_query(permit_id, body.sql)
     except spe.SpeNotFound as error:
@@ -227,6 +301,7 @@ def spe_query(permit_id: str, body: SqlBody) -> spe.QueryResult:
     responses={403: {"model": DownloadBlocked}, 404: {"model": ErrorBody}},
 )
 def spe_download(permit_id: str) -> DownloadBlocked:
+    _require_issued_permit(permit_id)
     try:
         spe.spe_info(permit_id)
     except spe.SpeNotFound as error:
@@ -239,10 +314,15 @@ def spe_download(permit_id: str) -> DownloadBlocked:
     )
 
 
-@app.post("/api/spe/{permit_id}/airlock", response_model=spe.AirlockResult, responses={404: {"model": ErrorBody}})
-def spe_airlock(permit_id: str, body: SqlBody) -> spe.AirlockResult:
+@app.post(
+    "/api/spe/{permit_id}/airlock",
+    response_model=spe.AirlockResult,
+    responses={403: {"model": ErrorBody}, 404: {"model": ErrorBody}},
+)
+def spe_airlock(permit_id: str, body: spe.AirlockRequest) -> spe.AirlockResult:
+    _require_issued_permit(permit_id)
     try:
-        return spe.airlock_export(permit_id, body.sql)
+        return spe.airlock_export(permit_id, body)
     except spe.SpeNotFound as error:
         raise HTTPException(404, str(error)) from error
 
@@ -259,8 +339,11 @@ def ledger_log() -> list[ledger.LedgerEvent]:
     return ledger.ledger_events()
 
 
-@app.post("/api/ledger/reset", response_model=LedgerResetResult)
+@app.post("/api/ledger/reset", response_model=LedgerResetResult, responses={403: {"model": ErrorBody}})
 def ledger_reset() -> LedgerResetResult:
+    # Wiping the ledger re-opens every differencing attack, so it is for local demos only.
+    if not settings().allow_ledger_reset:
+        raise HTTPException(403, "Resetting the release ledger is disabled on this server.")
     ledger.reset_ledger()
     audit.record("ledger_reset", "staff", "ledger")
     return LedgerResetResult()

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RequestResult } from "@/api/types";
 import { burgenlandResult, rejectResult, speResult } from "@/mock/data";
-import { reopened, sampleRequest, withdrawn } from "@/test/render";
+import { appealed, awaitingPermit, permitIssued, reopened, sampleRequest, withdrawn } from "@/test/render";
 
 import { filterQueue } from "./Requests";
 
@@ -63,5 +63,33 @@ describe("filterQueue", () => {
     filterQueue(queue, "attention");
     filterQueue(queue, "actioned");
     expect(queue).toEqual(before);
+  });
+
+  describe("with permits and review requests", () => {
+    const waiting = awaitingPermit(speResult(sampleRequest("R05")));
+    const granted = permitIssued(speResult(sampleRequest("R05")));
+    const asked = appealed(rejectResult(sampleRequest("R02")));
+    const askedAndReopened = reopened(asked);
+
+    it("lists a waiting permit and an appealed refusal as needing attention", () => {
+      expect(filterQueue([waiting, asked, plain], "attention")).toEqual([waiting, asked]);
+    });
+
+    it("drops a permit once issued and a refusal once reopened from attention", () => {
+      expect(filterQueue([granted, askedAndReopened], "attention")).toEqual([]);
+    });
+
+    it("lists issued permits, withdrawn grants and reopened refusals as actioned", () => {
+      expect(filterQueue([granted, pulled, reconsidered, askedAndReopened], "actioned")).toEqual([
+        granted,
+        pulled,
+        reconsidered,
+        askedAndReopened,
+      ]);
+    });
+
+    it("does not list a waiting permit or an appealed refusal as actioned", () => {
+      expect(filterQueue([waiting, asked], "actioned")).toEqual([]);
+    });
   });
 });

@@ -8,7 +8,15 @@ import { keys } from "@/api/queries";
 import type { RequestResult } from "@/api/types";
 import { setLocale } from "@/i18n";
 import { burgenlandResult, rejectResult, speResult } from "@/mock/data";
-import { renderWithProviders, reopened, sampleRequest, withdrawn } from "@/test/render";
+import {
+  appealed,
+  awaitingPermit,
+  permitIssued,
+  renderWithProviders,
+  reopened,
+  sampleRequest,
+  withdrawn,
+} from "@/test/render";
 
 import { RequestDetail, WithdrawAction } from "./RequestDetail";
 
@@ -410,5 +418,123 @@ describe("RequestDetail in German", () => {
 
     expect(screen.getByRole("button", { name: "Zur manuellen Prüfung wieder öffnen…" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Entscheidung zurückziehen…" })).not.toBeInTheDocument();
+  });
+
+  it("offers issuing the permit in German", () => {
+    setLocale("de");
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+
+    expect(screen.getByRole("button", { name: "Genehmigung erteilen…" })).toBeEnabled();
+    expect(screen.getByText("Datengenehmigung wartet auf Sie")).toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail: awaiting permit", () => {
+  const CONDITIONS = "Valid for 12 months.";
+
+  async function openIssueDialog() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Issue permit…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Issue the data permit?" });
+    return { user, dialog };
+  }
+
+  it("says the permit is waiting and offers issuing it or withdrawing the decision", () => {
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+
+    expect(screen.getByText("Data permit waiting for you")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Issue permit…" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Withdraw decision…" })).toBeEnabled();
+  });
+
+  it("asks for the conditions of the permit", async () => {
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+
+    const { dialog } = await openIssueDialog();
+
+    expect(within(dialog).getByRole("textbox", { name: "Conditions" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Issue permit" })).toBeEnabled();
+  });
+
+  it("refuses empty conditions without calling the API", async () => {
+    const issuePermit = vi.spyOn(api, "issuePermit");
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+    const { user, dialog } = await openIssueDialog();
+
+    await user.click(within(dialog).getByRole("button", { name: "Issue permit" }));
+
+    expect(within(dialog).getByText("Note the conditions of the permit.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: "Conditions" })).toBeInvalid();
+    expect(issuePermit).not.toHaveBeenCalled();
+  });
+
+  it("issues the permit with the trimmed conditions and closes the dialog", async () => {
+    const issuePermit = vi.spyOn(api, "issuePermit").mockResolvedValue(permitIssued(issued(), CONDITIONS));
+    const withdraw = vi.spyOn(api, "withdraw");
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+    const { user, dialog } = await openIssueDialog();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Conditions" }), `  ${CONDITIONS}  `);
+    await user.click(within(dialog).getByRole("button", { name: "Issue permit" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(issuePermit).toHaveBeenCalledExactlyOnceWith(ID, CONDITIONS);
+    expect(withdraw).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open and shows the error when issuing fails", async () => {
+    vi.spyOn(api, "issuePermit").mockRejectedValue(new ApiError(409, "The permit was already issued."));
+    renderWithProviders(<RequestDetail result={awaitingPermit(issued())} />);
+    const { user, dialog } = await openIssueDialog();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "Conditions" }), CONDITIONS);
+    await user.click(within(dialog).getByRole("button", { name: "Issue permit" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("The permit was already issued.");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail: permit issued", () => {
+  it("stamps the permit with its conditions", () => {
+    renderWithProviders(<RequestDetail result={permitIssued(issued(), "Valid for 12 months.")} />);
+
+    const permit = stamp("Permit issued by staff");
+    expect(permit).toHaveTextContent(/Permit issued by staff\s*· \d{2}:\d{2}/);
+    expect(permit).toHaveTextContent("Conditions: Valid for 12 months.");
+  });
+
+  it("offers withdrawing but no issuing", () => {
+    renderWithProviders(<RequestDetail result={permitIssued(issued())} />);
+
+    expect(screen.getByRole("button", { name: "Withdraw decision…" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Issue permit…" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Data permit waiting for you")).not.toBeInTheDocument();
+  });
+});
+
+describe("RequestDetail: review requested", () => {
+  const APPEAL = "Our purpose is public health research.";
+  const NEXT = "Reopen the refusal to review it manually.";
+
+  it("shows the applicant's request as an alert with the next step and the reopen button", () => {
+    renderWithProviders(<RequestDetail result={appealed(refusal(), APPEAL)} />);
+
+    const title = screen.getByText(/^The applicant asked for a review on /);
+    const alert = title.parentElement as HTMLElement;
+    expect(within(alert).getByText(`“${APPEAL}”`)).toBeInTheDocument();
+    expect(within(alert).getByText(NEXT)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reopen for manual review…" })).toBeEnabled();
+  });
+
+  it("keeps the request on record after reopening, without the next step or the button", () => {
+    renderWithProviders(<RequestDetail result={reopened(appealed(refusal(), APPEAL))} />);
+
+    expect(screen.getByText(/^The applicant asked for a review on /)).toBeInTheDocument();
+    expect(screen.getByText(`“${APPEAL}”`)).toBeInTheDocument();
+    expect(screen.queryByText(NEXT)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen for manual review…" })).not.toBeInTheDocument();
   });
 });

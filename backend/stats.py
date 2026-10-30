@@ -66,7 +66,6 @@ class StatResult:
     sql: str
     dimensions: list[str]
     rows: list[GroupRow]
-    total_units: int
 
     def answer(self) -> dict:
         """Nested {group: {subgroup: {metric: value}}} view of the released values."""
@@ -161,7 +160,7 @@ def run_plan(plan: QueryPlan) -> StatResult:
                     cells.append(_mean_cell(metric.name, values))
         rows.append(GroupRow(labels=dict(zip(dims, key, strict=True)), cells=cells))
 
-    return StatResult(sql=compiled.sql, dimensions=dims, rows=rows, total_units=len(records))
+    return StatResult(sql=compiled.sql, dimensions=dims, rows=rows)
 
 
 def cohort_size(plan: QueryPlan) -> int:

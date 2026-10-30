@@ -44,7 +44,6 @@ describe("legalBasisRows", () => {
       ["scientific_research", "scientific research"],
       ["product_and_algorithm_development", "algorithm development"],
       ["improving_care", "improving care"],
-      ["none", "none recognised"],
     ])("names the recognised purpose %s as %s", (purpose, name) => {
       const result = statistics();
       const assessed: RequestResult = {
@@ -52,6 +51,22 @@ describe("legalBasisRows", () => {
         assessment: { ...result.assessment, allowed_purpose: purpose },
       };
       expect(labelOf(assessed, "53")).toBe(`Allowed purpose: ${name}`);
+    });
+  });
+
+  describe("Art. 53 without a recognised purpose", () => {
+    const unnamed = (result: RequestResult): RequestResult => ({
+      ...result,
+      assessment: { ...result.assessment, allowed_purpose: "none" },
+    });
+
+    it("never says 'none recognised' on a grant, only the article's title", () => {
+      expect(labelOf(unnamed(statistics()), "53")).toBe("Purposes of secondary use");
+    });
+
+    it("says no allowed purpose was recognised on a refusal", () => {
+      const refused: RequestResult = { ...unnamed(statistics()), decision: "REJECT" };
+      expect(labelOf(refused, "53")).toBe("No allowed purpose recognised");
     });
   });
 

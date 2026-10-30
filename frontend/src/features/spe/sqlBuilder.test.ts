@@ -5,10 +5,11 @@ import {
   countSql,
   defaultSummary,
   filterColumnsFor,
-  groupableColumns,
   quoteLiteral,
   SqlBuildError,
+  summaryRequest,
   summarySql,
+  type SummaryTable,
   type TableSchema,
 } from "./sqlBuilder";
 
@@ -19,6 +20,21 @@ const SCHEMA: TableSchema[] = [
   {
     name: "encounters",
     columns: ["encounter_id", "patient_id", "data_holder", "type", "start_date", "end_date", "primary_icd10"],
+  },
+];
+
+/** As GET /api/spe/{id} lists them: the airlock's group keys per table. */
+const SUMMARY_TABLES: SummaryTable[] = [
+  { name: "cohort", columns: ["patient_id"], airlock_group_by: [] },
+  {
+    name: "conditions",
+    columns: ["patient_id", "icd10", "description", "onset_date"],
+    airlock_group_by: ["icd10", "description", "onset_year"],
+  },
+  {
+    name: "medications",
+    columns: ["patient_id", "atc", "name", "start_date", "end_date"],
+    airlock_group_by: ["atc", "name", "start_year", "end_year"],
   },
 ];
 
@@ -88,7 +104,9 @@ describe("identifier whitelist", () => {
     expect(() =>
       browseSql({ schema: SCHEMA, table: "conditions", filters: [{ column, op: "equals", value: "E11" }] }),
     ).toThrow(SqlBuildError);
-    expect(() => summarySql({ schema: SCHEMA, table: "conditions", groupBy: column })).toThrow(SqlBuildError);
+    expect(() => summaryRequest(SUMMARY_TABLES, { table: "conditions", groupBy: column })).toThrow(
+      SqlBuildError,
+    );
   });
 });
 
@@ -107,48 +125,59 @@ describe("countSql", () => {
   });
 });
 
-describe("summarySql", () => {
-  it("counts distinct patients per group in a column named n", () => {
-    expect(summarySql({ schema: SCHEMA, table: "medications", groupBy: "atc" })).toBe(
+describe("summary", () => {
+  it("sends the airlock a structured request, never SQL", () => {
+    expect(summaryRequest(SUMMARY_TABLES, { table: "medications", groupBy: "atc" })).toEqual({
+      table: "medications",
+      group_by: ["atc"],
+      filter: null,
+    });
+  });
+
+  it("previews distinct patients per group in a column named n", () => {
+    const request = summaryRequest(SUMMARY_TABLES, { table: "medications", groupBy: "atc" });
+    expect(summarySql(request)).toBe(
       "SELECT atc, count(DISTINCT patient_id) AS n FROM medications GROUP BY atc ORDER BY n DESC, atc",
     );
   });
 
-  it("applies one condition", () => {
-    expect(
-      summarySql({
-        schema: SCHEMA,
-        table: "conditions",
-        groupBy: "icd10",
-        filter: { column: "description", op: "contains", value: "Diabetes" },
-      }),
-    ).toBe(
-      "SELECT icd10, count(DISTINCT patient_id) AS n FROM conditions WHERE contains(lower(CAST(description AS VARCHAR)), 'diabetes') GROUP BY icd10 ORDER BY n DESC, icd10",
+  it("applies one condition and groups dates by year", () => {
+    const request = summaryRequest(SUMMARY_TABLES, {
+      table: "conditions",
+      groupBy: "onset_year",
+      filter: { column: "description", op: "contains", value: " Diabetes " },
+    });
+    expect(request.filter).toEqual({ column: "description", op: "contains", value: "Diabetes" });
+    expect(summarySql(request)).toBe(
+      "SELECT year(onset_date) AS onset_year, count(DISTINCT patient_id) AS n FROM conditions WHERE contains(lower(CAST(description AS VARCHAR)), 'diabetes') GROUP BY onset_year ORDER BY n DESC, onset_year",
     );
   });
 
-  it("refuses to group by an identifying column", () => {
-    expect(() => summarySql({ schema: SCHEMA, table: "encounters", groupBy: "encounter_id" })).toThrow(
-      SqlBuildError,
-    );
-    expect(() => summarySql({ schema: SCHEMA, table: "conditions", groupBy: "patient_id" })).toThrow(
-      SqlBuildError,
-    );
+  it("drops an empty condition", () => {
+    const request = summaryRequest(SUMMARY_TABLES, {
+      table: "conditions",
+      groupBy: "icd10",
+      filter: { column: "icd10", op: "starts_with", value: "  " },
+    });
+    expect(request.filter).toBeNull();
+  });
+
+  it.each(["patient_id", "onset_date", "md5(patient_id)"])("refuses to group by %j", (groupBy) => {
+    expect(() => summaryRequest(SUMMARY_TABLES, { table: "conditions", groupBy })).toThrow(SqlBuildError);
+  });
+
+  it("refuses to filter on a column the airlock does not accept", () => {
+    expect(() =>
+      summaryRequest(SUMMARY_TABLES, {
+        table: "conditions",
+        groupBy: "icd10",
+        filter: { column: "patient_id", op: "equals", value: "p-0000000a" },
+      }),
+    ).toThrow(SqlBuildError);
   });
 });
 
 describe("column helpers", () => {
-  it("offers only non-identifying columns for grouping", () => {
-    expect(groupableColumns(SCHEMA[3] as TableSchema)).toEqual([
-      "data_holder",
-      "type",
-      "start_date",
-      "end_date",
-      "primary_icd10",
-    ]);
-    expect(groupableColumns(SCHEMA[0] as TableSchema)).toEqual([]);
-  });
-
   it("filters codes by prefix and names by any part", () => {
     expect(filterColumnsFor(SCHEMA[1] as TableSchema)).toEqual([
       { column: "icd10", op: "starts_with" },
@@ -158,7 +187,7 @@ describe("column helpers", () => {
   });
 
   it("starts the summary on a coded record table", () => {
-    expect(defaultSummary(SCHEMA)).toEqual({ table: "conditions", groupBy: "icd10" });
-    expect(defaultSummary([{ name: "cohort", columns: ["patient_id"] }])).toBeNull();
+    expect(defaultSummary(SUMMARY_TABLES)).toEqual({ table: "conditions", groupBy: "icd10" });
+    expect(defaultSummary(SUMMARY_TABLES.slice(0, 1))).toBeNull();
   });
 });

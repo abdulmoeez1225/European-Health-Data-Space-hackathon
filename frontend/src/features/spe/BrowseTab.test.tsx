@@ -9,9 +9,21 @@ import { renderWithProviders } from "@/test/render";
 import { BrowseTab } from "./BrowseTab";
 
 const TABLES: SpeTable[] = [
-  { name: "cohort", rows: 3, columns: ["patient_id"] },
-  { name: "conditions", rows: 120, columns: ["patient_id", "icd10", "description", "onset_date"] },
-  { name: "medications", rows: 80, columns: ["patient_id", "atc", "name", "start_date"] },
+  { name: "cohort", rows: 3, columns: ["patient_id"], airlock_group_by: [], airlock_means: [] },
+  {
+    name: "conditions",
+    rows: 120,
+    columns: ["patient_id", "icd10", "description", "onset_date"],
+    airlock_group_by: ["icd10", "description", "onset_year"],
+    airlock_means: [],
+  },
+  {
+    name: "medications",
+    rows: 80,
+    columns: ["patient_id", "atc", "name", "start_date"],
+    airlock_group_by: ["atc", "name", "start_year"],
+    airlock_means: [],
+  },
 ];
 
 type Pending = { sql: string; resolve: (result: QueryResult) => void };
@@ -35,8 +47,14 @@ const rowsOf = (column: string, value: string): QueryResult => ({
   columns: ["patient_id", column],
   rows: [["p-0000000a", value]],
   truncated: false,
+  truncated_cells: 0,
 });
-const total = (n: number): QueryResult => ({ columns: ["n"], rows: [[n]], truncated: false });
+const total = (n: number): QueryResult => ({
+  columns: ["n"],
+  rows: [[n]],
+  truncated: false,
+  truncated_cells: 0,
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -101,5 +119,20 @@ describe("BrowseTab: switching tables", () => {
 
     const loading = await screen.findByRole("status", { name: /Loading/ });
     expect(loading.className).toMatch(/h-\[480px\]/);
+  });
+
+  it("says once that no rows match", async () => {
+    const { pending, answer } = controlledQueries();
+    renderWithProviders(<BrowseTab permitId="permit-R05" tables={TABLES} />);
+    await waitFor(() => expect(pending.length).toBe(2));
+    await act(async () => {
+      answer((sql) => sql.startsWith("SELECT count"), total(0));
+      answer((sql) => sql.startsWith("SELECT *"), { ...rowsOf("icd10", ""), rows: [] });
+    });
+
+    const shown = (await screen.findAllByText("No rows match")).filter(
+      (element) => !element.classList.contains("sr-only"),
+    );
+    expect(shown).toHaveLength(1);
   });
 });

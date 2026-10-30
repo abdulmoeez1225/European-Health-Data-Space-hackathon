@@ -2,7 +2,7 @@ import type { RequestResult } from "@/api/types";
 
 import { messages } from "@/i18n/runtime";
 
-import { articleTitle, prohibitionFor } from "./decisions";
+import { articleTitle, refusalFor } from "./decisions";
 import { formatValue } from "./format";
 import { parseLegalLine } from "./legal";
 
@@ -32,7 +32,13 @@ export function legalBasisRows(result: RequestResult): LegalBasisRow[] {
     const label = (() => {
       switch (article) {
         case "53":
-          return m.basis.allowedPurpose(m.purposeShort[assessment.allowed_purpose]);
+          if (assessment.allowed_purpose !== "none") {
+            return m.basis.allowedPurpose(m.purposeShort[assessment.allowed_purpose]);
+          }
+          // A grant always rests on an allowed purpose, even when the AI did not name one.
+          return result.decision === "REJECT"
+            ? m.basis.noAllowedPurpose
+            : (articleTitle("53") ?? m.regulation);
         case "54":
           return m.basis.prohibitedUse(m.prohibitedShort[assessment.prohibited_ground]);
         case "66":
@@ -60,7 +66,7 @@ export function plainSentence(result: RequestResult): string {
   const m = messages();
   switch (result.decision) {
     case "REJECT":
-      return prohibitionFor(result.assessment.prohibited_ground).text;
+      return refusalFor(result.assessment).text;
     case "APPROVE_SPE":
       return result.spe ? m.sentence.speWithCohort(formatValue(result.spe.cohort_size)) : m.sentence.spe;
     case "APPROVE_STATISTICAL":

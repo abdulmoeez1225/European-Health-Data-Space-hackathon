@@ -125,30 +125,24 @@ export function useLatestDecision(mutationKey: readonly unknown[]): DecisionAtte
   return states.at(-1);
 }
 
-export function useResetLedger() {
-  const invalidate = useInvalidateAfterDecision();
-  return useMutation({
-    mutationFn: api.resetLedger,
-    onSettled: () => {
-      void invalidate();
-    },
-  });
-}
+export type CaseAction = "withdraw" | "reopen" | "issuePermit" | "appeal";
 
 /**
- * The one staff action on an issued decision: withdraw a grant (released statistics or the
- * workspace are pulled) or reopen a refusal for manual reconsideration.
+ * An action on a decision with a reason the other side reads: staff withdraw a grant (its data is
+ * pulled), reopen a refusal, or issue a waiting data permit; the applicant asks for a review of a refusal.
  */
-export function useStaffAction(requestId: string, kind: "withdraw" | "reopen") {
+export function useCaseAction(requestId: string, kind: CaseAction) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (reason: string) => (kind === "withdraw" ? api.withdraw : api.reopen)(requestId, reason),
+    mutationFn: (reason: string) => api[kind](requestId, reason),
     onSuccess: (result) => {
       client.setQueryData(keys.request(result.request_id), result);
       client.setQueryData<RequestResult[]>(keys.requests, (current) =>
         current?.map((item) => (item.request_id === result.request_id ? result : item)),
       );
       void client.invalidateQueries({ queryKey: keys.audit });
+      // Issuing or withdrawing a permit opens or closes the secure workspace.
+      void client.invalidateQueries({ queryKey: ["spe"] });
     },
   });
 }

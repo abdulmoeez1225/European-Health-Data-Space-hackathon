@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 
 import { AUTO_REFRESH_MS, useAudit, useLedger } from "@/api/queries";
 import { PageHeader } from "@/components/PageHeader";
-import { ErrorState } from "@/components/States";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatValue } from "@/lib/format";
 import { useT } from "@/i18n";
@@ -37,8 +36,6 @@ export function PrivacyAudit() {
   return (
     <div className="grid gap-10">
       <PageHeader title={t.page.title} description={t.page.description} />
-
-      {redTeam.resetError ? <ErrorState title={t.page.resetFailed} error={redTeam.resetError} /> : null}
 
       <RedTeamResults
         redTeam={redTeam}

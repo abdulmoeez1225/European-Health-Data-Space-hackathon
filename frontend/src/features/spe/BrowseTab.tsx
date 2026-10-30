@@ -16,6 +16,7 @@ import { formatValue, humanise } from "@/lib/format";
 import { ResultTable } from "./ResultTable";
 import { browseSql, countSql, filterColumnsFor, PAGE_SIZE, type Filter } from "./sqlBuilder";
 import { useDebounced, useSpeSql } from "./useSpeSql";
+import { Watermarked } from "./Watermark";
 
 /** An example prefix per coding system, for the "starts with" filter hint. */
 const CODE_EXAMPLES: Record<string, string> = {
@@ -164,21 +165,25 @@ function TableBrowser({
         </div>
       ) : (
         <div className="min-h-[480px]">
-          <ResultTable
-            columns={rows.data.columns}
-            rows={rows.data.rows}
-            caption={t.records(humanise(table.name))}
-          />
+          <Watermarked>
+            <ResultTable
+              columns={rows.data.columns}
+              rows={rows.data.rows}
+              caption={t.records(humanise(table.name))}
+            />
+          </Watermarked>
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-h-5 text-ui text-muted-foreground tabular-nums" aria-live="polite">
-          {total === null || rows.isPending
-            ? " "
-            : total === 0
-              ? spe.noRows
-              : t.range(formatValue(first), formatValue(last), formatValue(total))}
+          {total === null || rows.isPending ? (
+            " "
+          ) : total === 0 ? (
+            <span className="sr-only">{spe.noRows}</span>
+          ) : (
+            t.range(formatValue(first), formatValue(last), formatValue(total))
+          )}
         </p>
         <div className="flex items-center gap-2">
           <Button

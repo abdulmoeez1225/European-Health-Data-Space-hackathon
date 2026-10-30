@@ -25,6 +25,12 @@ const en = {
     "73": "Secure processing environment",
   } as Record<string, string>,
   regulation: "Regulation (EU) 2025/327",
+  noAllowedPurpose: {
+    title: "No allowed purpose",
+    text: "The stated purpose is not one of the purposes for which the regulation allows health data to be used.",
+    instead:
+      "Explain how the data serves an allowed purpose, such as public health, scientific research, official statistics, education or improving care.",
+  },
   prohibitions: {
     other: {
       title: "Unlawful or unethical use",
@@ -85,6 +91,7 @@ const en = {
   },
   basis: {
     allowedPurpose: (purpose: string) => `Allowed purpose: ${purpose}`,
+    noAllowedPurpose: "No allowed purpose recognised",
     prohibitedUse: (use: string) => `Prohibited use: ${use}`,
     recordsJustified: "Records justified",
     statisticsSuffice: "Statistics suffice, no records",
@@ -130,6 +137,12 @@ const de: DecisionMessages = {
     "73": "Sichere Verarbeitungsumgebung",
   },
   regulation: "Verordnung (EU) 2025/327",
+  noAllowedPurpose: {
+    title: "Kein zulässiger Zweck",
+    text: "Der angegebene Zweck gehört nicht zu den Zwecken, für die die Verordnung die Nutzung von Gesundheitsdaten erlaubt.",
+    instead:
+      "Erklären Sie, wie die Daten einem zulässigen Zweck dienen, etwa öffentlicher Gesundheit, wissenschaftlicher Forschung, amtlicher Statistik, Bildung oder besserer Versorgung.",
+  },
   prohibitions: {
     other: {
       title: "Rechtswidrige oder unethische Nutzung",
@@ -192,6 +205,7 @@ const de: DecisionMessages = {
   },
   basis: {
     allowedPurpose: (purpose) => `Zulässiger Zweck: ${purpose}`,
+    noAllowedPurpose: "Kein zulässiger Zweck erkannt",
     prohibitedUse: (use) => `Verbotene Nutzung: ${use}`,
     recordsJustified: "Datensätze begründet",
     statisticsSuffice: "Statistik genügt, keine Datensätze",

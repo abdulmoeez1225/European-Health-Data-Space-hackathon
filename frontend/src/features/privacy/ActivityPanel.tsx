@@ -193,8 +193,8 @@ export function ActivityPanel() {
                   </TableCell>
                   <TableCell className="truncate">{actorLabel(event.actor)}</TableCell>
                   <TableCell className="truncate font-mono">{event.subject}</TableCell>
-                  <TableCell className="truncate text-muted-foreground" title={detailFull(event)}>
-                    {detailLine(event)}
+                  <TableCell className="text-muted-foreground">
+                    <DetailText line={detailLine(event)} full={detailFull(event)} />
                   </TableCell>
                   <TableCell className="truncate font-mono text-caption text-subtle-foreground">
                     {event.id}
@@ -219,5 +219,25 @@ export function ActivityPanel() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** One line in the table; a click shows the full detail (whole SQL, every reason), another collapses it. */
+function DetailText({ line, full }: { line: string; full: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      title={open ? undefined : full}
+      onClick={() => setOpen((value) => !value)}
+      className={
+        open
+          ? "block w-full cursor-pointer rounded-sm text-left break-words whitespace-pre-wrap text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : "block w-full cursor-pointer truncate rounded-sm text-left outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      }
+    >
+      {open ? full : line}
+    </button>
   );
 }

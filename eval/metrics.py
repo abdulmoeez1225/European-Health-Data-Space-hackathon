@@ -62,12 +62,6 @@ def released_rows(result: RequestResult) -> dict[GroupKey, list[Scalar]]:
     return rows
 
 
-def values_equal(left: Scalar, right: Scalar) -> bool:
-    if isinstance(left, str) or isinstance(right, str):
-        return isinstance(left, str) and isinstance(right, str) and left == right
-    return float(left) == float(right)
-
-
 def _normalised(value: Scalar) -> Scalar:
     return value if isinstance(value, str) else float(value)
 

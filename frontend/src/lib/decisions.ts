@@ -60,6 +60,12 @@ export function prohibitionFor(ground: ProhibitedGround): Prohibition {
     : prohibitions[ground];
 }
 
+/** Why a request was refused: a prohibited use (Art. 54), or no allowed purpose at all (Art. 53). */
+export function refusalFor(assessment: PurposeAssessment): Prohibition {
+  if (!assessment.prohibited && assessment.allowed_purpose === "none") return messages().noAllowedPurpose;
+  return prohibitionFor(assessment.prohibited_ground);
+}
+
 /** The Art. 53 purpose the AI recognised, in plain words. */
 export function purposeLabel(purpose: PurposeAssessment["allowed_purpose"]): string {
   return messages().purposes[purpose];
