@@ -27,6 +27,8 @@ Gatekeeper automates the access body's routine work and leaves the judgement cal
 
 The design rule: **AI reads the request; code computes the answer.** The language model only sees request text, never patient data, and never writes SQL.
 
+To check that this holds on requests nobody wrote by hand, we also built an **evaluation tool** ([eval/jury/](eval/jury/)). It generates new jury-style requests with independently computed answers and keeps them in a corpus of 2,006 distinct requests. It tests the running app over HTTP the way a juror would, including attacks on the secure workspace and the release ledger. See [Evaluation tool](#evaluation-tool).
+
 ## Architecture
 
 ![Architecture](docs/architecture.svg)
@@ -55,6 +57,7 @@ Editable source: [docs/architecture.excalidraw](docs/architecture.excalidraw), w
 | API | [backend/api.py](backend/api.py) | FastAPI with a fully typed OpenAPI schema, `/api/health` and one JSON log line per request. It also serves the exported frontend. Resubmitting an id that staff already acted on, or that awaits its permit or has an appeal, returns 409; an id outside letters, digits, `-` and `_` (64 at most) and oversized requests return 422. |
 | Frontend | [frontend/](frontend/) | Next.js (App Router, static export), React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui-style components on Radix, TanStack Query; API types are generated from the OpenAPI schema. Two workspaces, chosen with a workspace switcher: **Applicant** (Request data, My requests, Secure workspace) and **Access body** (Decision queue, Privacy & audit). English and German interface (language switch, German number and date formats, decision letters rendered in German). The decision page shows the AI's explanation for the applicant; refusals show a case reference and an "Ask for a review" action. Light and dark themes. The secure workspace has no download button: a pinned secure-session bar names the permit, organisation and exact patient count, and a faint watermark with permit, organisation and time over every record view makes any screenshot traceable. Design notes: [frontend/DESIGN.md](frontend/DESIGN.md). |
 | Evaluation | [eval/](eval/) | Measures the brief's metrics over N runs on the 10 track requests, 12 jury-style requests (`eval/hidden/`) and 29 adversarial ones (`eval/stress/`), the latter two checked against separate hand-written SQL. |
+| Jury simulator | [eval/jury/](eval/jury/) | Writes new jury-style requests on every run (10 families, from hospital and main-diagnosis questions to subtle prohibited purposes), sends them to a running app over HTTP and scores the brief's metrics against answers from its own DuckDB database. It also checks each secure workspace from outside, attacks the workspace console and airlock, runs a differencing attack and checks the decision letters. Every request and result is kept in a DuckDB corpus; [eval/jury/CORPUS.md](eval/jury/CORPUS.md) reports its coverage and results. |
 | CI/CD | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend: ruff, mypy, pytest. Frontend: lint, typecheck, Vitest, build. Tests never call the LLM. A push to `main` that passes all checks is deployed to the server automatically. |
 
 ### Reliability
@@ -116,7 +119,8 @@ Both are 10 or more, so the small-cell rule alone releases both, and 33 − 32 =
 │   ├── results.md           latest results on the 10 track requests
 │   ├── hidden/              12 jury-style requests + independent reference SQL
 │   ├── german/              the 10 track requests in German, scored against requests/expected.json
-│   └── stress/              29 adversarial requests, reference SQL, FINDINGS.md
+│   ├── stress/              29 adversarial requests, reference SQL, FINDINGS.md
+│   └── jury/                jury simulator: new requests over HTTP, independent answers, attacks
 ├── tests/                   backend tests (pytest; never call the LLM)
 ├── data/                    synthetic patients, conditions, medications, observations, encounters (provided)
 ├── requests/                the 10 track requests and expected.json (provided)
@@ -147,6 +151,10 @@ make eval-hidden      # 12 jury-style requests
 make eval-german      # the 10 requests in German
 make eval-stress      # 29 adversarial requests
 make eval-live        # the 10 requests on the deployed server, with its live model (SSH access needed; free-tier settings via LIVE_ENV)
+make jury             # 20 new jury-style requests × 3 runs over HTTP against the running app, plus attacks (eval/jury/)
+make jury-live        # the same against the deployed site; asks first, because the requests stay in its queue
+make jury-corpus      # add 1,000 distinct requests to the evaluation corpus (no LLM); evaluate with JURY="--from-corpus 200"
+make jury-summary     # corpus coverage and results -> eval/jury/CORPUS.md
 ```
 
 Frontend development: run `make run` in one terminal and `make dev-frontend` in another, then open http://localhost:3000. Adding `?mock=1` to any page shows the UI with built-in sample data and no backend. See [frontend/README.md](frontend/README.md).
@@ -179,6 +187,38 @@ uvicorn backend.api:app --host 0.0.0.0 --port $PORT
 ```
 
 Set the LLM variables from [.env.example](.env.example) on the host (`GATEKEEPER_LLM=openai`, base URL, key and model of a free provider). On a free tier with a requests-per-minute limit, set `GATEKEEPER_LLM_READINGS=1` and `GATEKEEPER_LLM_MAX_RPM` just under the limit. Calls are then spaced evenly, and a rate-limited call waits as long as the provider asks before retrying. Mount `state/` on persistent disk if the host offers one. Check `/api/health`, then measure the deployed model with `make eval-live`. It runs the evaluation on the server inside the live image and settings, in a throwaway container that leaves the running site, its state and its cache untouched ([deploy/eval-live.sh](deploy/eval-live.sh)). The metrics below were measured with Claude, and another model must be re-measured.
+
+## Evaluation tool
+
+The fixed request sets below are useful but finite, and we tuned the app on them. The jury tests new requests, on the deployed site. So we built a tool that does the same, at scale, and checks every answer against ground truth that does not share code with the app.
+
+| Part | File | What it does |
+|---|---|---|
+| Request generator | [eval/jury/generate.py](eval/jury/generate.py) | Writes requests the way the track's R01–R10 are written, in 10 families: prevalence, active treatment, mean and thresholds of the latest lab value, inpatient stays by main diagnosis (`primary_icd10`) per hospital (`data_holder`), visits, justified records applications, records applications that only deserve statistics, prohibited purposes (several without the obvious keywords) and allowed purposes worded like prohibited ones. Applicant, condition, drug, lab test, grouping, period and wording (codes or plain English) are drawn from a seed. Every request is tagged with what it covers. |
+| Independent ground truth | [eval/jury/reference.py](eval/jury/reference.py) | Its own DuckDB over the five CSVs, its own opt-out filter and its own small-cell rule. It imports nothing from `backend/`, so a bug in the app cannot hide in the expected answer. A request whose answer would depend on how the brief is read is discarded. |
+| Evaluation corpus | [eval/jury/corpus.py](eval/jury/corpus.py), `eval/jury/corpus.duckdb` | Every distinct request with its expected answer, and every result of every run, per app and LLM backend. Runs are recorded request by request, so a long evaluation can stop and resume. |
+| Jury simulator | [eval/jury/run_jury.py](eval/jury/run_jury.py), [eval/jury/probes.py](eval/jury/probes.py) | Submits the requests to a running Gatekeeper over its public API and scores the brief's five metrics. It also checks each secure workspace from outside: the download returns 403, the workspace holds exactly the selected patients, no opted-out patient and only the requested record types. It attacks the workspace console (writes, `COPY`, `ATTACH`, reading the CSVs), the airlock (patient-level rows, small groups) and the release ledger (a differencing attack). It also checks that every decision letter explains each article it cites. |
+| Coverage and results report | [eval/jury/CORPUS.md](eval/jury/CORPUS.md) | What the corpus covers, results per app and backend, failures, and a summary sentence built from the real numbers. |
+
+What the corpus covers:
+
+| What | Covered |
+|---|---|
+| Conditions (ICD-10 groups), drug classes (ATC), lab tests (LOINC), main diagnoses of stays | every one in the dataset (11, 15, 4, 15) |
+| Allowed purposes (Art. 53) / prohibited uses (Art. 54) | 7 of 7 / 5 of 5 categories |
+| Applicants | 23 types (universities, ministry, statistics office, hospitals, pharma, start-ups, patient groups, insurers, banks, employers, advertisers, nicotine, alcohol, defence and gambling companies, a municipality, a school, a newspaper) from 5 countries |
+| Groupings | region, hospital, sex, age band, year, hospital × sex, age band × sex, hospital × year |
+
+```bash
+make run                                       # the app, in another terminal
+make jury                                      # 20 new requests × 3 runs + attacks → eval/jury/runs/<time>/report.md
+make jury JURY="--from-corpus 200 --runs 1"    # 200 stored requests not yet evaluated on this app
+make jury-live                                 # the deployed site (asks first: requests stay in its queue)
+make jury-corpus                               # add 1,000 distinct requests to the corpus (no LLM)
+make jury-summary                              # coverage and results → eval/jury/CORPUS.md
+```
+
+The tool already paid for itself during development. It caught its own contradictory requests, a crash in the generator and the limit described under [What does not work](#what-does-not-work-yet). What it does not show: the requests come from templates with randomised parameters and wording. They cover the data and the categories of the law, not every way a request can be phrased. [eval/jury/README.md](eval/jury/README.md) has the details.
 
 ## Metric results
 
@@ -237,5 +277,6 @@ Rejections return in about 5 s, because they don't wait for the query plan. The 
 - The article texts in [backend/law.py](backend/law.py) are plain-language summaries, not the official wording.
 - There is no sign-in. The applicant and access-body workspaces are separated in the UI by a workspace switcher, but the API does not authenticate anyone, so anyone who can reach the server can use the staff actions (issuing a permit, withdrawing, reopening). The switch is a demo convenience. In production, staff would sign in through their authority's single sign-on and applicants through eIDAS, and the staff endpoints (decision queue, audit log, ledger) would require the staff role.
 - The ledger catches differencing between nested groups (one group contained in another) across answers, and recovery of a hidden small cell from other released cells. Two nested counts asked side by side inside one answer can still differ by fewer than 10; closing that would hide numbers the track's expected answers require. Differences across three or more sets that were never released as one cell are not tracked.
+- When a request contradicts itself, the plan follows the question rather than the definitions. For example, it might ask for records of "adults with atrial fibrillation" but define a prevalence over all adults. The jury simulator found a 100 % prevalence released in that case without a review flag. Consistent requests are not affected.
 - The metrics above were measured with Claude. The live site runs on a free Gemini key, which is rate-limited; `make eval-live` measures that setup, and its results can differ.
 - Text that comes from the model or the data stays in its original language in the German interface: review-flag sentences, the full reasoning, and column names taken from an English request.
